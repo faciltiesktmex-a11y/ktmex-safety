@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.2.0';
+window.FRONT_VERSION = '0.3.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -175,6 +175,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}.thumb{width:110px;height:84px;border-radius:9px;overflow:hidden;position:relative;background:#E2E8F0;border:1px solid var(--border)}
 .thumb img{width:100%;height:100%;object-fit:cover}.thumb button{position:absolute;top:3px;right:3px;background:rgba(15,23,42,.75);color:#fff;border:0;border-radius:6px;font-size:.7rem;cursor:pointer;padding:2px 6px}
 #face-canvas{max-width:100%;cursor:crosshair;border-radius:10px;touch-action:none;display:block;margin:0 auto}
+.xv-marco{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;background:#fff}
 .heat{border-collapse:separate;border-spacing:3px}.heat td{width:46px;height:34px;text-align:center;font-weight:800;font-size:.78rem;border-radius:6px}
 .q-opt{display:flex;gap:10px;align-items:center;padding:11px 13px;border:1.5px solid var(--border);border-radius:11px;margin-bottom:8px;cursor:pointer;font-size:.88rem}
 .q-opt:hover{border-color:#93C5FD}.q-opt.sel{border-color:var(--blue);background:var(--blue-soft)}
@@ -200,6 +201,9 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="xlsx-fill.js" charset="utf-8"></script>
+<script src="fo015-map.js" charset="utf-8"></script>
+<script src="formatos.js" charset="utf-8"></script>
 </head>
 <body>
 
@@ -260,6 +264,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
   <div class="page fade">
     <div class="hero">
       <h1 id="home-saludo">Bienvenido</h1>
+      <p style="font-size:1.05rem;color:#fff;font-weight:600;margin:0 0 6px">Un solo criterio para evaluar, aprobar y ejecutar el trabajo</p>
       <p>Sistema de Safety de KTMEX: matriz de riesgos, análisis JSA y JRA, comunicados y alertas, indicadores, contratistas y capacitación.</p>
     </div>
     <div class="mod-grid" id="home-mods"></div>
@@ -271,6 +276,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
   <div class="page fade">
     <div class="page-head">
       <div><h2>Administración</h2><p>Usuarios del sistema y registro de movimientos.</p></div>
+      <div class="toolbar"><button class="btn-g btn-sm" type="button" onclick="ejemplos('cargar')"><i class="fas fa-flask" style="margin-right:6px"></i>Cargar ejemplos</button><button class="btn-g btn-sm" type="button" onclick="ejemplos('borrar')"><i class="fas fa-broom" style="margin-right:6px"></i>Borrar ejemplos</button></div>
     </div>
     <div style="margin-bottom:14px">
       <button class="tab-btn" id="tab-usuarios" type="button" onclick="switchTab('usuarios')"><i class="fas fa-users" style="margin-right:6px"></i>Usuarios</button>
@@ -717,6 +723,13 @@ async function copiarTemporal(){
   catch(e){ toast('Selecciona la contraseña y cópiala manualmente.','info'); }
 }
 
+/* ═══ Ejemplos para probar (folios EJ-…) ═══ */
+async function ejemplos(accion){
+  if(accion==='borrar' && !confirm(uiText('¿Borrar todos los registros de ejemplo (folios EJ-…)? Los datos reales no se tocan.'))) return;
+  const r = await api({action:'ejemplos', token:SESSION.token, accion});
+  if(!r.success){ toast(r.error,'err'); return; }
+  PUB = null; toast(r.mensaje);
+}
 /* ═══ Bitácora ═══ */
 async function cargarBitacora(){
   $('bit-rows').innerHTML = `<tr><td colspan="4" style="padding:22px;text-align:center;color:#94A3B8">${esc(uiText('Cargando…'))}</td></tr>`;
@@ -774,14 +787,14 @@ const TEXT_I18N = {
   'Seguridad industrial':'Industrial safety','Operación':'Operations','Gestión':'Management','Inicio':'Home','Administración':'Administration',
   'Salir':'Sign out','Ingresar':'Sign in','Usuario':'Username','Contraseña':'Password','Ingresa con tu usuario del sistema de Safety':'Sign in with your Safety system username',
   '¿Olvidaste tu contraseña? Pide a Safety que la reinicie.':'Forgot your password? Ask Safety to reset it.',
-  'Bienvenido':'Welcome',
+  'Bienvenido':'Welcome','Un solo criterio para evaluar, aprobar y ejecutar el trabajo':'One criterion to assess, approve and carry out the work','Verde':'Green','Azul':'Blue','Mixto':'Mixed','Acto inseguro':'Unsafe act','Evento':'Event','Simulación':'Simulation','Frente':'Front','Espalda':'Back',
   'Sistema de Safety de KTMEX: matriz de riesgos, análisis JSA y JRA, comunicados y alertas, indicadores, contratistas y capacitación.':'KTMEX Safety system: risk matrix, JSA and JRA analyses, communications and alerts, indicators, contractors and training.','Contratistas y DC-3':'Contractors and DC-3','Capacitación':'Training','Control':'Control','Contratistas':'Contractors','Empresas, trabajadores, constancias DC-3 con vigencia y aptitud por permiso de trabajo.':'Companies, workers, DC-3 certificates with expiry and fitness by work permit.','Cursos y exámenes para contratistas, con calificación en el servidor y resultados.':'Courses and exams for contractors, graded on the server, with results.','Regresar':'Back',
   'Matriz de riesgos':'Risk matrix','Peligros, evaluación y contramedidas acordadas por el equipo de Safety, con un solo criterio.':'Hazards, assessment and countermeasures agreed by the Safety team, with a single criterion.',
   'JSA y JRA':'JSA and JRA','Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.':'Risk analysis filled from the matrix that produces the official form for signature.',
   'Comunicados y alertas':'Communications and alerts','Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.':'Incident communications and unsafe-act alerts, ready to print.',
   'Indicadores':'Indicators','Gráficas de eventos por mes, área y tipo, y el plano de la planta.':'Charts of events by month, area and type, and the plant layout.',
   'Alta de usuarios, roles, contraseñas temporales y bitácora de movimientos.':'User accounts, roles, temporary passwords and activity log.',
-  'Disponible':'Available','Versión vigente:':'Current version:','Folio':'ID','Cat.':'Cat.','Implementado':'Implemented','En proceso':'In progress','Pendiente':'Pending','Verificado':'Verified','Abierto':'Open','En seguimiento':'In follow-up','Cerrado':'Closed','Abierta':'Open','Cerrada':'Closed','Accidente':'Accident','Incidente':'Incident','Casi accidente':'Near miss','Daño a la propiedad':'Property damage','Lesión':'Injury','Tratamiento médico':'Medical treatment','Primer auxilio':'First aid','Alerta':'Alert','Alertas (actos inseguros)':'Alerts (unsafe acts)','SIN EVALUAR':'NOT ASSESSED','Usuarios del sistema y registro de movimientos.':'System users and activity log.',
+  'Disponible':'Available','Cargar ejemplos':'Load examples','Borrar ejemplos':'Delete examples','Versión vigente:':'Current version:','Folio':'ID','Cat.':'Cat.','Implementado':'Implemented','En proceso':'In progress','Pendiente':'Pending','Verificado':'Verified','Abierto':'Open','En seguimiento':'In follow-up','Cerrado':'Closed','Abierta':'Open','Cerrada':'Closed','Accidente':'Accident','Incidente':'Incident','Casi accidente':'Near miss','Daño a la propiedad':'Property damage','Lesión':'Injury','Tratamiento médico':'Medical treatment','Primer auxilio':'First aid','Alerta':'Alert','Alertas (actos inseguros)':'Alerts (unsafe acts)','SIN EVALUAR':'NOT ASSESSED','Usuarios del sistema y registro de movimientos.':'System users and activity log.',
   'Usuarios':'Users','Bitácora':'Activity log','Buscar nombre, usuario o área':'Search name, username or area','Mostrar inactivos':'Show inactive','Nuevo usuario':'New user',
   'Nombre':'Name','Rol':'Role','Área':'Area','Estatus':'Status','Fecha':'Date','Movimiento':'Action','Detalle':'Detail',
   'Activo':'Active','Inactivo':'Inactive','Pendiente de primer ingreso':'Pending first sign-in','Tú':'You',
@@ -1121,126 +1134,163 @@ async function guardarCatalogo(tipo){
   if(r){ CATS = r.catalogos; MZ.catalogos = r.catalogos; PUB = null; }
 }
 
-/* ═══════════════ JSA / JRA ═══════════════ */
+/* ═══════════════ JSA / JRA (cada uno con su formato y su escala) ═══════════════ */
 let AN = [], ED = null;
 const ESTATUS_AN = {BORRADOR:['b-off',L('Borrador','Draft')], ENVIADO:['b-pend',L('En revisión de Safety','Under Safety review')], APROBADO:['b-done',L('Aprobado','Approved')], RECHAZADO:['b-red',L('Regresado para corregir','Returned for corrections')]};
 const chipAn = s => `<span class="badge ${(ESTATUS_AN[s]||['b-off'])[0]}">${esc((ESTATUS_AN[s]||['',s])[1])}</span>`;
+const nivelDoc = a => a.nivelResidual ? `<span class="nv nv-${String(a.bloqueado).toUpperCase()==='TRUE'?4:1}">${esc(a.nivelResidual)}</span>` : '—';
+const lineasDe = t => String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
+const catJSA = (sev,prob) => { const p = KF.jsaPuntaje(sev,prob); if(!p) return '<span class="nv nv-0">—</span>'; const c = KF.JSA_CAT(p).replace('\n',' '); const i = {E:1,D:1,C:2,B:3,A:4}[c[1]]; return `<span class="nv nv-${i}">${esc(c)} · ${p}</span>`; };
 async function cargarAnalisis(){
   $('analisis-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
   const r = await llamar({action:'analisisListar', token:tok()}); if(!r) return; AN = r.analisis;
-  $('analisis-body').innerHTML = cabecera(L('JSA y JRA','JSA and JRA'), L('Análisis de riesgo con el criterio único. Safety revisa y aprueba antes de ejecutar el trabajo.','Risk analyses with the single criterion. Safety reviews and approves before the work is done.'),
+  $('analisis-body').innerHTML = cabecera(L('JSA y JRA','JSA and JRA'), L('El JSA (trabajos no rutinarios) y el JRA (rutinarios) se llenan con su propio formato y escala. Safety revisa y aprueba antes de ejecutar el trabajo.','JSA (non-routine) and JRA (routine) are filled with their own form and scale. Safety reviews and approves before the work is done.'),
     `<button class="btn-p btn-sm" type="button" onclick="nuevoAnalisis('JSA',false)"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo JSA','New JSA'))}</button><button class="btn-ok btn-sm" type="button" onclick="nuevoAnalisis('JRA',false)"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo JRA','New JRA'))}</button>`)
     + `<section class="card"><div class="filters">${inp('an-q','','placeholder="'+esc(L('Buscar folio, actividad, área o compañía','Search ID, activity, area or company'))+'" oninput="filasAnalisis()"')}${sel('an-tipo',['JSA','JRA'],'',L('JSA y JRA','JSA and JRA'),'onchange="filasAnalisis()"')}${sel('an-est',Object.keys(ESTATUS_AN).map(k=>({v:k,t:ESTATUS_AN[k][1]})),'',L('Todos los estatus','All statuses'),'onchange="filasAnalisis()"')}</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Estatus','Status'))}</th><th>${esc(L('Actividad','Activity'))}</th><th>${esc(L('Área / compañía','Area / company'))}</th><th>${esc(L('Residual máx.','Max residual'))}</th><th>${esc(L('Capturó','Entered by'))}</th><th>${esc(L('Fecha','Date'))}</th><th></th></tr></thead><tbody id="an-rows"></tbody></table></div><p class="help" id="an-count" style="padding:10px 16px"></p></section>`;
+    <div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Estatus','Status'))}</th><th>${esc(L('Actividad','Activity'))}</th><th>${esc(L('Área / compañía','Area / company'))}</th><th>${esc(L('Después de controles','After controls'))}</th><th>${esc(L('Capturó','Entered by'))}</th><th>${esc(L('Fecha','Date'))}</th><th></th></tr></thead><tbody id="an-rows"></tbody></table></div><p class="help" id="an-count" style="padding:10px 16px"></p></section>`;
   filasAnalisis();
 }
 function filasAnalisis(){
   const q=val('an-q').toLowerCase(), t=val('an-tipo'), e=val('an-est');
   const rows = AN.filter(a=>(!t||a.tipo===t)&&(!e||a.estatus===e)&&(!q||[a.folio,a.actividad,a.area,a.compania,a.capturoNombre].join(' ').toLowerCase().includes(q)));
-  $('an-rows').innerHTML = rows.length ? rows.map(a=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(a.folio)}</td><td><strong>${esc(a.tipo)}</strong></td><td>${chipAn(a.estatus)}${String(a.bloqueado).toUpperCase()==='TRUE'?`<br><span class="help" style="color:#B91C1C">${esc(L('Bloqueado por riesgo residual','Blocked by residual risk'))}</span>`:''}</td><td class="no-i18n">${esc(a.actividad)}</td><td class="no-i18n">${esc(a.area)}${a.compania?' / '+esc(a.compania):''}</td><td>${nvTxt(a.nivelResidual)}</td><td class="no-i18n">${esc(a.capturoNombre||'—')}${a.origen==='PUBLICO'?` <span class="badge b-info">${esc(L('Sin cuenta','No account'))}</span>`:''}</td><td style="white-space:nowrap">${fecha(a.creado)}</td><td><button class="btn-g btn-sm" type="button" onclick="verAnalisis('${a.id}')">${esc(L('Ver','View'))}</button></td></tr>`).join('') : vacio(9, L('No hay documentos con esos filtros.','No documents match the filters.'));
+  $('an-rows').innerHTML = rows.length ? rows.map(a=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(a.folio)}</td><td><strong>${esc(a.tipo)}</strong></td><td>${chipAn(a.estatus)}${String(a.bloqueado).toUpperCase()==='TRUE'?`<br><span class="help" style="color:#B91C1C">${esc(L('Riesgo alto después de controles','High risk after controls'))}</span>`:''}</td><td class="no-i18n">${esc(a.actividad)}</td><td class="no-i18n">${esc(a.area||'')}${a.compania?' / '+esc(a.compania):''}</td><td>${nivelDoc(a)}</td><td class="no-i18n">${esc(a.capturoNombre||'—')}${a.origen==='PUBLICO'?` <span class="badge b-info">${esc(L('Sin cuenta','No account'))}</span>`:''}</td><td style="white-space:nowrap">${fecha(a.creado)}</td><td><button class="btn-g btn-sm" type="button" onclick="verAnalisis('${a.id}')">${esc(L('Ver','View'))}</button></td></tr>`).join('') : vacio(9, L('No hay documentos con esos filtros.','No documents match the filters.'));
   $('an-count').textContent = `${rows.length} de ${AN.length} documentos`;
 }
-function resumenAnalisisHtml(a){
-  const d = a.datos||{}, g = d.general||{};
-  return `<div class="grid-3">${[[L('Actividad','Activity'),g.actividad],[L('Área','Area'),g.area],[L('Compañía','Company'),g.compania],[L('Departamento','Department'),g.departamento],[L('Fecha del trabajo','Work date'),g.fechaTrabajo],[L('Capturó','Entered by'),a.capturoNombre||g.capturoNombre]].map(([k,v])=>`<div><span class="help">${esc(k)}</span><div class="no-i18n" style="font-size:.86rem">${esc(v||'—')}</div></div>`).join('')}</div>
-    ${g.descripcion?`<p class="no-i18n" style="font-size:.86rem;margin:0">${esc(g.descripcion)}</p>`:''}
-    <div class="tbl-wrap"><table><thead><tr><th>#</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>${esc(L('Inicial','Initial'))}</th><th>${esc(L('Controles','Controls'))}</th><th>${esc(L('Residual','Residual'))}</th></tr></thead><tbody>${(d.tareas||[]).map((t,i)=>(t.riesgos||[]).map((r,j)=>`<tr class="tbl-row">${j===0?`<td rowspan="${t.riesgos.length}">${i+1}</td><td rowspan="${t.riesgos.length}" class="no-i18n">${esc(t.texto)}</td>`:''}<td class="no-i18n">${esc(r.peligro)}${r.ambiental?` <span class="badge b-done">${esc(L('Ambiental','Environmental'))}</span>`:''}${r.folio?`<br><span class="mono help">${esc(r.folio)}</span>`:''}</td><td>${nvB(nivelJS(r.s,r.p,false))}</td><td class="no-i18n" style="font-size:.76rem">${esc([r.ctlElim,r.ctlIng,r.ctlAdm,r.epp].filter(Boolean).join(' · ')||'—')}</td><td>${nvB(nivelJS(r.s,r.pRes||r.p,true))}</td></tr>`).join('')).join('')}</tbody></table></div>
-    ${a.comentarioRevision?`<div class="box"><span class="help">${esc(L('Comentario de Safety','Safety comment'))} · <span class="no-i18n">${esc(a.revisadoPor||'')}</span></span><div class="no-i18n" style="font-size:.86rem">${esc(a.comentarioRevision)}</div></div>`:''}`;
-}
 async function verAnalisis(id){
-  await cargarPublicos();
   const a = AN.find(x=>x.id===id), yo = SESSION.user.username;
   const puedeEditar = (a.capturo===yo && ['BORRADOR','RECHAZADO'].includes(a.estatus)) || esSafety();
   const revisar = esSafety() && a.estatus==='ENVIADO';
-  modal(1, `${a.folio} · ${a.tipo}`, `<div>${chipAn(a.estatus)} ${nvTxt(a.nivelResidual)}</div>` + resumenAnalisisHtml(a) + (revisar?`<div class="box">${fld(L('Comentario para quien capturó (obligatorio si se regresa)','Comment for the author (required when returning)'), ta('rev-com',''))}</div>`:''),
-    `<button class="btn-g" type="button" onclick="imprimirAnalisis('${id}')"><i class="fas fa-print" style="margin-right:6px"></i>${esc(L('Imprimir formato','Print form'))}</button>`
+  modal(1, `${a.folio} · ${a.tipo}`, `<div>${chipAn(a.estatus)} ${nivelDoc(a)}</div>${a.comentarioRevision?`<div class="box"><span class="help">${esc(L('Comentario de Safety','Safety comment'))} · <span class="no-i18n">${esc(a.revisadoPor||'')}</span></span><div class="no-i18n" style="font-size:.86rem">${esc(a.comentarioRevision)}</div></div>`:''}<div id="prev-hojas" style="width:100%"><p class="help">${esc(L('Preparando el formato…','Preparing the form…'))}</p></div>`
+    + (revisar?`<div class="box">${fld(L('Comentario para quien capturó (obligatorio si se regresa)','Comment for the author (required when returning)'), ta('rev-com',''))}</div>`:''),
+    `<button class="btn-g" type="button" onclick="descargarAnalisis('${id}')"><i class="fas fa-file-excel" style="margin-right:6px"></i>${esc(L('Descargar Excel','Download Excel'))}</button>`
     + (puedeEditar?`<button class="btn-g" type="button" onclick="closeModal('m-gen');editarAnalisis('${id}')">${esc(L('Editar','Edit'))}</button>`:'')
     + (revisar?`<button class="btn-red" type="button" onclick="revisarAnalisis('${id}','REGRESAR')">${esc(L('Regresar para corregir','Return for corrections'))}</button><button class="btn-ok" type="button" onclick="revisarAnalisis('${id}','APROBAR')">${esc(L('Aprobar','Approve'))}</button>`:''), 'xl');
+  try{ KF_ULTIMO = await KF.generar(a.tipo, a); await KF.mostrar($('prev-hojas'), KF_ULTIMO); } catch(e){ $('prev-hojas').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
+}
+let KF_ULTIMO = null;
+function nombreArchivo(tipo, doc, i, n){
+  const g = (doc.datos&&doc.datos.general)||{}, f = (doc.fecha||g.fechaTrabajo||hoy()).replace(/-/g,''), sufijo = n>1?`_hoja${i+1}`:'';
+  const base = {JSA:'F-SGA-8.1-7_JSA', JRA:'KQMS-SA-FO-015_JRA', COM:'KQMS-SA-FO-014_SAFETY_COMMUNICATION', ALE:'KQMS-SA-FO-005_ALERTA_DE_SEGURIDAD'}[tipo];
+  return `${base}_${(doc.numero||doc.folio||g.consecutivo||'').replace(/[^\w-]+/g,'_')}_${f}${sufijo}.xlsx`;
+}
+async function descargarAnalisis(id, doc){
+  const a = doc || AN.find(x=>x.id===id); const partes = KF_ULTIMO && KF_ULTIMO[0] && KF_ULTIMO[0].tipo===a.tipo ? KF_ULTIMO : await KF.generar(a.tipo, a);
+  partes.forEach((p,i)=>KF.descargar(p.bytes, nombreArchivo(a.tipo, a, i, partes.length)));
 }
 async function revisarAnalisis(id, decision){
   const r = await llamar({action:'analisisRevisar', token:tok(), id, decision, comentario:val('rev-com')}, decision==='APROBAR'?L('Análisis aprobado.','Analysis approved.'):L('Regresado para corregir.','Returned for corrections.'));
   if(r){ closeModal('m-gen'); cargarAnalisis(); }
 }
+const JSA_VACIO = () => ({riesgos:[], sev:'', prob:'', medidas:[], sevD:'', probD:'', documentos:[]});
 async function nuevoAnalisis(tipo, publico){
-  PUB = null; await cargarPublicos();   // siempre la matriz vigente
-  ED = {id:'', tipo, publico, datos:{general:{fechaTrabajo:hoy(), capturoNombre: publico?'':(SESSION?SESSION.user.nombre:'')}, tareas:[{texto:'', riesgos:[]}], personal:[]}};
+  PUB = null; await cargarPublicos();
+  const g = {fechaTrabajo:hoy(), capturoNombre: publico?'':(SESSION?SESSION.user.nombre:'')};
+  ED = tipo==='JSA' ? {id:'', tipo, publico, datos:{general:g, tareas:[{texto:'', seg:JSA_VACIO(), amb:JSA_VACIO()}], personal:[]}}
+                    : {id:'', tipo, publico, datos:{general:Object.assign(g,{tipoActividad:'routine'}), tareas:[{texto:'', riesgos:[]}], otrosRiesgos:[], sinQuimicos:true, quimicos:[]}};
   showView('editor'); renderEditor();
 }
 async function editarAnalisis(id){
   PUB = null; await cargarPublicos();
   const a = AN.find(x=>x.id===id);
-  ED = {id, tipo:a.tipo, publico:false, datos:JSON.parse(JSON.stringify(a.datos||{general:{},tareas:[],personal:[]}))};
-  ED.datos.tareas = ED.datos.tareas||[]; ED.datos.personal = ED.datos.personal||[];
+  ED = {id, tipo:a.tipo, publico:false, datos:JSON.parse(JSON.stringify(a.datos||{}))};
+  const d = ED.datos; d.general = d.general||{}; d.tareas = d.tareas||[]; d.personal = d.personal||[];
+  if(a.tipo==='JSA') d.tareas.forEach(t=>{ t.seg = Object.assign(JSA_VACIO(), t.seg||{}); t.amb = Object.assign(JSA_VACIO(), t.amb||{}); });
+  else { d.tareas.forEach(t=>t.riesgos=t.riesgos||[]); d.otrosRiesgos = d.otrosRiesgos||[]; d.quimicos = d.quimicos||[]; }
   showView('editor'); renderEditor();
 }
+const gIn = (k, label, extra, cls) => fld(label, inp('g-'+k, ED.datos.general[k], `data-g="${k}" ${extra||''}`), cls);
+const gSel = (k, label, list, ph) => fld(label, sel('g-'+k, list, ED.datos.general[k], ph===undefined?'—':ph, `data-g="${k}"`));
 function renderEditor(){
-  const d = ED.datos, g = d.general, jsa = ED.tipo==='JSA';
-  const gen = jsa
-    ? `<div class="grid-3">${fld(L('Compañía','Company'), inp('g-compania',g.compania,'data-g="compania"'))}${fld(L('Actividad','Activity'), inp('g-actividad',g.actividad,'data-g="actividad"'))}${fld(L('Área','Area'), sel('g-area',areas(),g.area,'—','data-g="area"'))}</div>
-       <div class="grid-4">${fld(L('Departamento','Department'), sel('g-departamento',CATS.departamento||[],g.departamento,'—','data-g="departamento"'))}${fld(L('Fecha del trabajo','Work date'), inp('g-fechaTrabajo',g.fechaTrabajo,'type="date" data-g="fechaTrabajo"'))}${fld(L('Periodo','Period'), inp('g-periodo',g.periodo,'data-g="periodo" placeholder="'+esc(L('Ej. 20 al 22 de octubre','e.g. Oct 20 to 22'))+'"'))}${fld(L('Horario','Schedule'), inp('g-horario',g.horario,'data-g="horario"'))}</div>`
-    : `<div class="grid-3">${fld(L('Actividad rutinaria','Routine activity'), inp('g-actividad',g.actividad,'data-g="actividad"'))}${fld(L('Área','Area'), sel('g-area',areas(),g.area,'—','data-g="area"'))}${fld(L('Departamento','Department'), sel('g-departamento',CATS.departamento||[],g.departamento,'—','data-g="departamento"'))}</div>
-       <div class="grid-4">${fld(L('Líneas / máquina','Lines / machine'), inp('g-lineaMaquina',g.lineaMaquina,'data-g="lineaMaquina"'))}${fld(L('Proceso','Process'), inp('g-proceso',g.proceso,'data-g="proceso"'))}${fld(L('¿Cuenta con MOE?','Has MOE?'), sel('g-moe',[{v:'SI',t:L('Sí','Yes')},{v:'NO',t:'No'}],g.moe,'—','data-g="moe"'))}${fld(L('Código de MOE','MOE code'), inp('g-moeCodigo',g.moeCodigo,'data-g="moeCodigo"'))}</div>`;
-  const quien = `<div class="grid-3">${fld(L('Nombre de quien captura','Name of person entering'), inp('g-capturoNombre',g.capturoNombre,'data-g="capturoNombre"'))}${ED.publico&&!jsa?fld(L('Compañía o departamento','Company or department'), inp('g-compania',g.compania,'data-g="compania"')):''}${fld(L('Teléfono (opcional)','Phone (optional)'), inp('g-telefono',g.telefono,'data-g="telefono"'))}</div>
-    ${fld(L('Descripción del trabajo','Work description'), ta('g-descripcion',g.descripcion,'data-g="descripcion"'))}`;
-  const tareas = d.tareas.map((t,i)=>`<div class="task"><div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1">${fld(`Tarea ${i+1}`, inp('t-'+i,t.texto,`data-t="${i}" placeholder="${esc(L('Describe el paso del trabajo','Describe the work step'))}"`))}</div><button class="btn-g btn-sm" type="button" onclick="quitarTarea(${i})" title="${esc(L('Quitar tarea','Remove task'))}" aria-label="${esc(L('Quitar tarea','Remove task'))}"><i class="fas fa-trash"></i></button></div>
-      ${t.riesgos.map((r,j)=>htmlRiesgoEd(i,j,r)).join('')}
-      <div class="toolbar" style="margin-top:10px"><button class="btn-g btn-sm" type="button" onclick="elegirDeMatriz(${i})"><i class="fas fa-table-cells" style="margin-right:6px"></i>${esc(L('Agregar riesgo de la matriz','Add risk from matrix'))}</button><button class="btn-g btn-sm" type="button" onclick="agregarRiesgo(${i})"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Riesgo que no está en la matriz','Risk not in the matrix'))}</button></div></div>`).join('');
-  const personal = jsa ? `<section class="card" style="padding:18px;margin-top:14px"><div class="sec-title">${esc(L('Personal que realizará el trabajo','Workers who will do the job'))}</div>${d.personal.map((p,i)=>`<div class="grid-3" style="margin-top:8px">${inp('pe-n-'+i,p.nombre,`data-pe="${i}" data-pk="nombre" placeholder="${esc(L('Nombre','Name'))}"`)}${inp('pe-p-'+i,p.puesto,`data-pe="${i}" data-pk="puesto" placeholder="${esc(L('Puesto','Position'))}"`)}<button class="btn-g btn-sm" type="button" onclick="ED.datos.personal.splice(${i},1);renderEditor()">${esc(L('Quitar','Remove'))}</button></div>`).join('')}<button class="btn-g btn-sm" type="button" style="margin-top:10px" onclick="ED.datos.personal.push({nombre:'',puesto:''});renderEditor()"><i class="fas fa-user-plus" style="margin-right:6px"></i>${esc(L('Agregar persona','Add person'))}</button></section>` : '';
-  $('editor-body').innerHTML = cabecera(jsa?L('JSA · trabajo especial o no rutinario','JSA · special or non-routine work'):L('JRA · trabajo rutinario','JRA · routine work'),
-      ED.publico?L('No necesitas cuenta. Al enviar recibirás un folio y un código para consultar la respuesta de Safety.','No account needed. When you submit you will get an ID and a code to check Safety\'s response.'):L('Los riesgos de la matriz ya traen la evaluación acordada por Safety; ajústalos a las condiciones reales.','Matrix risks already carry the assessment agreed by Safety; adjust them to real conditions.'),
+  const d = ED.datos, jsa = ED.tipo==='JSA', M = window.KTMEX_FO015;
+  let gen;
+  if(jsa) gen = `<div class="grid-3">${gIn('compania',L('Compañía','Company'))}${gIn('actividad',L('Actividad','Activity'))}${gSel('area',L('Área donde se realiza','Area'),areas())}</div>
+    <div class="grid-4">${gIn('periodo',L('Periodo','Period'),'placeholder="08-08-2026 AL 22-08-2026"')}${gIn('horario',L('Horario','Schedule'),'placeholder="16:00 A 04:00"')}${gIn('capturoNombre',L('Nombre de quien captura','Name of person entering'))}${gIn('telefono',L('Teléfono (opcional)','Phone (optional)'))}</div>`;
+  else gen = `<div class="grid-4">${gIn('fechaTrabajo',L('Fecha','Date'),'type="date"')}${gIn('consecutivo',L('No. consecutivo','Consecutive no.'),'placeholder="FAC-0019"')}${gIn('capturoNombre',L('Evaluador (nombre)','Evaluator (name)'))}${gSel('departamento',L('Departamento','Department'),CATS.departamento||[])}</div>
+    <div class="grid-4">${gIn('lineaMaquina',L('Líneas / máquina','Lines / machine'))}${gIn('proceso',L('Proceso','Process'))}${gIn('actividad',L('Actividad','Activity'))}${gSel('area',L('Área','Area'),areas())}</div>
+    <div class="grid-4">${gSel('categoriaTrabajo',L('Categoría de trabajo','Work category'),Object.entries(M.WORK_CATEGORY_LABEL).map(([v,t])=>({v,t})))}${gSel('tipoActividad',L('Tipo de actividad','Activity type'),[{v:'routine',t:L('Rutinaria','Routine')},{v:'nonRoutine',t:L('No rutinaria','Non-routine')}],undefined)}${gSel('moe',L('¿Cuenta con MOE?','Has MOE?'),[{v:'SI',t:L('Sí','Yes')},{v:'NO',t:'No'}])}${gIn('moeCodigo',L('Código de MOE (solo para el sistema)','MOE code (system only)'))}</div>
+    ${ED.publico?`<div class="grid-3">${gIn('compania',L('Compañía o departamento','Company or department'))}</div>`:''}
+    <div class="sec-title" style="margin-top:8px">${esc(L('Otros riesgos potenciales (marca todos los que apliquen)','Other potential hazards (check all that apply)'))}</div>
+    <div class="grid-3">${M.OTHER_HAZARDS.map((h,i)=>`<label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-otro="${i}" ${(d.otrosRiesgos||[]).includes(h)?'checked':''}> <span class="no-i18n">${esc(h)}</span></label>`).join('')}</div>
+    <div class="sec-title" style="margin-top:8px">${esc(L('Higiene industrial y sustancias químicas (anexo FO-016)','Industrial hygiene and chemicals (annex FO-016)'))}</div>
+    <label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="g-sinq" ${d.sinQuimicos?'checked':''} onchange="ED.datos.sinQuimicos=this.checked;renderEditor()"> ${esc(L('No hay sustancias químicas en el área (no se llena el anexo)','No chemicals in the area (annex not filled)'))}</label>
+    ${d.sinQuimicos?'':htmlQuimicos()}`;
+  const tareas = d.tareas.map((t,i)=> jsa ? htmlTareaJSA(t,i) : htmlTareaJRA(t,i)).join('');
+  const personal = jsa ? `<section class="card" style="padding:18px;margin-top:14px"><div class="sec-title">${esc(L('Personal que realizará el trabajo (un nombre por renglón)','Workers who will do the job (one name per line)'))}</div>${ta('ed-personal',(d.personal||[]).map(p=>p.nombre).join('\n'),'rows="4" data-personal="1"')}<p class="help">${esc(L('Caben 6 por hoja; si son más, el sistema agrega otra hoja del formato.','6 fit per sheet; if more, the system adds another sheet.'))}</p></section>` : '';
+  $('editor-body').innerHTML = cabecera(jsa?L('JSA · F-SGA-8.1-7 · trabajo especial o no rutinario','JSA · F-SGA-8.1-7 · special or non-routine work'):L('JRA · KQMS-SA-FO-015 · trabajo rutinario','JRA · KQMS-SA-FO-015 · routine work'),
+      ED.publico?L('No necesitas cuenta. Al enviar recibirás un folio y un código para consultar la respuesta de Safety.','No account needed. When you submit you will get an ID and a code to check Safety\'s response.'):L('Los riesgos de la matriz se convierten a la escala de este formato; ajústalos a las condiciones reales.','Matrix risks are converted to this form\'s scale; adjust them to real conditions.'),
       `<button class="btn-g btn-sm" type="button" onclick="${ED.publico?"showView('publico')":"showView('analisis')"}">${esc(L('Salir sin guardar','Leave without saving'))}</button>`)
-    + `<section class="card" style="padding:18px"><div class="sec-title">${esc(L('Datos generales','General information'))}</div>${gen}${quien}</section>
-       <div class="sec-title" style="margin:18px 0 8px">${esc(L('Tareas y riesgos','Tasks and risks'))}</div><div id="ed-tareas">${tareas}</div>
-       <button class="btn-g" type="button" onclick="ED.datos.tareas.push({texto:'',riesgos:[]});renderEditor()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tarea','Add task'))}</button>
+    + `<section class="card" style="padding:18px"><div class="sec-title">${esc(L('Datos generales','General information'))}</div>${gen}</section>
+       <div class="sec-title" style="margin:18px 0 8px">${esc(jsa?L('Tareas (10 por hoja)','Tasks (10 per sheet)'):L('Tareas y riesgos (30 renglones por hoja: uno por riesgo)','Tasks and risks (30 rows per sheet: one per risk)'))}</div><div id="ed-tareas">${tareas}</div>
+       <button class="btn-g" type="button" onclick="agregarTarea()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tarea','Add task'))}</button>
        ${personal}
        <section class="card" style="padding:18px;margin-top:14px"><div id="ed-resumen"></div><div class="toolbar" style="margin-top:12px;justify-content:flex-end">
          ${ED.publico?'':`<button class="btn-g" type="button" onclick="guardarEditor(false)">${esc(L('Guardar borrador','Save draft'))}</button>`}
-         <button class="btn-p" type="button" id="btn-enviar-an" onclick="guardarEditor(true)"><i class="fas fa-paper-plane" style="margin-right:6px"></i>${esc(L('Enviar a Safety','Send to Safety'))}</button></div></section>`;
+         <button class="btn-p" type="button" id="btn-enviar-an" onclick="vistaPreviaEditor()"><i class="fas fa-eye" style="margin-right:6px"></i>${esc(L('Vista previa y enviar a Safety','Preview and send to Safety'))}</button></div></section>`;
   resumenEditor();
 }
-function htmlRiesgoEd(i,j,r){
-  const k = `${i}-${j}`;
-  return `<div class="risk" id="rk-${k}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px"><span class="help">${r.folio?`<span class="mono">${esc(r.folio)}</span> · `+esc(L('de la matriz','from the matrix')):esc(L('Riesgo agregado por quien captura','Risk added by the author'))}</span><button class="btn-g btn-sm" type="button" onclick="ED.datos.tareas[${i}].riesgos.splice(${j},1);renderEditor()" title="${esc(L('Quitar riesgo','Remove risk'))}" aria-label="${esc(L('Quitar riesgo','Remove risk'))}"><i class="fas fa-xmark"></i></button></div>
-    <div class="grid-3">${fld(L('Peligro / riesgo','Hazard / risk'), inp('r-peligro-'+k,r.peligro,`data-r="${k}" data-rk="peligro"`))}${fld(L('Categoría','Category'), sel('r-categoria-'+k,catOpts(),r.categoria,'—',`data-r="${k}" data-rk="categoria"`))}<div style="display:flex;align-items:flex-end"><label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" ${r.ambiental?'checked':''} data-r="${k}" data-rk="ambiental"> ${esc(L('Es un aspecto ambiental','It is an environmental aspect'))}</label></div></div>
-    <div class="grid-4">${fld('S', sel('r-s-'+k,sOpts(),r.s,'—',`data-r="${k}" data-rk="s"`))}${fld('P', sel('r-p-'+k,pOpts(),r.p,'—',`data-r="${k}" data-rk="p"`))}${fld(L('Control de mayor jerarquía','Highest control'), sel('r-ctlMayor-'+k,cOpts(),r.ctlMayor,'—',`data-r="${k}" data-rk="ctlMayor"`))}${fld(L('P residual','Residual P'), sel('r-pRes-'+k,pResOpts(r.p,r.ctlMayor),r.pRes,'—',`data-r="${k}" data-rk="pRes"`))}</div>
-    <div class="grid-4">${fld(L('Eliminación / sustitución','Elimination / substitution'), inp('r-ctlElim-'+k,r.ctlElim,`data-r="${k}" data-rk="ctlElim"`))}${fld(L('Ingeniería','Engineering'), inp('r-ctlIng-'+k,r.ctlIng,`data-r="${k}" data-rk="ctlIng"`))}${fld(L('Administrativo','Administrative'), inp('r-ctlAdm-'+k,r.ctlAdm,`data-r="${k}" data-rk="ctlAdm"`))}${fld('EPP', inp('r-epp-'+k,r.epp,`data-r="${k}" data-rk="epp"`))}</div>
-    <div id="rk-ev-${k}" style="margin-top:8px"></div></div>`;
+function htmlBloqueJSA(i, k, x){
+  const titulo = k==='seg' ? L('Seguridad','Safety') : L('Ambiental','Environmental');
+  const s = (c, list, v) => sel(`j-${c}-${i}-${k}`, list, v, '—', `data-j="${i}" data-jb="${k}" data-jk="${c}"`);
+  return `<div class="risk"><div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.84rem">${esc(titulo)}</strong><span id="j-ev-${i}-${k}"></span></div>
+    <div class="grid-2" style="margin-top:6px">${fld(L('Riesgos potenciales / aspectos ambientales (uno por renglón)','Potential risks / environmental aspects (one per line)'), ta(`j-riesgos-${i}-${k}`, (x.riesgos||[]).join('\n'), `rows="3" data-j="${i}" data-jb="${k}" data-jk="riesgos"`))}${fld(L('Medidas preventivas y controles operacionales (una por renglón)','Preventive measures and operational controls (one per line)'), ta(`j-medidas-${i}-${k}`, (x.medidas||[]).join('\n'), `rows="3" data-j="${i}" data-jb="${k}" data-jk="medidas"`))}</div>
+    <div class="grid-4">${fld(L('Severidad (antes)','Severity (before)'), s('sev', KF.JSA_SEV, x.sev))}${fld(L('Probabilidad (antes)','Probability (before)'), s('prob', KF.JSA_PROB, x.prob))}${fld(L('Severidad (después)','Severity (after)'), s('sevD', KF.JSA_SEV, x.sevD))}${fld(L('Probabilidad (después)','Probability (after)'), s('probD', KF.JSA_PROB, x.probD))}</div>
+    ${fld(L('Documentación requerida (permisos, hojas de inspección, DC-3…; una por renglón)','Required documents (permits, inspection sheets, DC-3…; one per line)'), ta(`j-documentos-${i}-${k}`, (x.documentos||[]).join('\n'), `rows="2" data-j="${i}" data-jb="${k}" data-jk="documentos"`))}</div>`;
 }
-function evalRiesgoEd(i,j){
-  const r = ED.datos.tareas[i].riesgos[j], k=`${i}-${j}`, el=$('rk-ev-'+k); if(!el) return;
-  const pm = r.p ? pMinDe(r.p,r.ctlMayor) : null;
-  el.innerHTML = `<span class="help">${esc(L('Inicial','Initial'))}</span> ${nvB(nivelJS(r.s,r.p,false))} &nbsp; <span class="help">${esc(L('Residual','Residual'))}</span> ${nvB(nivelJS(r.s,r.pRes||r.p,true))}${pm&&r.ctlMayor?` <span class="help">· ${esc(`P residual permitida: ${pm} a ${r.p}`)}</span>`:''}`;
+function htmlTareaJSA(t, i){
+  return `<div class="task"><div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1">${fld(`Tarea ${i+1}`, inp('t-'+i,t.texto,`data-t="${i}" placeholder="${esc(L('Descripción de la tarea a realizar','Description of the task'))}"`))}</div><button class="btn-g btn-sm" type="button" onclick="quitarTarea(${i})" aria-label="${esc(L('Quitar tarea','Remove task'))}"><i class="fas fa-trash"></i></button></div>
+    ${htmlBloqueJSA(i,'seg',t.seg)}${htmlBloqueJSA(i,'amb',t.amb)}
+    <div class="toolbar" style="margin-top:10px"><button class="btn-g btn-sm" type="button" onclick="elegirDeMatriz(${i})"><i class="fas fa-table-cells" style="margin-right:6px"></i>${esc(L('Agregar riesgo de la matriz','Add risk from matrix'))}</button></div></div>`;
 }
+function htmlTareaJRA(t, i){
+  const M = window.KTMEX_FO015, op = l => l.map(([v,tx])=>({v, t:v+' · '+tx}));
+  return `<div class="task"><div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1">${fld(`Tarea ${i+1}`, inp('t-'+i,t.texto,`data-t="${i}" placeholder="${esc(L('Descripción de la tarea','Task description'))}"`))}</div><button class="btn-g btn-sm" type="button" onclick="quitarTarea(${i})" aria-label="${esc(L('Quitar tarea','Remove task'))}"><i class="fas fa-trash"></i></button></div>
+    ${t.riesgos.map((r,j)=>{ const k=`${i}-${j}`, s=(c,l)=>sel(`q-${c}-${k}`, op(l), r[c], '—', `data-q="${k}" data-qk="${c}"`);
+      return `<div class="risk"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px"><span class="help">${r.folio?`<span class="mono">${esc(r.folio)}</span> · `+esc(L('de la matriz','from the matrix')):esc(L('Renglón del formato','Form row'))}</span><span id="q-ev-${k}"></span><button class="btn-g btn-sm" type="button" onclick="ED.datos.tareas[${i}].riesgos.splice(${j},1);renderEditor()" aria-label="${esc(L('Quitar riesgo','Remove risk'))}"><i class="fas fa-xmark"></i></button></div>
+        <div class="grid-2">${fld(L('Riesgo potencial identificado','Identified potential risk'), inp('q-texto-'+k, r.texto, `data-q="${k}" data-qk="texto"`))}${fld(L('Categoría de riesgo (H)','Risk category (H)'), sel('q-categoria-'+k, M.CATEGORIES.map(([v,tx])=>({v,t:v+') '+tx})), r.categoria, '—', `data-q="${k}" data-qk="categoria"`))}</div>
+        <div class="grid-4">${fld(L('Severidad (S)','Severity (S)'), s('s',M.LISTS.s))}${fld(L('Frecuencia (F)','Frequency (F)'), s('f',M.LISTS.f))}${fld(L('Probabilidad (P)','Probability (P)'), s('p',M.LISTS.p))}${fld(L('Control (C)','Control (C)'), s('c',M.LISTS.c))}</div>
+        ${fld(L('Notas: medidas de control (una por renglón)','Notes: control measures (one per line)'), ta('q-medidas-'+k, (r.medidas||[]).join('\n'), `rows="2" data-q="${k}" data-qk="medidas"`))}</div>`; }).join('')}
+    <div class="toolbar" style="margin-top:10px"><button class="btn-g btn-sm" type="button" onclick="elegirDeMatriz(${i})"><i class="fas fa-table-cells" style="margin-right:6px"></i>${esc(L('Agregar riesgo de la matriz','Add risk from matrix'))}</button><button class="btn-g btn-sm" type="button" onclick="ED.datos.tareas[${i}].riesgos.push({texto:'',categoria:'',s:'',f:'',p:'',c:'',medidas:[]});renderEditor()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar renglón de riesgo','Add risk row'))}</button></div></div>`;
+}
+function htmlQuimicos(){
+  const M = window.KTMEX_FO015, q = ED.datos.quimicos, op = l => l.map(([v,t])=>({v,t:v+' · '+t}));
+  return `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>${esc(L('Sustancia','Substance'))}</th><th>${esc(L('Identificador','Identifier'))}</th><th>${esc(L('Frecuencia','Frequency'))}</th><th>${esc(L('Duración','Duration'))}</th><th>${esc(L('Aire','Air'))}</th><th>${esc(L('Dérmico','Dermal'))}</th><th>${esc(L('Control ing.','Eng. control'))}</th><th>EPP</th><th></th></tr></thead><tbody>${q.map((c,i)=>{ const s=(k,l)=>sel(`qm-${k}-${i}`,op(l),c[k],'—',`data-qm="${i}" data-qmk="${k}"`);
+    return `<tr class="tbl-row"><td>${i+1}</td><td>${inp('qm-nombre-'+i,c.nombre,`data-qm="${i}" data-qmk="nombre"`)}</td><td>${inp('qm-id-'+i,c.id,`data-qm="${i}" data-qmk="id"`)}</td><td>${s('frecuencia',M.LISTS.ihFrequency)}</td><td>${s('duracion',M.LISTS.ihDuration)}</td><td>${s('aire',M.LISTS.ihAir)}</td><td>${s('dermico',M.LISTS.ihDermal)}</td><td>${s('control',M.LISTS.ihControl)}</td><td>${sel('qm-epp-'+i,['SI','No'],c.epp,'—',`data-qm="${i}" data-qmk="epp"`)}</td><td><button class="btn-g btn-sm" type="button" onclick="ED.datos.quimicos.splice(${i},1);renderEditor()" aria-label="${esc(L('Quitar','Remove'))}"><i class="fas fa-xmark"></i></button></td></tr>`; }).join('')}</tbody></table></div>
+    <button class="btn-g btn-sm" type="button" style="margin-top:8px" onclick="ED.datos.quimicos.push({nombre:'',id:'',frecuencia:'',duracion:'',aire:'',dermico:'',control:'',epp:''});renderEditor()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar sustancia','Add substance'))}</button>`;
+}
+function agregarTarea(){ ED.datos.tareas.push(ED.tipo==='JSA' ? {texto:'', seg:JSA_VACIO(), amb:JSA_VACIO()} : {texto:'', riesgos:[]}); renderEditor(); }
+function quitarTarea(i){ if(ED.datos.tareas.length>1 || confirm(uiText(L('¿Quitar la única tarea?','Remove the only task?')))){ ED.datos.tareas.splice(i,1); if(!ED.datos.tareas.length) agregarTarea(); else renderEditor(); } }
 function resumenEditor(){
-  let ini=0, res=0, n=0;
-  ED.datos.tareas.forEach((t,i)=>t.riesgos.forEach((r,j)=>{ n++; evalRiesgoEd(i,j); const a=nivelJS(r.s,r.p,false), b=nivelJS(r.s,r.pRes||r.p,true); if(a&&a.i>ini) ini=a.i; if(b&&b.i>res) res=b.i; }));
-  const N = CRITC ? CRITC.niveles : [];
-  $('ed-resumen').innerHTML = `<div class="grid-3"><div><span class="help">${esc(L('Riesgos evaluados','Risks assessed'))}</span><div class="kpi" style="padding:0"><div class="v">${n}</div></div></div><div><span class="help">${esc(L('Inicial máximo','Max initial'))}</span><div>${ini?nvTxt(N[ini-1].n):'—'}</div></div><div><span class="help">${esc(L('Residual máximo','Max residual'))}</span><div>${res?nvTxt(N[res-1].n):'—'}</div></div></div>
-    ${res>=3?`<p style="color:#B91C1C;font-weight:700;font-size:.84rem;margin:10px 0 0">${esc(L('Hay un riesgo residual IMPORTANTE o mayor: Safety no podrá aprobarlo. Agrega controles de mayor jerarquía.','There is a SIGNIFICANT or higher residual risk: Safety will not be able to approve it. Add higher-level controls.'))}</p>`:''}`;
+  const d = ED.datos; let txt = '';
+  if(ED.tipo==='JSA'){
+    let peor = '';
+    d.tareas.forEach((t,i)=>['seg','amb'].forEach(k=>{ const x=t[k]||{}, el=$(`j-ev-${i}-${k}`); if(el) el.innerHTML = `<span class="help">${esc(L('Antes','Before'))}</span> ${catJSA(x.sev,x.prob)} <span class="help">${esc(L('Después','After'))}</span> ${catJSA(x.sevD,x.probD)}`;
+      const p = KF.jsaPuntaje(x.sevD,x.probD); if(p){ const c = KF.JSA_CAT(p)[1]; if(!peor || c<peor) peor = c; } }));
+    txt = `<span class="help">${esc(L('Categoría más alta después de controles','Highest category after controls'))}:</span> <strong>${esc(peor||'—')}</strong>` + ((peor==='A'||peor==='B')?`<p style="color:#B91C1C;font-weight:700;font-size:.84rem;margin:8px 0 0">${esc(L('Queda un riesgo en categoría A o B después de controles: Safety no podrá aprobarlo. Agrega controles.','A risk remains in category A or B after controls: Safety will not be able to approve it. Add controls.'))}</p>`:'');
+  } else {
+    let ct = 0, n = 0;
+    d.tareas.forEach((t,i)=>t.riesgos.forEach((r,j)=>{ n++; const uc = KF.r2((+r.s||0)*(+r.f||0)*(+r.p||0)), c = KF.r2(uc*(+r.c||0)); if(c>ct) ct=c;
+      const el = $(`q-ev-${i}-${j}`); if(el) el.innerHTML = `<span class="nv nv-${uc>20?4:1}">UC ${uc}</span> <span class="nv nv-${c>20?4:1}">CT ${c}</span>`; }));
+    txt = `<span class="help">${esc(L('Renglones','Rows'))}:</span> <strong>${n}</strong> · <span class="help">CT máx.:</span> <strong>${ct}</strong>` + (ct>20?`<p style="color:#B91C1C;font-weight:700;font-size:.84rem;margin:8px 0 0">${esc(L('Hay un CT mayor a 20 (el formato lo marca en rojo): Safety no podrá aprobarlo.','There is a CT above 20 (the form marks it red): Safety will not be able to approve it.'))}</p>`:'');
+  }
+  $('ed-resumen').innerHTML = txt;
 }
 document.addEventListener('input', edCambio); document.addEventListener('change', edCambio);
 function edCambio(e){
   const el = e.target; if(!ED || !el.closest || !el.closest('#editor-body')) return;
-  const v = el.type==='checkbox' ? el.checked : el.value;
-  if(el.dataset.g){ ED.datos.general[el.dataset.g] = v; return; }
-  if(el.dataset.t!==undefined){ ED.datos.tareas[+el.dataset.t].texto = v; return; }
-  if(el.dataset.pe!==undefined){ ED.datos.personal[+el.dataset.pe][el.dataset.pk] = v; return; }
-  if(el.dataset.r){
-    const [i,j] = el.dataset.r.split('-').map(Number), r = ED.datos.tareas[i].riesgos[j], k = el.dataset.rk;
-    r[k] = ['s','p','pRes'].includes(k) ? (v?Number(v):'') : v;
-    if((k==='p'||k==='ctlMayor') && e.type==='change'){
-      const opc = pResOpts(r.p,r.ctlMayor); if(!opc.includes(Number(r.pRes))) r.pRes='';
-      $('r-pRes-'+el.dataset.r).innerHTML = opts(opc, r.pRes, '—');
-    }
-    resumenEditor();
-  }
+  const v = el.type==='checkbox' ? el.checked : el.value, d = ED.datos;
+  if(el.dataset.g){ d.general[el.dataset.g] = v; return; }
+  if(el.dataset.t!==undefined){ d.tareas[+el.dataset.t].texto = v; return; }
+  if(el.dataset.personal){ d.personal = lineasDe(v).map(n=>({nombre:n})); return; }
+  if(el.dataset.otro!==undefined){ const h = window.KTMEX_FO015.OTHER_HAZARDS[+el.dataset.otro]; d.otrosRiesgos = (d.otrosRiesgos||[]).filter(x=>x!==h).concat(v?[h]:[]); return; }
+  if(el.dataset.qm!==undefined){ d.quimicos[+el.dataset.qm][el.dataset.qmk] = /^(frecuencia|duracion|aire|dermico|control)$/.test(el.dataset.qmk) && v!=='' ? Number(v) : v; return; }
+  if(el.dataset.j!==undefined){ const x = d.tareas[+el.dataset.j][el.dataset.jb], k = el.dataset.jk; x[k] = ['riesgos','medidas','documentos'].includes(k) ? lineasDe(v) : v; resumenEditor(); return; }
+  if(el.dataset.q){ const [i,j] = el.dataset.q.split('-').map(Number), r = d.tareas[i].riesgos[j], k = el.dataset.qk;
+    r[k] = k==='medidas' ? lineasDe(v) : ['s','f','p','c'].includes(k) ? (v===''?'':Number(v)) : v; resumenEditor(); }
 }
-function agregarRiesgo(i, r){ ED.datos.tareas[i].riesgos.push(r||{peligro:'',s:'',p:'',ctlMayor:'',pRes:''}); renderEditor(); }
-function quitarTarea(i){ if(ED.datos.tareas.length>1 || confirm(uiText(L('¿Quitar la única tarea?','Remove the only task?')))){ ED.datos.tareas.splice(i,1); if(!ED.datos.tareas.length) ED.datos.tareas.push({texto:'',riesgos:[]}); renderEditor(); } }
 function elegirDeMatriz(i){
   const area = ED.datos.general.area || '';
   modal(2, L('Riesgos de la matriz publicada','Risks from the published matrix'),
-    `<div class="toolbar">${inp('pk-q','','placeholder="'+esc(L('Buscar peligro o tarea','Search hazard or task'))+'" oninput="filasPicker('+i+')" style="max-width:280px"')}${sel('pk-area',areas(),area,L('Todas las áreas','All areas'),'onchange="filasPicker('+i+')" style="max-width:220px"')}</div><div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>${esc(L('Inicial','Initial'))}</th><th></th></tr></thead><tbody id="pk-rows"></tbody></table></div>`,
+    `<p class="help">${esc(L('Los valores se convierten a la escala de este formato con la tabla aprobada por Safety. Puedes ajustarlos después.','Values are converted to this form\'s scale with the table approved by Safety. You can adjust them afterwards.'))}</p><div class="toolbar">${inp('pk-q','','placeholder="'+esc(L('Buscar peligro o tarea','Search hazard or task'))+'" oninput="filasPicker('+i+')" style="max-width:280px"')}${sel('pk-area',areas(),area,L('Todas las áreas','All areas'),'onchange="filasPicker('+i+')" style="max-width:220px"')}</div><div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>${esc(L('Matriz','Matrix'))}</th><th></th></tr></thead><tbody id="pk-rows"></tbody></table></div>`,
     `<button class="btn-g" type="button" onclick="closeModal('m-gen2')">${esc(L('Cerrar','Close'))}</button>`);
   filasPicker(i);
 }
@@ -1248,128 +1298,130 @@ function filasPicker(i){
   const q=val('pk-q').toLowerCase(), a=val('pk-area'), lista=(PUB&&PUB.riesgos)||[];
   const rows = lista.filter(r=>(!a||r.area===a)&&(!q||[r.tarea,r.peligro,r.causa,r.folio].join(' ').toLowerCase().includes(q)));
   $('pk-rows').innerHTML = rows.length ? rows.map(r=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(r.folio)}</td><td class="no-i18n">${esc(r.tarea)}</td><td class="no-i18n"><strong>${esc(r.peligro)}</strong><br><span class="help">${esc(r.causa||'')}</span></td><td>${nvB(nivelJS(r.s,r.p,false))}</td><td><button class="btn-p btn-sm" type="button" onclick="tomarDeMatriz(${i},'${r.id}')">${esc(L('Agregar','Add'))}</button></td></tr>`).join('')
-    : vacio(5, lista.length?L('Ningún riesgo coincide.','No risk matches.'):L('La matriz todavía no tiene riesgos publicados. Agrega el riesgo manualmente.','The matrix has no published risks yet. Add the risk manually.'));
+    : vacio(5, lista.length?L('Ningún riesgo coincide.','No risk matches.'):L('La matriz todavía no tiene riesgos publicados. Captura el riesgo manualmente.','The matrix has no published risks yet. Enter the risk manually.'));
 }
 function tomarDeMatriz(i, id){
-  const r = PUB.riesgos.find(x=>x.id===id);
-  const epp = ['eppCabeza','eppOjos','eppResp','eppAud','eppManos','eppPies','eppCuerpo'].map(k=>r[k]).filter(x=>x&&x!=='N/A').join(', ');
-  ED.datos.tareas[i].riesgos.push({riesgoId:r.id, folio:r.folio, peligro:r.peligro+(r.causa?' — '+r.causa:''), categoria:r.categoria, s:Number(r.s), p:Number(r.p), ctlElim:r.ctlElim||'', ctlIng:r.ctlIng||'', ctlAdm:r.ctlAdm||'', epp, ctlMayor:r.ctlMayor||'', pRes:r.pRes?Number(r.pRes):''});
-  closeModal('m-gen2'); renderEditor(); toast(L('Riesgo agregado.','Risk added.'));
+  const r = PUB.riesgos.find(x=>x.id===id), C = KF.desdeMatriz, t = ED.datos.tareas[i];
+  const epp = ['eppCabeza','eppOjos','eppResp','eppAud','eppManos','eppPies','eppCuerpo'].map(k=>r[k]).filter(x=>x&&x!=='N/A');
+  const medidas = [r.ctlElim, r.ctlIng, r.ctlAdm].filter(Boolean).concat(epp.length?['EPP: '+epp.join(', ')]:[]);
+  const peligro = r.peligro + (r.causa ? ' ('+r.causa+')' : '');
+  if(ED.tipo==='JSA'){
+    const x = t.seg, max = (lista, a, b) => lista.indexOf(a) >= lista.indexOf(b) ? a : b;
+    x.riesgos.push(peligro); x.medidas = x.medidas.concat(medidas);
+    x.sev = max(KF.JSA_SEV, x.sev, C.jsaSev(r.s)); x.prob = max(KF.JSA_PROB, x.prob, C.jsaProb(r.p));
+    x.sevD = max(KF.JSA_SEV, x.sevD, C.jsaSev(r.s)); x.probD = max(KF.JSA_PROB, x.probD, C.jsaProb(r.pRes||r.p));
+    if(r.programa && r.programa!=='Ninguno' && !x.documentos.includes(r.programa)) x.documentos.push(r.programa);
+  } else t.riesgos.push({folio:r.folio, riesgoId:r.id, texto:peligro, categoria:r.categoria||'', s:C.jraS(r.s), f:'', p:C.jraP(r.p), c:C.jraC(r.ctlMayor), medidas});
+  closeModal('m-gen2'); renderEditor(); toast(ED.tipo==='JRA'?L('Riesgo agregado. Elige la frecuencia (F).','Risk added. Choose the frequency (F).'):L('Riesgo agregado.','Risk added.'));
+}
+async function vistaPreviaEditor(){
+  const doc = {tipo:ED.tipo, folio:ED.id?'':'', datos:ED.datos};
+  modal(1, L('Vista previa del formato','Form preview'), `<p class="help">${esc(L('Así quedará el formato. Revisa y confirma para enviarlo a Safety.','This is how the form will look. Review and confirm to send it to Safety.'))}</p><div id="prev-hojas" style="width:100%"><p class="help">${esc(L('Preparando el formato…','Preparing the form…'))}</p></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Corregir','Correct'))}</button><button class="btn-g" type="button" onclick="descargarAnalisis(null, {tipo:ED.tipo, datos:ED.datos})"><i class="fas fa-file-excel" style="margin-right:6px"></i>${esc(L('Descargar Excel','Download Excel'))}</button><button class="btn-p" type="button" id="btn-confirmar" onclick="guardarEditor(true)">${esc(L('Confirmar y enviar a Safety','Confirm and send to Safety'))}</button>`, 'xl');
+  try{ KF_ULTIMO = await KF.generar(ED.tipo, doc); await KF.mostrar($('prev-hojas'), KF_ULTIMO); } catch(e){ $('prev-hojas').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
 }
 async function guardarEditor(enviar){
-  const b = $('btn-enviar-an'); if(b) b.disabled = true;
+  const b = $('btn-confirmar'); if(b) b.disabled = true;
   try{
     const body = {tipo:ED.tipo, datos:ED.datos, enviar, id:ED.id};
     const r = ED.publico ? await api(Object.assign({action:'analisisGuardarPublico'}, body)) : await api(Object.assign({action:'analisisGuardar', token:tok()}, body));
     if(!r.success){ toast(r.error,'err'); return; }
     if(ED.publico){
-      modal(1, L('Enviado a Safety','Sent to Safety'), `<p style="margin:0">${esc(L('Guarda estos datos para consultar la respuesta de Safety:','Keep this information to check Safety\'s response:'))}</p><div class="grid-2"><div><span class="help">Folio</span><div class="temp-pwd">${esc(r.folio)}</div></div><div><span class="help">${esc(L('Código','Code'))}</span><div class="temp-pwd">${esc(r.codigo)}</div></div></div>${r.bloqueado?`<p style="color:#B91C1C;font-size:.84rem">${esc(L('Atención: hay riesgos residuales altos; Safety podría regresarlo para agregar controles.','Note: there are high residual risks; Safety may return it to add controls.'))}</p>`:''}`,
+      modal(1, L('Enviado a Safety','Sent to Safety'), `<p style="margin:0">${esc(L('Guarda estos datos para consultar la respuesta de Safety:','Keep this information to check Safety\'s response:'))}</p><div class="grid-2"><div><span class="help">Folio</span><div class="temp-pwd">${esc(r.folio)}</div></div><div><span class="help">${esc(L('Código','Code'))}</span><div class="temp-pwd">${esc(r.codigo)}</div></div></div>${r.bloqueado?`<p style="color:#B91C1C;font-size:.84rem">${esc(L('Atención: queda un riesgo alto después de controles; Safety podría regresarlo.','Note: a high risk remains after controls; Safety may return it.'))}</p>`:''}`,
         `<button class="btn-p" type="button" onclick="closeModal('m-gen');ED=null;showView('publico')">${esc(L('Listo, ya los anoté','Done, I wrote them down'))}</button>`, '');
-    } else {
-      toast(enviar?L('Enviado a Safety.','Sent to Safety.'):L('Borrador guardado.','Draft saved.'));
-      ED = null; showView('analisis');
-    }
+    } else { closeModal('m-gen'); toast(enviar?L('Enviado a Safety.','Sent to Safety.'):L('Borrador guardado.','Draft saved.')); ED = null; showView('analisis'); }
   } catch(e){ toast(e.message,'err'); }
-  finally{ const b2=$('btn-enviar-an'); if(b2) b2.disabled=false; }
+  finally{ const b2=$('btn-confirmar'); if(b2) b2.disabled=false; }
 }
 function consultarFolio(){
   modal(1, L('Consultar mi folio','Check my ID'), `<div class="grid-2">${fld('Folio', inp('cf-folio','','placeholder="JSA-2026-0001" autocapitalize="characters"'))}${fld(L('Código','Code'), inp('cf-cod','','autocapitalize="characters"'))}</div><div id="cf-res"></div>`,
     `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cerrar','Close'))}</button><button class="btn-p" type="button" onclick="buscarFolio()">${esc(L('Consultar','Check'))}</button>`, '');
 }
 async function buscarFolio(){
-  await cargarPublicos();
   const r = await api({action:'analisisConsultar', folio:val('cf-folio'), codigo:val('cf-cod')});
   if(!r.success){ $('cf-res').innerHTML = `<div class="err-box">${esc(uiText(r.error))}</div>`; return; }
-  const d = r.documento; window.__DOC_PUB = Object.assign({capturoNombre:(d.datos&&d.datos.general||{}).capturoNombre}, d);
-  $('cf-res').innerHTML = `<div class="box"><div>${chipAn(d.estatus)} ${nvTxt(d.nivelResidual)}</div><p class="no-i18n" style="font-size:.88rem;margin:8px 0 0"><strong>${esc(d.actividad)}</strong></p>${d.comentarioRevision?`<p style="font-size:.84rem;margin:8px 0 0"><span class="help">${esc(L('Comentario de Safety','Safety comment'))}:</span> <span class="no-i18n">${esc(d.comentarioRevision)}</span></p>`:''}${d.estatus==='APROBADO'?`<button class="btn-g btn-sm" type="button" style="margin-top:10px" onclick="imprimirAnalisis(null,window.__DOC_PUB)"><i class="fas fa-print" style="margin-right:6px"></i>${esc(L('Imprimir formato','Print form'))}</button>`:''}</div>`;
-}
-function imprimirAnalisis(id, docPub){
-  const a = docPub || AN.find(x=>x.id===id), d = a.datos||{}, g = d.general||{}, jsa = a.tipo==='JSA';
-  const N = n => n?`<span class="nvp">${esc(n.n)} (${n.puntaje})</span>`:'—';
-  const filas = (d.tareas||[]).map((t,i)=>(t.riesgos||[]).map((r,j)=>`<tr>${j===0?`<td rowspan="${t.riesgos.length}">${i+1}</td><td rowspan="${t.riesgos.length}">${esc(t.texto)}</td>`:''}<td>${r.ambiental?'Ambiental':'Seguridad'}</td><td>${esc(r.peligro)}</td><td>${esc(r.categoria||'')}</td><td>${esc(r.s)}</td><td>${esc(r.p)}</td><td>${N(nivelJS(r.s,r.p,false))}</td><td>${esc([r.ctlElim&&'Elim./Sust.: '+r.ctlElim, r.ctlIng&&'Ing.: '+r.ctlIng, r.ctlAdm&&'Adm.: '+r.ctlAdm, r.epp&&'EPP: '+r.epp].filter(Boolean).join(' | '))}</td><td>${esc(r.ctlMayor||'')}</td><td>${esc(r.pRes||r.p)}</td><td>${N(nivelJS(r.s,r.pRes||r.p,true))}</td></tr>`).join('')).join('');
-  const tabla = `<table><thead><tr><th>#</th><th>Descripción de la tarea</th><th>Tipo</th><th>Peligro / riesgo o aspecto</th><th>Cat.</th><th>S</th><th>P</th><th>Nivel inicial</th><th>Medidas de control</th><th>Control mayor</th><th>P res.</th><th>Nivel residual</th></tr></thead><tbody>${filas}</tbody></table>`;
-  const aprob = a.estatus==='APROBADO' ? `Aprobado digitalmente por ${esc(a.revisadoPor)} el ${esc(String(a.fechaRevision||'').slice(0,10))}.` : `Estatus: ${esc((ESTATUS_AN[a.estatus]||['',a.estatus])[1])} (no aprobado).`;
-  const pie = `<p style="font-size:7.5pt;margin:4px 0">Folio ${esc(a.folio)} · Evaluado con el criterio único S × P (piso por severidad; los controles solo bajan P) · ${aprob}</p>`;
-  let html;
-  if(jsa){
-    const firmas = ['1. Firma del Responsable de proyectos validación JSA (KTMEX)','2. Firma de Gerente y/o Asistente de Área (Área responsable de la actividad)','3. Firma del Gerente de Área Producción (Shop Manager) — cuando se afecten los procesos productivos','4. Firma de Autorización de Medio Ambiente (KTMEX)','5. Responsable de Safety validación JSA (KTMEX)','6. Firma del Responsable de la compañía Contratista'];
-    const pers = (d.personal||[]); while(pers.length<6) pers.push({nombre:'',puesto:''});
-    html = `<div class="pf"><table class="hdr"><tr><td style="width:18%">KTMEX</td><td class="t">Análisis de Riesgo para Trabajos Especiales (JSA)</td><td style="width:24%;font-size:7.5pt">F-SGA-8.1-7 · Análisis de Riesgo para Trabajos Especiales</td></tr></table>
-      <table><tr><td style="width:12%"><b>Compañía</b></td><td>${esc(g.compania)}</td><td style="width:10%"><b>Periodo:</b></td><td style="width:22%">${esc(g.periodo||g.fechaTrabajo)}</td></tr><tr><td><b>Actividad:</b></td><td>${esc(g.actividad)} — ${esc(g.area)}</td><td><b>Horario:</b></td><td>${esc(g.horario)}</td></tr>${g.descripcion?`<tr><td><b>Descripción</b></td><td colspan="3">${esc(g.descripcion)}</td></tr>`:''}</table>
-      <div style="font-weight:700;margin:4px 0">Análisis de riesgos &amp; Aspectos Ambientales potenciales</div>${tabla}
-      <table><thead><tr><th colspan="3">LISTE EL NOMBRE DE SU PERSONAL (TRABAJADORES QUE ESTARÁN REALIZANDO LAS ACTIVIDADES PLANEADAS DESCRITAS)</th></tr><tr><th>NOMBRE DEL TRABAJADOR</th><th>PUESTO</th><th>FIRMA DEL TRABAJADOR</th></tr></thead><tbody>${pers.map(p=>`<tr><td style="height:20px">${esc(p.nombre)}</td><td>${esc(p.puesto)}</td><td></td></tr>`).join('')}</tbody></table>
-      <table><tr>${firmas.slice(0,3).map(f=>`<td class="firma" style="width:33%">${esc(f)}</td>`).join('')}</tr><tr>${firmas.slice(3).map(f=>`<td class="firma">${esc(f)}</td>`).join('')}</tr></table>
-      <p style="font-size:7.5pt">Nota: Todas las actividades que sean planeadas a través de este formato serán evaluadas por el departamento de Seguridad &amp; Medio Ambiente, previo a la ejecución de estas tareas.</p>${pie}</div>`;
-  } else {
-    html = `<div class="pf"><table class="hdr"><tr><td style="width:18%">KTMEX</td><td class="t">ANÁLISIS DE RIESGO PARA TRABAJOS RUTINARIOS (JRA)</td><td style="width:20%;font-size:8pt">KQMS-SA-FO-015 · Rev. 00</td></tr></table>
-      <table><tr><td><b>Fecha</b><br>${esc(g.fechaTrabajo)}</td><td><b>Consecutivo</b><br>${esc(a.folio)}</td><td colspan="2"><b>Evaluador, departamento</b><br>${esc((a.capturoNombre||g.capturoNombre||'')+', '+(g.departamento||''))}</td></tr><tr><td><b>Departamento</b><br>${esc(g.departamento)}</td><td><b>Líneas / Máquina</b><br>${esc(g.lineaMaquina)}</td><td><b>Proceso / Actividad</b><br>${esc([g.proceso,g.actividad].filter(Boolean).join(' / '))}</td><td><b>MOE</b><br><span class="chk">${g.moe==='SI'?'✓':''}</span>SI <span class="chk">${g.moe==='NO'?'✓':''}</span>NO ${esc(g.moeCodigo||'')}</td></tr></table>
-      ${tabla}
-      <table><tr>${['MGR / AM','ENG','SAFETY','AMBIENTAL'].map(f=>`<td class="firma" style="width:25%">${f}</td>`).join('')}</tr></table>
-      <p style="font-size:7.5pt">Nota: este formato se imprime con el criterio único propuesto (S × P). El formato controlado vigente usa S × F × P × C; Calidad debe emitir la revisión correspondiente.</p>${pie}</div>`;
-  }
-  imprimir(html);
+  const d = r.documento; window.__DOC_PUB = d;
+  $('cf-res').innerHTML = `<div class="box"><div>${chipAn(d.estatus)} ${d.nivelResidual?`<span class="nv nv-1">${esc(d.nivelResidual)}</span>`:''}</div><p class="no-i18n" style="font-size:.88rem;margin:8px 0 0"><strong>${esc(d.actividad)}</strong></p>${d.comentarioRevision?`<p style="font-size:.84rem;margin:8px 0 0"><span class="help">${esc(L('Comentario de Safety','Safety comment'))}:</span> <span class="no-i18n">${esc(d.comentarioRevision)}</span></p>`:''}${d.estatus==='APROBADO'?`<button class="btn-g btn-sm" type="button" style="margin-top:10px" onclick="descargarAnalisis(null,window.__DOC_PUB)"><i class="fas fa-file-excel" style="margin-right:6px"></i>${esc(L('Descargar Excel','Download Excel'))}</button>`:''}</div>`;
 }
 
-/* ═══════════════ COMUNICADOS Y ALERTAS ═══════════════ */
+/* ═══════════════ COMUNICADOS (FO-014) Y ALERTAS (FO-005) ═══════════════ */
 let EV = [], EV_TAB = 'COMUNICADO', EVF = null, PLANO_URL = null;
-const TIPOS_EV = ['Accidente','Incidente','Casi accidente','Daño a la propiedad'];
 const CLASIF = ['Lesión','Tratamiento médico','Primer auxilio','Daño a la propiedad','Casi accidente'];
-const STOP_SEV = ['Sin lesión','Primeros auxilios','Restricción','Incapacidad','Fatalidad'];
+const TIPO_DE = {'Lesión':'Accidente','Tratamiento médico':'Accidente','Primer auxilio':'Incidente','Daño a la propiedad':'Daño a la propiedad','Casi accidente':'Casi accidente'};
+const TIPOS_EV = ['Accidente','Incidente','Casi accidente','Daño a la propiedad'];
+const STOP_SEV = ['Sin lesión','Primeros auxilios','Tratamiento médico','Restricción','Incapacidad','Fatalidad'];
 const STOP_R = [['A','Atrapado / pellizcado / otro por equipo energizado'],['B','Contacto con / atrapado con objetos pesados'],['C','Contacto con vehículos'],['D','Caída de altura'],['E','Descarga eléctrica'],['F','Contacto con objetos calientes'],['α1','α · Cortadura'],['α2','α · Caída (al caminar)']];
+const MESES = ['Enero / January','Febrero / February','Marzo / March','Abril / April','Mayo / May','Junio / June','Julio / July','Agosto / August','Septiembre / September','Octubre / October','Noviembre / November','Diciembre / December'];
 async function cargarEventos(){
   $('eventos-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
   const r = await llamar({action:'eventosListar', token:tok()}); if(!r) return; EV = r.eventos;
-  await cargarPublicos(); renderEventos();
+  PUB = null; await cargarPublicos(); renderEventos();
 }
 function tabEventos(t){ EV_TAB=t; renderEventos(); }
 function renderEventos(){
-  const com = EV_TAB==='COMUNICADO', lista = EV.filter(e=>e.clase===EV_TAB);
-  const acc = esGestor() ? `<button class="btn-p btn-sm" type="button" onclick="abrirEvento(null,'${EV_TAB}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(com?L('Nuevo comunicado','New communication'):L('Nueva alerta','New alert'))}</button>` : '';
-  $('eventos-body').innerHTML = cabecera(L('Comunicados y alertas','Communications and alerts'), L('Comunicados (KQMS-SA-FO-014) por incidentes, accidentes, casi accidentes y daños; alertas (KQMS-SA-FO-005) por actos inseguros.','Communications (KQMS-SA-FO-014) for incidents, accidents, near misses and damage; alerts (KQMS-SA-FO-005) for unsafe acts.'), acc)
-    + pestanas([['COMUNICADO',L('Comunicados','Communications'),'fa-bullhorn'],['ALERTA',L('Alertas','Alerts'),'fa-triangle-exclamation']], EV_TAB, 'tabEventos')
-    + `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Fecha','Date'))}</th>${com?`<th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Clasificación','Classification'))}</th>`:`<th>${esc(L('Problema detectado','Detected problem'))}</th>`}<th>${esc(L('Área','Area'))}</th><th>${esc(L('Turno','Shift'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${lista.length?lista.map(e=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(e.folio)}</td><td style="white-space:nowrap">${esc(e.fecha)} ${esc(e.hora||'')}</td>${com?`<td><strong>${esc(e.tipo)}</strong></td><td>${esc(e.clasificacion||'—')}</td>`:`<td class="no-i18n">${esc((e.datos||{}).problema||'—')}</td>`}<td class="no-i18n">${esc(e.area)}</td><td>${esc(e.turno||'—')}</td><td>${esc(e.estatus||'')}</td><td style="white-space:nowrap"><button class="btn-g btn-sm" type="button" onclick="imprimirEvento('${e.id}')" title="${esc(L('Imprimir formato','Print form'))}" aria-label="${esc(L('Imprimir formato','Print form'))}"><i class="fas fa-print"></i></button>${esGestor()?` <button class="btn-g btn-sm" type="button" onclick="abrirEvento('${e.id}')" title="${esc(L('Editar','Edit'))}" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`:''}</td></tr>`).join(''):vacio(8, L('Todavía no hay registros.','No records yet.'))}</tbody></table></div></section>`;
+  const com = EV_TAB==='COMUNICADO';
+  const tabs = [['COMUNICADO',L('Comunicados','Communications'),'fa-bullhorn'],['ALERTA',L('Alertas','Alerts'),'fa-triangle-exclamation']];
+  if(esGestor()) tabs.push(['REGLAS',L('Reglamento interno','Internal rules'),'fa-book']);
+  const acc = esGestor() && EV_TAB!=='REGLAS' ? `<button class="btn-p btn-sm" type="button" onclick="abrirEvento(null,'${EV_TAB}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(com?L('Nuevo comunicado','New communication'):L('Nueva alerta','New alert'))}</button>` : '';
+  let h = cabecera(L('Comunicados y alertas','Communications and alerts'), L('Comunicado KQMS-SA-FO-014 (lesión, tratamiento médico, primer auxilio, daño a la propiedad, casi accidente) y alerta KQMS-SA-FO-005 (actos inseguros), en su formato y en español / inglés.','Communication KQMS-SA-FO-014 and alert KQMS-SA-FO-005, in their form and in Spanish / English.'), acc) + pestanas(tabs, EV_TAB, 'tabEventos');
+  if(EV_TAB==='REGLAS'){ $('eventos-body').innerHTML = h + htmlReglamento(); return; }
+  const lista = EV.filter(e=>e.clase===EV_TAB);
+  h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>No.</th><th>${esc(L('Fecha','Date'))}</th>${com?`<th>${esc(L('Clasificación','Classification'))}</th><th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Área','Area'))}</th>`:`<th>${esc(L('Problema detectado','Detected problem'))}</th><th>${esc(L('Departamento','Department'))}</th>`}<th>${esc(L('Turno','Shift'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${lista.length?lista.map(e=>`<tr class="tbl-row"><td><strong>${esc(e.numero||'—')}</strong><br><span class="mono help">${esc(e.folio)}</span></td><td style="white-space:nowrap">${esc(e.fecha)} ${esc(e.hora||'')}</td>${com?`<td>${esc(e.clasificacion||'—')}</td><td><strong>${esc(e.tipo)}</strong></td><td class="no-i18n">${esc(e.area)}</td>`:`<td class="no-i18n">${esc(KF.bi((e.datos||{}).problema)||'—')}</td><td class="no-i18n">${esc(e.departamento||'')}</td>`}<td>${esc(e.turno||'—')}</td><td>${esc(e.estatus||'')}</td>
+    <td style="white-space:nowrap"><button class="btn-g btn-sm" type="button" onclick="verEvento('${e.id}')" title="${esc(L('Ver formato','View form'))}" aria-label="${esc(L('Ver formato','View form'))}"><i class="fas fa-eye"></i></button>${esGestor()?` <button class="btn-g btn-sm" type="button" onclick="abrirEvento('${e.id}')" title="${esc(L('Editar','Edit'))}" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`:''}</td></tr>`).join(''):vacio(8, L('Todavía no hay registros.','No records yet.'))}</tbody></table></div></section>`;
+  $('eventos-body').innerHTML = h;
 }
+const biF = (id, v, label, tarea) => `<div class="grid-2">${fld(label+' · '+L('español','Spanish'), (tarea?ta:inp)(id+'-es', (v&&v.es)||'', tarea?'rows="2"':''))}${fld(label+' · '+L('inglés','English'), (tarea?ta:inp)(id+'-en', (v&&v.en)||'', (tarea?'rows="2" ':'')+'placeholder="'+esc(L('Se traduce automáticamente','Translated automatically'))+'"'))}</div>`;
+const biV = id => ({es:val(id+'-es'), en:val(id+'-en')});
 function abrirEvento(id, clase){
-  const e = id ? EV.find(x=>x.id===id) : {clase, fecha:hoy(), datos:{acciones:[]}, privado:{}, fotos:[], estatus:'Abierto'};
+  const e = id ? JSON.parse(JSON.stringify(EV.find(x=>x.id===id))) : {clase, fecha:hoy(), datos:{acciones:[]}, privado:{}, fotos:[], estatus:'Abierto', partesCuerpo:[]};
   const com = e.clase==='COMUNICADO', d = e.datos||{}, pv = e.privado||{};
-  EVF = {id:id||'', clase:e.clase, existentes:(e.fotos||[]).slice(), nuevas:[], acciones:(d.acciones||[]).map(a=>Object.assign({},a)), planoX:e.planoX, planoY:e.planoY};
+  EVF = {id:id||'', clase:e.clase, existentes:(e.fotos||[]).map((f,i)=>({id:f, rol:((d.fotosRol||[])[i])||'Evento'})), nuevas:[], acciones:(d.acciones||[]).map(a=>Object.assign({accion:{es:'',en:''}},a)), planoX:e.planoX, planoY:e.planoY, partes:(e.partesCuerpo||[]).slice()};
   const cuerpo = com ? `
-    <div class="grid-4">${fld(L('Tipo de evento','Event type'), sel('ev-tipo',TIPOS_EV,e.tipo,'—'))}${fld(L('Clasificación','Classification'), sel('ev-clasificacion',CLASIF,e.clasificacion,'—'))}${fld(L('Fecha del evento','Event date'), inp('ev-fecha',e.fecha,'type="date"'))}${fld(L('Hora','Time'), inp('ev-hora',e.hora,'type="time"'))}</div>
-    <div class="grid-4">${fld(L('Turno','Shift'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}${fld(L('Área','Area'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Departamento','Department'), sel('ev-departamento',CATS.departamento||[],e.departamento,'—'))}${fld(L('Ubicación','Location'), inp('ev-ubicacion',d.ubicacion))}</div>
-    <div class="grid-4">${fld(L('Fecha de notificación a Safety','Date notified to Safety'), inp('ev-fechaNotificacion',d.fechaNotificacion,'type="date"'))}${fld(L('Hora de notificación','Notification time'), inp('ev-horaNotificacion',d.horaNotificacion,'type="time"'))}${fld(L('Antigüedad en planta','Plant seniority'), inp('ev-antiguedadPlanta',d.antiguedadPlanta))}${fld(L('Antigüedad en estación / operación','Station seniority'), inp('ev-antiguedadEstacion',d.antiguedadEstacion))}</div>
-    ${fld(L('Descripción general','General description'), ta('ev-descripcion',d.descripcion))}
-    <div class="grid-2">${fld(L('¿Qué ocurrió?','What happened?'), ta('ev-queOcurrio',d.queOcurrio))}${fld(L('¿Cómo ocurrió?','How did it happen?'), ta('ev-comoOcurrio',d.comoOcurrio))}</div>
-    <div class="grid-4">${fld(L('STOP 6 · severidad','STOP 6 · severity'), sel('ev-stopSeveridad',STOP_SEV,e.stopSeveridad,'—'))}${fld(L('STOP 6 · riesgo','STOP 6 · risk'), sel('ev-stopRiesgo',STOP_R.map(x=>({v:x[0],t:x[0].replace(/\d/,'')+' – '+x[1].replace('α · ','')})),e.stopRiesgo,'—'))}${fld(L('Días perdidos','Lost days'), inp('ev-diasPerdidos',e.diasPerdidos||0,'type="number" min="0"'))}${fld(L('Costo estimado del daño (MXN)','Estimated damage cost (MXN)'), inp('ev-costo',e.costo||0,'type="number" min="0"'))}</div>
-    <div class="grid-3">${fld(L('Persona involucrada','Person involved'), sel('ev-tipoPersona',[{v:'Empleado',t:L('Empleado','Employee')},{v:'Contratista',t:L('Contratista','Contractor')},{v:'Visitante',t:L('Visitante','Visitor')}],e.tipoPersona,'—'))}${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}</div>
-    <div class="box" style="border-color:#FCD34D;background:#FFFBEB"><div class="sec-title">${esc(L('Datos confidenciales (nunca se imprimen)','Confidential data (never printed)'))}</div><div class="grid-4">${fld(L('Nombre del lesionado','Injured person'), inp('ev-p-nombre',pv.nombre))}${fld(L('Número de empleado','Employee number'), inp('ev-p-numeroEmpleado',pv.numeroEmpleado))}${fld(L('Tipo de lesión','Injury type'), inp('ev-p-lesion',pv.lesion))}${fld(L('Parte del cuerpo','Body part'), inp('ev-p-parteCuerpo',pv.parteCuerpo))}</div></div>`
-  : `<div class="grid-4">${fld(L('Fecha','Date'), inp('ev-fecha',e.fecha,'type="date"'))}${fld(L('Mes','Month'), inp('ev-mes',d.mes||(e.fecha||'').slice(0,7),'type="month"'))}${fld(L('Área','Area'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Departamento','Department'), sel('ev-departamento',CATS.departamento||[],e.departamento,'—'))}</div>
-    <div class="grid-2">${fld(L('Turno','Shift'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}</div>
-    ${fld(L('Problema detectado (acto inseguro)','Detected problem (unsafe act)'), ta('ev-problema',d.problema))}${fld(L('No cumplimiento','Non-compliance'), ta('ev-noCumplimiento',d.noCumplimiento))}`;
-  modal(1, (id?e.folio+' · ':'') + (com?L('Comunicado de seguridad','Safety communication'):L('Alerta de seguridad','Safety alert')), cuerpo + `
-    <div class="sec-title">${esc(com?L('Contramedidas inmediatas','Immediate countermeasures'):L('Acciones inmediatas','Immediate actions'))}</div><div id="ev-acc"></div>
-    <div class="sec-title">${esc(com?L('Evidencia / simulación (máx. 4 fotos)','Evidence / simulation (max. 4 photos)'):L('Fotografía (máx. 4)','Picture (max. 4)'))}</div>
-    <p class="help">${esc(L('Antes de guardar cada foto podrás tapar las caras arrastrando un recuadro sobre ellas. La foto original no se guarda.','Before saving each photo you can cover faces by dragging a box over them. The original photo is not stored.'))}</p>
-    <div class="thumbs" id="ev-thumbs"></div><input type="file" id="ev-foto" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="fotoEvento(this)">
+    <div class="grid-4">${fld(L('Incidente # (consecutivo)','Incident #'), inp('ev-numero',e.numero))}${fld(L('Clasificación','Classification'), sel('ev-clasificacion',CLASIF,e.clasificacion,'—','onchange="$(\'ev-tipo-txt\').textContent=TIPO_DE[this.value]||\'—\'"'))}${fld(L('Tipo para indicadores','Type for indicators'), `<div class="inp" id="ev-tipo-txt" style="display:flex;align-items:center;background:#F1F5F9">${esc(TIPO_DE[e.clasificacion]||'—')}</div>`)}${fld(L('Turno / cuadrilla','Shift / crew'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}</div>
+    <div class="grid-4">${fld(L('Fecha del evento','Event date'), inp('ev-fecha',e.fecha,'type="date"'))}${fld(L('Hora del evento','Event time'), inp('ev-hora',e.hora,'type="time"'))}${fld(L('Fecha de notificación a Safety','Date notified to Safety'), inp('ev-fechaNotificacion',d.fechaNotificacion,'type="date"'))}${fld(L('Hora de notificación','Notification time'), inp('ev-horaNotificacion',d.horaNotificacion,'type="time"'))}</div>
+    <div class="grid-3">${fld(L('Área','Area'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Departamento','Department'), sel('ev-departamento',CATS.departamento||[],e.departamento,'—'))}${fld(L('Persona involucrada','Person involved'), sel('ev-tipoPersona',[{v:'Empleado',t:L('Empleado','Employee')},{v:'Contratista',t:L('Contratista','Contractor')},{v:'Visitante',t:L('Visitante','Visitor')}],e.tipoPersona,'—'))}</div>
+    ${biF('ev-ubicacion', d.ubicacion, L('Ubicación','Location'))}${biF('ev-antiguedadPlanta', d.antiguedadPlanta, L('Antigüedad en planta','Plant seniority'))}${biF('ev-antiguedadEstacion', d.antiguedadEstacion, L('Antigüedad en estación / operación','Station / operation seniority'))}
+    ${biF('ev-queOcurrio', d.queOcurrio, L('¿Qué ocurrió?','What happened?'), true)}${biF('ev-comoOcurrio', d.comoOcurrio, L('¿Cómo ocurrió?','How did it happen?'), true)}
+    <div class="grid-4">${fld(L('STOP 6 · clasificación','STOP 6 · classification'), sel('ev-stopSeveridad',STOP_SEV,e.stopSeveridad,'—'))}${fld(L('STOP 6 · riesgo','STOP 6 · risk'), sel('ev-stopRiesgo',STOP_R.map(x=>({v:x[0],t:x[0].replace(/\d/,'')+' – '+x[1].replace('α · ','')})),e.stopRiesgo,'—'))}${fld(L('Días perdidos','Lost days'), inp('ev-diasPerdidos',e.diasPerdidos||0,'type="number" min="0"'))}${fld(L('Costo estimado del daño (MXN)','Estimated damage cost (MXN)'), inp('ev-costo',e.costo||0,'type="number" min="0"'))}</div>
+    <div class="sec-title">${esc(L('Parte del cuerpo afectada (solo para el sistema e indicadores)','Body part affected (system and indicators only)'))}</div>
+    <div class="grid-2"><div id="ev-cuerpo"></div><div>${fld(L('Tipo de lesión','Injury type'), inp('ev-tipoLesion',e.tipoLesion,'placeholder="'+esc(L('Ej. corte, golpe, quemadura','e.g. cut, bruise, burn'))+'"'))}<p class="help" id="ev-partes-txt" style="margin-top:8px"></p></div></div>
+    <div class="box" style="border-color:#FCD34D;background:#FFFBEB"><div class="sec-title">${esc(L('Datos confidenciales (nunca se imprimen)','Confidential data (never printed)'))}</div><div class="grid-2">${fld(L('Nombre del lesionado','Injured person'), inp('ev-p-nombre',pv.nombre))}${fld(L('Número de empleado','Employee number'), inp('ev-p-numeroEmpleado',pv.numeroEmpleado))}</div></div>
+    ${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}`
+  : `<div class="grid-4">${fld(L('No. de alerta (consecutivo)','Alert no.'), inp('ev-numero',e.numero))}${fld(L('Fecha','Date'), inp('ev-fecha',e.fecha,'type="date" onchange="sugerirMes()"'))}${fld(L('Mes','Month'), sel('ev-mes',MESES,d.mes||MESES[(new Date(e.fecha+'T00:00:00').getMonth())],'—'))}${fld(L('Día','Day'), inp('ev-dia',d.dia||String(new Date(e.fecha+'T00:00:00').getDate()),'type="number" min="1" max="31"'))}</div>
+    <div class="grid-4">${fld(L('Departamento','Department'), sel('ev-departamento',CATS.deptoAlerta||[],e.departamento,'—'))}${fld(L('Área (para indicadores)','Area (for indicators)'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Turno / cuadrilla','Shift / crew'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}</div>
+    ${biF('ev-problema', d.problema, L('Problema detectado','Detected problem'), true)}
+    ${fld(L('No cumplimiento: regla del reglamento interno','Non-compliance: internal rule'), sel('ev-regla',(CATS.regla||[]),d.regla,L('— Ninguna de la lista —','— None from the list —')))}
+    ${biF('ev-noCumplimiento', d.noCumplimiento, L('Otro no cumplimiento o detalle','Other non-compliance or detail'), true)}`;
+  modal(1, (id?(e.numero||e.folio)+' · ':'') + (com?L('Comunicado de seguridad (FO-014)','Safety communication (FO-014)'):L('Alerta de seguridad (FO-005)','Safety alert (FO-005)')), cuerpo + `
+    <div class="sec-title">${esc(com?L('Contramedidas inmediatas','Immediate countermeasures'):L('Acciones inmediatas (máx. 3)','Immediate actions (max. 3)'))}</div><div id="ev-acc"></div>
+    <div class="sec-title">${esc(L('Fotos (máx. 3)','Photos (max. 3)'))}</div>
+    <p class="help">${esc(L('Antes de guardar cada foto podrás tapar las caras. La foto original no se guarda.','Before saving each photo you can cover faces. The original photo is not stored.'))}</p>
+    <div id="ev-thumbs"></div><input type="file" id="ev-foto" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="fotoEvento(this)">
     <div class="sec-title">${esc(L('Ubicación en el plano (opcional)','Location on the plant layout (optional)'))}</div><div id="ev-plano"></div>`,
-    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" id="btn-ev" onclick="guardarEvento()">${esc(L('Guardar','Save'))}</button>`, 'xl');
-  pintarAcciones(); pintarThumbs(); pintarPlanoEvento();
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-g" type="button" onclick="traducirEvento(true)"><i class="fas fa-language" style="margin-right:6px"></i>${esc(L('Traducir al inglés','Translate to English'))}</button><button class="btn-p" type="button" id="btn-ev" onclick="vistaPreviaEvento()"><i class="fas fa-eye" style="margin-right:6px"></i>${esc(L('Vista previa','Preview'))}</button>`, 'xl');
+  pintarAcciones(); pintarThumbs(); pintarPlanoEvento(); if(com) pintarCuerpoEvento();
+}
+function sugerirMes(){ const f = new Date(val('ev-fecha')+'T00:00:00'); if(isNaN(f)) return; $('ev-mes').value = MESES[f.getMonth()]; $('ev-dia').value = f.getDate(); }
+function pintarCuerpoEvento(){
+  $('ev-cuerpo').innerHTML = KF.cuerpoSVG(EVF.partes, {}, true);
+  $('ev-cuerpo').querySelectorAll('[data-zona]').forEach(z=>z.addEventListener('click', ()=>{ const id = z.dataset.zona; EVF.partes = EVF.partes.includes(id) ? EVF.partes.filter(x=>x!==id) : EVF.partes.concat([id]); pintarCuerpoEvento(); }));
+  $('ev-partes-txt').textContent = EVF.partes.length ? EVF.partes.map(KF.nombreZona).join(', ') : L('Toca la figura para marcar las zonas.','Tap the figure to mark the areas.');
 }
 function pintarAcciones(){
-  $('ev-acc').innerHTML = EVF.acciones.map((a,i)=>`<div class="grid-4" style="margin-bottom:6px">${inp('ac-a-'+i,a.accion,`placeholder="${esc(L('Acción','Action'))}" oninput="EVF.acciones[${i}].accion=this.value"`)}${inp('ac-r-'+i,a.responsable,`placeholder="${esc(L('Responsable','Owner'))}" oninput="EVF.acciones[${i}].responsable=this.value"`)}<div style="display:flex;gap:6px">${inp('ac-c-'+i,a.cierre,`type="date" title="${esc(L('Fecha de cierre','Close date'))}" oninput="EVF.acciones[${i}].cierre=this.value"`)}</div><div style="display:flex;gap:6px">${sel('ac-e-'+i,['Abierta','En proceso','Cerrada'],a.estatus||'Abierta','',`onchange="EVF.acciones[${i}].estatus=this.value"`)}<button class="btn-g btn-sm" type="button" onclick="EVF.acciones.splice(${i},1);pintarAcciones()" aria-label="${esc(L('Quitar','Remove'))}"><i class="fas fa-xmark"></i></button></div></div>`).join('')
-    + `<button class="btn-g btn-sm" type="button" onclick="EVF.acciones.push({accion:'',responsable:'',cierre:'',estatus:'Abierta'});pintarAcciones()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar acción','Add action'))}</button>`;
+  const max = EVF.clase==='ALERTA' ? 3 : 10, ale = EVF.clase==='ALERTA';
+  $('ev-acc').innerHTML = EVF.acciones.map((a,i)=>`<div class="box" style="margin-bottom:8px"><div class="grid-2">${inp('ac-es-'+i,a.accion.es,`placeholder="${esc(L('Acción en español','Action in Spanish'))}" oninput="EVF.acciones[${i}].accion.es=this.value"`)}${inp('ac-en-'+i,a.accion.en,`placeholder="${esc(L('Acción en inglés (automática)','Action in English (automatic)'))}" oninput="EVF.acciones[${i}].accion.en=this.value"`)}</div>
+      <div class="grid-4" style="margin-top:6px">${inp('ac-r-'+i,a.responsable,`placeholder="${esc(L('Responsable','Owner'))}" oninput="EVF.acciones[${i}].responsable=this.value"`)}${ale?inp('ac-i-'+i,a.inicio,`type="date" title="${esc(L('Fecha de inicio','Start date'))}" oninput="EVF.acciones[${i}].inicio=this.value"`):''}${inp('ac-c-'+i,a.cierre,`type="date" title="${esc(L('Fecha de cierre','Close date'))}" oninput="EVF.acciones[${i}].cierre=this.value"`)}<div style="display:flex;gap:6px">${sel('ac-e-'+i,['Abierta','En proceso','Cerrada'],a.estatus||'Abierta','',`onchange="EVF.acciones[${i}].estatus=this.value"`)}<button class="btn-g btn-sm" type="button" onclick="EVF.acciones.splice(${i},1);pintarAcciones()" aria-label="${esc(L('Quitar','Remove'))}"><i class="fas fa-xmark"></i></button></div></div></div>`).join('')
+    + (EVF.acciones.length<max?`<button class="btn-g btn-sm" type="button" onclick="EVF.acciones.push({accion:{es:'',en:''},responsable:'',inicio:'',cierre:'',estatus:'Abierta'});pintarAcciones()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar acción','Add action'))}</button>`:'');
 }
-async function pintarThumbs(){
-  const total = EVF.existentes.length + EVF.nuevas.length;
-  $('ev-thumbs').innerHTML = EVF.existentes.map((id,i)=>`<div class="thumb" id="th-x-${i}"><button type="button" onclick="EVF.existentes.splice(${i},1);pintarThumbs()">✕</button></div>`).join('')
-    + EVF.nuevas.map((u,i)=>`<div class="thumb"><img src="${u}" alt=""><button type="button" onclick="EVF.nuevas.splice(${i},1);pintarThumbs()">✕</button></div>`).join('')
-    + (total<4?`<button class="thumb" type="button" style="display:flex;align-items:center;justify-content:center;cursor:pointer;color:#475569" onclick="$('ev-foto').click()"><i class="fas fa-camera"></i>&nbsp;${esc(L('Agregar','Add'))}</button>`:'');
-  EVF.existentes.forEach(async (id,i)=>{ const u = await archivo(id); const el=$('th-x-'+i); if(u && el) el.insertAdjacentHTML('afterbegin', `<img src="${u}" alt="">`); });
+function pintarThumbs(){
+  const total = EVF.existentes.length + EVF.nuevas.length, com = EVF.clase==='COMUNICADO';
+  const rol = (lista, i, v) => com ? sel(`rol-${lista}-${i}`,[{v:'Evento',t:L('Evento','Event')},{v:'Simulación',t:L('Simulación','Simulation')}],v,undefined,`onchange="EVF.${lista}[${i}].rol=this.value" style="min-height:32px;padding:4px 6px;font-size:.75rem;margin-top:4px"`) : '';
+  $('ev-thumbs').innerHTML = `<div class="thumbs">` + EVF.existentes.map((f,i)=>`<div><div class="thumb" id="th-x-${i}"><button type="button" onclick="EVF.existentes.splice(${i},1);pintarThumbs()">✕</button></div>${rol('existentes',i,f.rol)}</div>`).join('')
+    + EVF.nuevas.map((f,i)=>`<div><div class="thumb"><img src="${f.dataUrl}" alt=""><button type="button" onclick="EVF.nuevas.splice(${i},1);pintarThumbs()">✕</button></div>${rol('nuevas',i,f.rol)}</div>`).join('')
+    + (total<3?`<button class="thumb" type="button" style="display:flex;align-items:center;justify-content:center;cursor:pointer;color:#475569" onclick="$('ev-foto').click()"><i class="fas fa-camera"></i>&nbsp;${esc(L('Agregar','Add'))}</button>`:'') + `</div>`;
+  EVF.existentes.forEach(async (f,i)=>{ const u = await archivo(f.id); const el=$('th-x-'+i); if(u && el) el.insertAdjacentHTML('afterbegin', `<img src="${u}" alt="">`); });
 }
-async function planoUrl(){
-  const id = BOOT && BOOT.plano; if(!id) return null;
-  if(!PLANO_URL) PLANO_URL = await archivo(id);
-  return PLANO_URL;
-}
+async function planoUrl(){ const id = BOOT && BOOT.plano; if(!id) return null; if(!PLANO_URL) PLANO_URL = await archivo(id); return PLANO_URL; }
 async function pintarPlanoEvento(){
   const u = await planoUrl(), el = $('ev-plano'); if(!el) return;
   if(!u){ el.innerHTML = `<p class="help">${esc(L('Todavía no hay plano. Safety puede subirlo en Indicadores.','No plant layout yet. Safety can upload it in Indicators.'))}</p>`; return; }
@@ -1381,7 +1433,6 @@ async function fotoEvento(input){
   if(!/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(L('La imagen debe ser JPG, PNG o WEBP.','The image must be JPG, PNG or WEBP.'),'err'); return; }
   editorCaras(await reducirImagen(await leerArchivo(f), 1400, .9));
 }
-/* Editor para tapar caras: el recuadro se pixela de forma irreversible en la copia que se guarda. */
 function editorCaras(dataUrl){
   modal(2, L('Tapar caras','Cover faces'), `<p class="help">${esc(L('Arrastra un recuadro sobre cada cara o dato que no deba verse. Puedes deshacer el último.','Drag a box over each face or detail that must not be visible. You can undo the last one.'))}</p><canvas id="face-canvas"></canvas>`,
     `<button class="btn-g" type="button" onclick="carasDeshacer()">${esc(L('Deshacer','Undo'))}</button><button class="btn-g" type="button" onclick="closeModal('m-gen2')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" onclick="carasUsar()">${esc(L('Usar esta foto','Use this photo'))}</button>`, 'xl');
@@ -1408,50 +1459,80 @@ function carasDeshacer(){ const s=window.__CARAS; if(s && s.hist.length) s.x.put
 async function carasUsar(){
   const s = window.__CARAS; let u = s.c.toDataURL('image/jpeg', .82);
   if(u.length > 1800000) u = await reducirImagen(u, 1000, .75);
-  EVF.nuevas.push(u); closeModal('m-gen2'); pintarThumbs();
+  EVF.nuevas.push({dataUrl:u, rol: EVF.existentes.concat(EVF.nuevas).some(f=>f.rol==='Evento') ? 'Simulación' : 'Evento'}); closeModal('m-gen2'); pintarThumbs();
+}
+const CAMPOS_BI = { COMUNICADO:['ubicacion','antiguedadPlanta','antiguedadEstacion','queOcurrio','comoOcurrio'], ALERTA:['problema','noCumplimiento'] };
+// Traduce al inglés los textos en español que no tengan traducción (o todos, si se pide).
+async function traducirEvento(todo){
+  const campos = CAMPOS_BI[EVF.clase].map(k=>['ev-'+k+'-es','ev-'+k+'-en']).concat(EVF.acciones.map((a,i)=>['ac-es-'+i,'ac-en-'+i]));
+  const pend = campos.filter(([es,en])=>val(es) && (todo || !val(en)));
+  if(!pend.length){ if(todo) toast(L('No hay textos por traducir.','Nothing to translate.'),'info'); return true; }
+  const r = await llamar({action:'traducir', token:tok(), textos:pend.map(([es])=>val(es))}); if(!r) return false;
+  pend.forEach(([es,en],i)=>{ if(r.textos[i]){ $(en).value = r.textos[i]; const m = /^ac-en-(\d+)$/.exec(en); if(m) EVF.acciones[+m[1]].accion.en = r.textos[i]; } });
+  if(todo) toast(L('Traducción lista. Revísala antes de guardar.','Translation ready. Review it before saving.'));
+  return true;
+}
+function leerEvento(){
+  const com = EVF.clase==='COMUNICADO', g = k => val('ev-'+k), fotosTodas = EVF.existentes.concat(EVF.nuevas);
+  const orden = com ? fotosTodas.slice().sort((a,b)=>(a.rol==='Evento'?0:1)-(b.rol==='Evento'?0:1)) : fotosTodas;
+  const datos = com ? {fechaNotificacion:g('fechaNotificacion'), horaNotificacion:g('horaNotificacion'), ubicacion:biV('ev-ubicacion'), antiguedadPlanta:biV('ev-antiguedadPlanta'), antiguedadEstacion:biV('ev-antiguedadEstacion'), queOcurrio:biV('ev-queOcurrio'), comoOcurrio:biV('ev-comoOcurrio'), acciones:EVF.acciones}
+                    : {mes:g('mes'), dia:g('dia'), problema:biV('ev-problema'), regla:g('regla'), noCumplimiento:biV('ev-noCumplimiento'), acciones:EVF.acciones};
+  return { numero:g('numero'), clasificacion:g('clasificacion'), tipo:com?(TIPO_DE[g('clasificacion')]||''):'Acto inseguro', fecha:g('fecha'), hora:g('hora'), turno:g('turno'), area:g('area'), departamento:g('departamento'),
+    stopRiesgo:g('stopRiesgo'), stopSeveridad:g('stopSeveridad'), diasPerdidos:g('diasPerdidos'), costo:g('costo'), tipoPersona:g('tipoPersona'), estatus:g('estatus'), tipoLesion:g('tipoLesion'),
+    planoX:EVF.planoX??'', planoY:EVF.planoY??'', partesCuerpo:EVF.partes, datos:Object.assign(datos,{fotosRol:orden.map(f=>f.rol||'Evento')}),
+    privado: com ? {nombre:g('p-nombre'), numeroEmpleado:g('p-numeroEmpleado')} : {}, _orden:orden };
+}
+async function fotosComoDataUrl(orden){ return (await Promise.all(orden.map(f=>f.dataUrl ? f.dataUrl : archivo(f.id)))).filter(Boolean); }
+async function vistaPreviaEvento(){
+  if(!(await traducirEvento(false))) return;
+  const ev = leerEvento(); EVF._ev = ev;
+  const tipo = EVF.clase==='COMUNICADO' ? 'COM' : 'ALE';
+  modal(2, L('Vista previa del formato','Form preview'), `<p class="help">${esc(L('Así quedará el formato. Revisa y confirma para guardarlo.','This is how the form will look. Review and confirm to save it.'))}</p><div id="prev-ev" style="width:100%"><p class="help">${esc(L('Preparando el formato…','Preparing the form…'))}</p></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen2')">${esc(L('Corregir','Correct'))}</button><button class="btn-p" type="button" id="btn-ev-ok" onclick="guardarEvento()">${esc(L('Confirmar y guardar','Confirm and save'))}</button>`, 'xl');
+  try{ EVF._partes = await KF.generar(tipo, ev, await fotosComoDataUrl(ev._orden)); await KF.mostrar($('prev-ev'), EVF._partes); } catch(e){ $('prev-ev').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
 }
 async function guardarEvento(){
-  const com = EVF.clase==='COMUNICADO', g = k => val('ev-'+k);
-  const evento = {tipo:g('tipo'), clasificacion:g('clasificacion'), fecha:g('fecha'), hora:g('hora'), turno:g('turno'), area:g('area'), departamento:g('departamento'), stopRiesgo:g('stopRiesgo'), stopSeveridad:g('stopSeveridad'),
-    diasPerdidos:g('diasPerdidos'), costo:g('costo'), tipoPersona:g('tipoPersona'), estatus:g('estatus'), planoX:EVF.planoX??'', planoY:EVF.planoY??'',
-    datos:{fechaNotificacion:g('fechaNotificacion'), horaNotificacion:g('horaNotificacion'), ubicacion:g('ubicacion'), antiguedadPlanta:g('antiguedadPlanta'), antiguedadEstacion:g('antiguedadEstacion'), descripcion:g('descripcion'), queOcurrio:g('queOcurrio'), comoOcurrio:g('comoOcurrio'), problema:g('problema'), noCumplimiento:g('noCumplimiento'), mes:g('mes'), acciones:EVF.acciones},
-    privado: com ? {nombre:g('p-nombre'), numeroEmpleado:g('p-numeroEmpleado'), lesion:g('p-lesion'), parteCuerpo:g('p-parteCuerpo')} : {},
-    fotosExistentes:EVF.existentes, fotosNuevas:EVF.nuevas};
-  $('btn-ev').disabled = true;
+  const ev = EVF._ev, b = $('btn-ev-ok'); if(b) b.disabled = true;
+  const evento = Object.assign({}, ev, {fotosExistentes:ev._orden.filter(f=>f.id).map(f=>f.id), fotosNuevas:ev._orden.filter(f=>f.dataUrl).map(f=>f.dataUrl)});
+  delete evento._orden;
+  // el orden de las fotos se conserva: primero las ya guardadas y después las nuevas
+  evento.datos.fotosRol = ev._orden.filter(f=>f.id).concat(ev._orden.filter(f=>f.dataUrl)).map(f=>f.rol||'Evento');
   try{ const r = await llamar({action:'eventoGuardar', token:tok(), id:EVF.id, clase:EVF.clase, evento}, L('Guardado.','Saved.'));
-    if(r){ closeModal('m-gen'); await cargarEventos(); if(!EVF.id) imprimirEvento(r.id); } }
-  finally{ const b=$('btn-ev'); if(b) b.disabled=false; }
+    if(r){ const partes = EVF._partes, tipo = EVF.clase==='COMUNICADO'?'COM':'ALE'; closeModal('m-gen2'); closeModal('m-gen');
+      if(partes) KF.descargar(partes[0].bytes, nombreArchivo(tipo, Object.assign({folio:r.folio}, ev), 0, 1));
+      await cargarEventos(); } }
+  finally{ const b2=$('btn-ev-ok'); if(b2) b2.disabled=false; }
 }
-async function imprimirEvento(id){
-  const e = EV.find(x=>x.id===id); if(!e) return;
-  const d = e.datos||{}, fotos = (await Promise.all((e.fotos||[]).map(archivo))).filter(Boolean);
-  const ck = on => `<span class="chk">${on?'✓':''}</span>`;
-  const acc = (d.acciones||[]);
-  let html;
-  if(e.clase==='COMUNICADO'){
-    html = `<div class="pf"><table class="hdr"><tr><td style="width:18%">KTMEX</td><td class="t">COMUNICADO DE SEGURIDAD / SAFETY COMMUNICATION</td><td style="width:20%;font-size:8pt">KQMS-SA-FO-014 · Rev. 03</td></tr></table>
-      <table><tr><th colspan="6">CLASIFICACIÓN / CLASSIFICATION</th></tr><tr>${CLASIF.map(c=>`<td>${ck(e.clasificacion===c)}${esc(c)}</td>`).join('')}<td><b>TURNO / SHIFT:</b> ${esc(e.turno)}</td></tr></table>
-      <table><tr><th colspan="2">INFORMACIÓN GENERAL / GENERAL INFORMATION</th></tr>
-        <tr><td style="width:38%">INCIDENTE # / INCIDENT #</td><td>${esc(e.folio)} · ${esc(e.tipo)}</td></tr>
-        <tr><td>FECHA Y HORA DEL EVENTO / DATE AND TIME OF THE EVENT</td><td>${esc(e.fecha)} ${esc(e.hora)}</td></tr>
-        <tr><td>FECHA Y HORA DE NOTIFICACIÓN A SEGURIDAD / DATE AND TIME NOTIFY TO SAFETY</td><td>${esc(d.fechaNotificacion)} ${esc(d.horaNotificacion)}</td></tr>
-        <tr><td>UBICACIÓN / LOCATION</td><td>${esc([e.area,d.ubicacion].filter(Boolean).join(' · '))}</td></tr>
-        <tr><td>ANTIGÜEDAD EN PLANTA / COMPANY SENIORITY</td><td>${esc(d.antiguedadPlanta)}</td></tr>
-        <tr><td>ANTIGÜEDAD EN ESTACIÓN/OPERACIÓN / STATION SENIORITY</td><td>${esc(d.antiguedadEstacion)}</td></tr></table>
-      <table><tr><th>DESCRIPCIÓN GENERAL / GENERAL DESCRIPTION</th></tr><tr><td>${esc(d.descripcion)}</td></tr><tr><th>¿QUÉ OCURRIÓ? / WHAT HAPPENED?</th></tr><tr><td>${esc(d.queOcurrio)}</td></tr><tr><th>¿CÓMO OCURRIÓ? / HOW DID IT HAPPEN?</th></tr><tr><td>${esc(d.comoOcurrio)}</td></tr></table>
-      <table><tr><th colspan="5">CLASIFICACIÓN STOP 6 / STOP 6 CLASSIFICATION</th></tr><tr>${STOP_SEV.map(s=>`<td>${ck(e.stopSeveridad===s)}${esc(s)}</td>`).join('')}</tr></table>
-      <table><tr><th colspan="2">STOP 6 RISK</th></tr>${STOP_R.map(([k,t])=>`<tr><td style="width:8%">${ck(e.stopRiesgo===k)}${esc(k.replace(/\d/,''))}</td><td>${esc(t.replace('α · ',''))}</td></tr>`).join('')}</table>
-      <table><tr><th>EVIDENCIA - SIMULACIÓN / EVIDENCE - SIMULATION</th></tr><tr><td><div class="fotos">${fotos.map(u=>`<img src="${u}" alt="">`).join('')||'&nbsp;'}</div></td></tr></table>
-      <table><tr><th style="width:70%">CONTRAMEDIDAS INMEDIATAS / IMMEDIATE COUNTERMEASURE</th><th>RESPONSABLE / RESPONSIBLE</th></tr>${(acc.length?acc:[{},{}]).map(a=>`<tr><td style="height:18px">${esc(a.accion||'')}</td><td>${esc(a.responsable||'')}</td></tr>`).join('')}</table></div>`;
-  } else {
-    html = `<div class="pf"><table class="hdr"><tr><td style="width:18%">KTMEX</td><td class="t">ALERTA DE SEGURIDAD / SAFETY ALERT</td><td style="width:20%;font-size:8pt">KQMS-SA-FO-005 · Rev. 03</td></tr></table>
-      <table><tr><th>Mes / Month</th><th>Departamento / Department</th><th>Problema detectado / Detected Problem</th></tr><tr><td>${esc(d.mes||String(e.fecha).slice(0,7))}</td><td>${esc([e.departamento,e.area].filter(Boolean).join(' · '))}</td><td>${esc(d.problema)}</td></tr></table>
-      <table><tr><th>Fotografía / Picture</th></tr><tr><td><div class="fotos">${fotos.map(u=>`<img src="${u}" alt="">`).join('')||'&nbsp;'}</div></td></tr></table>
-      <table><tr><th>No cumplimiento / Non Compliance</th></tr><tr><td style="height:40px">${esc(d.noCumplimiento)}</td></tr></table>
-      <table><tr><th colspan="4">Acciones Inmediatas / Immediate Actions</th></tr><tr><th>Descripción de las acciones inmediatas</th><th>Responsable</th><th>Fecha inicio / cierre</th><th>Estatus</th></tr>${(acc.length?acc:[{},{}]).map(a=>`<tr><td style="height:18px">${esc(a.accion||'')}</td><td>${esc(a.responsable||'')}</td><td>${esc([e.fecha&&a.accion?e.fecha:'',a.cierre].filter(Boolean).join(' / '))}</td><td>${esc(a.estatus||'')}</td></tr>`).join('')}</table>
-      <p style="font-size:7.5pt">Folio ${esc(e.folio)}</p></div>`;
-  }
-  imprimir(html);
+async function verEvento(id){
+  const e = EV.find(x=>x.id===id), tipo = e.clase==='COMUNICADO'?'COM':'ALE';
+  modal(1, `${e.numero||e.folio} · ${e.clase==='COMUNICADO'?'FO-014':'FO-005'}`, `<div id="prev-ev1" style="width:100%"><p class="help">${esc(L('Preparando el formato…','Preparing the form…'))}</p></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cerrar','Close'))}</button><button class="btn-p" type="button" id="btn-dl-ev"><i class="fas fa-file-excel" style="margin-right:6px"></i>${esc(L('Descargar Excel','Download Excel'))}</button>`, 'xl');
+  try{ const partes = await KF.generar(tipo, e, await fotosComoDataUrl((e.fotos||[]).map(f=>({id:f})))); await KF.mostrar($('prev-ev1'), partes);
+    $('btn-dl-ev').onclick = () => KF.descargar(partes[0].bytes, nombreArchivo(tipo, e, 0, 1)); } catch(err){ $('prev-ev1').innerHTML = `<div class="err-box">${esc(err.message)}</div>`; }
+}
+/* ── Reglamento interno: se sube el Excel y queda como lista para «No cumplimiento» ── */
+function htmlReglamento(){
+  const reglas = CATS.regla || [];
+  return `<div class="grid-2"><section class="card" style="padding:18px"><div class="sec-title">${esc(L('Subir el reglamento en Excel','Upload the rules in Excel'))}</div>
+      <p class="help">${esc(L('Se lee la primera hoja: cada renglón con texto es una regla. Si hay dos columnas (número y texto), se juntan como «Regla 3.3 texto». Los encabezados se omiten.','The first sheet is read: each row with text is a rule. With two columns (number and text) they are joined as «Rule 3.3 text». Headers are skipped.'))}</p>
+      <input type="file" id="rg-file" class="inp" accept=".xlsx,.xls,.csv" onchange="leerReglamento(this)"><div id="rg-prev" style="margin-top:10px"></div></section>
+    <section class="card" style="padding:18px"><div class="sec-title">${esc(L('Reglas registradas','Registered rules'))} (${reglas.length})</div>
+      <p class="help">${esc(L('También puedes editarlas aquí: una regla por renglón.','You can also edit them here: one rule per line.'))}</p>${ta('rg-lista', reglas.join('\n'), 'rows="14" class="inp no-i18n"')}<button class="btn-p btn-sm" type="button" style="margin-top:8px" onclick="guardarReglas(lineasDe($('rg-lista').value))">${esc(L('Guardar reglas','Save rules'))}</button></section></div>`;
+}
+function cargarSheetJS(){ return window.XLSX ? Promise.resolve() : new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload=res; s.onerror=()=>rej(new Error(L('No se pudo cargar el lector de Excel. Revisa la conexión.','The Excel reader could not be loaded. Check the connection.'))); document.head.appendChild(s); }); }
+let RG_LEIDAS = [];
+async function leerReglamento(input){
+  const f = input.files && input.files[0]; if(!f) return;
+  try{ await cargarSheetJS(); const wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), {type:'array'}); const ws = wb.Sheets[wb.SheetNames[0]];
+    const filas = XLSX.utils.sheet_to_json(ws, {header:1, defval:''}).map(r=>r.map(c=>String(c).trim()).filter(Boolean)).filter(r=>r.length);
+    RG_LEIDAS = filas.filter(r=>!(r.length<=3 && /^(regla|no\.?|n[uú]mero|descripci[oó]n|reglamento)/i.test(r[0]) && r.join(' ').length<60))
+      .map(r=>{ if(r.length===1) return r[0]; const n = r[0], t = r.slice(1).join(' '); return /^\d+(\.\d+)*$/.test(n) ? `Regla ${n} ${t}` : `${n} ${t}`; });
+    $('rg-prev').innerHTML = `<p class="help">${esc(`${RG_LEIDAS.length} reglas leídas. Revisa las primeras:`)}</p><ul class="no-i18n" style="font-size:.8rem;max-height:200px;overflow:auto">${RG_LEIDAS.slice(0,15).map(x=>`<li>${esc(x)}</li>`).join('')}</ul><button class="btn-p btn-sm" type="button" onclick="guardarReglas(RG_LEIDAS)">${esc(L('Registrar estas reglas','Register these rules'))}</button>`;
+  } catch(e){ toast(e.message,'err'); }
+}
+async function guardarReglas(lista){
+  const r = await llamar({action:'catalogoGuardar', token:tok(), tipo:'regla', valores:lista}, L('Reglamento guardado.','Rules saved.'));
+  if(r){ CATS = r.catalogos; PUB = null; renderEventos(); }
 }
 
 /* ═══════════════ INDICADORES ═══════════════ */
@@ -1462,7 +1543,7 @@ async function cargarKPI(){
   if(BOOT) BOOT.plano = r.plano;
   renderKPI();
 }
-function renderKPI(){
+async function renderKPI(){
   CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); CHARTS = [];
   const anios = [...new Set(KP.eventos.map(e=>String(e.fecha).slice(0,4)).concat([String(new Date().getFullYear())]))].filter(a=>/^\d{4}$/.test(a)).sort().reverse();
   const ev = KP.eventos.filter(e=>String(e.fecha).startsWith(KP_ANIO)), com = ev.filter(e=>e.clase==='COMUNICADO'), ale = ev.filter(e=>e.clase==='ALERTA');
@@ -1479,6 +1560,7 @@ function renderKPI(){
     <div class="grid-2"><section class="card chart-card"><h3>${esc(L('Eventos por mes','Events by month'))}</h3><canvas id="ch-mes"></canvas></section><section class="card chart-card"><h3>${esc(L('Pirámide de eventos','Event pyramid'))}</h3><canvas id="ch-pir"></canvas></section>
     <section class="card chart-card"><h3>${esc(L('Eventos por área','Events by area'))}</h3><canvas id="ch-area"></canvas></section><section class="card chart-card"><h3>${esc(L('Clasificación STOP 6','STOP 6 classification'))}</h3><canvas id="ch-stop"></canvas></section>
     <section class="card chart-card"><h3>${esc(L('Matriz: riesgos por nivel vigente','Matrix: risks by current level'))}</h3><canvas id="ch-mz"></canvas></section><section class="card chart-card"><h3>${esc(L('JSA y JRA por estatus','JSA and JRA by status'))}</h3><canvas id="ch-an"></canvas><p class="help" id="kp-an"></p></section></div>
+    <div class="grid-2" style="margin-top:14px"><section class="card chart-card"><h3>${esc(L('Lesiones por parte del cuerpo','Injuries by body part'))}</h3><div id="kp-cuerpo"></div><div id="kp-cuerpo-lista" class="help"></div></section><section class="card chart-card"><h3>${esc(L('Eventos por turno o cuadrilla','Events by shift or crew'))}</h3><canvas id="ch-turno"></canvas></section></div>
     <section class="card" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 10px;font-size:.9rem;color:var(--navy)">${esc(L('Plano: dónde ocurren los eventos','Layout: where events happen'))}</h3><div id="kp-plano"></div></section>
     ${esGestor()?`<section class="card" style="padding:16px;margin-top:14px"><div class="sec-title">${esc(L('Horas-hombre por mes','Man-hours per month'))} · ${esc(KP_ANIO)}</div><div class="grid-4" style="margin-top:8px">${Array.from({length:12},(_,i)=>{const m=KP_ANIO+'-'+String(i+1).padStart(2,'0'), h=KP.horas.find(x=>String(x.mes)===m); return fld(m, inp('hh-'+m,h?h.horas:'','type="number" min="0"'));}).join('')}</div>
       <div class="toolbar" style="margin-top:10px">${sel('hh-base',[{v:200000,t:L('Base 200,000 horas','Base 200,000 hours')},{v:1000000,t:L('Base 1,000,000 horas','Base 1,000,000 hours')}],base,undefined,'style="width:auto"')}<button class="btn-p btn-sm" type="button" onclick="guardarHoras()">${esc(L('Guardar horas-hombre','Save man-hours'))}</button>
@@ -1486,6 +1568,7 @@ function renderKPI(){
   const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const porMes = t => meses.map((_,i)=>ev.filter(e=>(t==='ALERTA'?e.clase==='ALERTA':e.tipo===t)&&Number(String(e.fecha).slice(5,7))===i+1).length);
   const colores = {Accidente:'#DC2626',Incidente:'#F59E0B','Casi accidente':'#3B82F6','Daño a la propiedad':'#8B5CF6',ALERTA:'#10B981'};
+  if(!CATS.turno){ try{ const pd = await cargarPublicos(); }catch(e){} }
   const grafica = (id, cfg) => { if(typeof Chart==='undefined'){ const c=$(id); if(c) c.outerHTML=`<p class="help">${esc(L('No se pudo cargar la librería de gráficas (revisa la conexión).','The chart library could not be loaded (check the connection).'))}</p>`; return; } CHARTS.push(new Chart($(id), cfg)); };
   const opt = {responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}}};
   grafica('ch-mes', {type:'bar', data:{labels:meses, datasets:TIPOS_EV.concat(['ALERTA']).map(t=>({label:t==='ALERTA'?'Alerta':t, data:porMes(t), backgroundColor:colores[t]}))}, options:Object.assign({}, opt, {scales:{x:{stacked:true}, y:{stacked:true, beginAtZero:true, ticks:{precision:0}}}})});
@@ -1499,6 +1582,12 @@ function renderKPI(){
   grafica('ch-an', {type:'bar', data:{labels:est.map(s=>ESTATUS_AN[s][1]), datasets:['JSA','JRA'].map((t,i)=>({label:t, data:est.map(s=>anA.filter(a=>a.tipo===t&&a.estatus===s).length), backgroundColor:i?'#16A34A':'#2563EB'}))}, options:opt});
   const tiempos = anA.filter(a=>a.estatus==='APROBADO'&&a.fechaRevision).map(a=>(new Date(a.fechaRevision)-new Date(a.creado))/3600000);
   $('kp-an').textContent = tiempos.length ? `Tiempo promedio de aprobación: ${(tiempos.reduce((s,x)=>s+x,0)/tiempos.length).toFixed(1)} horas (${tiempos.length} aprobados).` : '';
+  const turnos = (CATS.turno && CATS.turno.length ? CATS.turno : ['Verde','Azul','Mixto']);
+  grafica('ch-turno', {type:'bar', data:{labels:turnos, datasets:[{label:L('Comunicados','Communications'), data:turnos.map(t=>com.filter(e=>e.turno===t).length), backgroundColor:'#2563EB'},{label:L('Alertas','Alerts'), data:turnos.map(t=>ale.filter(e=>e.turno===t).length), backgroundColor:'#10B981'}]}, options:opt});
+  const conteo = {}; com.forEach(e=>(e.partesCuerpo||[]).forEach(z=>conteo[z]=(conteo[z]||0)+1));
+  $('kp-cuerpo').innerHTML = KF.cuerpoSVG([], conteo, false);
+  const top = Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  $('kp-cuerpo-lista').textContent = top.length ? top.map(([z,n])=>KF.nombreZona(z)+': '+n).join(' · ') : L('Sin lesiones registradas en el año.','No injuries recorded this year.');
   pintarPlanoKPI(ev, colores);
 }
 async function pintarPlanoKPI(ev, colores){
@@ -1674,7 +1763,7 @@ async function siguientePregunta(){
 /* ═══════════════ PÁGINA PÚBLICA (sin cuenta) ═══════════════ */
 function renderPublico(){
   const card = (fn, ico, color, bg, t, txt) => `<div class="card mod go" tabindex="0" onclick="${fn}" onkeydown="if(event.key==='Enter'){${fn}}"><div class="mod-ico" style="background:${bg}"><i class="fas ${ico}" style="color:${color};font-size:18px"></i></div><h3>${esc(t)}</h3><p>${esc(txt)}</p></div>`;
-  $('publico-body').innerHTML = `<div class="hero"><h1>KTMEX Safety</h1><p>${esc(L('Análisis de riesgo, capacitación de contratistas y consulta de folios. Para capturar un JSA o JRA no necesitas cuenta.','Risk analyses, contractor training and ID lookup. You do not need an account to enter a JSA or JRA.'))}</p></div>
+  $('publico-body').innerHTML = `<div class="hero"><h1>KTMEX Safety</h1><p style="font-size:1.05rem;color:#fff;font-weight:600;margin:0 0 6px">${esc(L('Un solo criterio para evaluar, aprobar y ejecutar el trabajo','One criterion to assess, approve and carry out the work'))}</p><p>${esc(L('Análisis de riesgo, capacitación de contratistas y consulta de folios. Para capturar un JSA o JRA no necesitas cuenta.','Risk analyses, contractor training and ID lookup. You do not need an account to enter a JSA or JRA.'))}</p></div>
     <div class="mod-grid">${card("nuevoAnalisis('JSA',true)",'fa-clipboard-check','#2563EB','#EEF4FF',L('Capturar JSA','Enter JSA'),L('Trabajo especial o no rutinario: personal interno, contratistas o personal sin cuenta.','Special or non-routine work: internal staff, contractors or people without an account.'))}
     ${card("nuevoAnalisis('JRA',true)",'fa-list-check','#12805C','#ECFDF5',L('Capturar JRA','Enter JRA'),L('Trabajo rutinario del personal interno.','Routine work by internal staff.'))}
     ${card('consultarFolio()','fa-magnifying-glass','#D97706','#FFFBEB',L('Consultar mi folio','Check my ID'),L('Revisa si Safety ya aprobó tu análisis o qué debes corregir.','See whether Safety approved your analysis or what to correct.'))}
