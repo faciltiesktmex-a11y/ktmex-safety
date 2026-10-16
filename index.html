@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>KTMEX Safety</title>
+<meta name="theme-color" content="#0B1730">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script>
+/* ── Configuración ─────────────────────────────────────────────
+   Pega aquí la URL de la implementación de Apps Script de SAFETY
+   (termina en /exec). No uses la de Facilities. */
+window.SCRIPT_URL = 'REEMPLAZA_CON_LA_URL_EXEC_DE_SAFETY';
+window.FRONT_VERSION = '0.1.0';
+</script>
+<style>
+/* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
+*{font-family:'DM Sans',system-ui,sans-serif;box-sizing:border-box}
+.mono{font-family:'Space Mono',monospace}
+:root{
+  --navy:#0B1730;--navy-2:#13233F;--blue:#2463EB;--blue-soft:#EEF4FF;
+  --surface:#FFFFFF;--surface-2:#F8FAFC;--page:#F3F6FA;--border:#DDE5EF;
+  --text:#172033;--muted:#66758C;--success:#15803D;--warning:#B7791F;--danger:#C93636;
+  --safety:#12805C;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.04),0 3px 10px rgba(15,23,42,.04);
+  --shadow-md:0 8px 28px rgba(15,23,42,.09);--radius:16px;
+  --sidebar:236px;--sidebar-mini:76px;
+}
+html,body{margin:0}
+body{background:var(--page);color:var(--text);letter-spacing:-.005em;min-height:100vh}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.fade{animation:fadeUp .3s cubic-bezier(.22,1,.36,1) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.inp{width:100%;border:1.5px solid #D7E0EB;border-radius:10px;padding:10px 13px;font-size:.875rem;outline:none;background:#FBFCFE;min-height:42px;color:var(--text);transition:.15s}
+.inp:focus{border-color:#4D7FF0;box-shadow:0 0 0 3px rgba(36,99,235,.10);background:#fff}
+.inp::placeholder{color:#94A3B8}
+.lbl{display:block;font-size:.8rem;font-weight:600;color:#334155;margin-bottom:6px}
+.card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+.btn-p{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:12px 20px;font-weight:600;cursor:pointer;transition:.15s;font-size:.875rem;box-shadow:0 2px 5px rgba(36,99,235,.18)}
+.btn-p:hover{background:#1E55CF}.btn-p:active{transform:scale(.98)}.btn-p:disabled{opacity:.6;cursor:not-allowed}
+.btn-g{background:#EDF2F7;color:#40506A;border:none;border-radius:10px;padding:9px 16px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.15s}
+.btn-g:hover{background:#E2E8F0}
+.btn-ok{background:#16A34A;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:.82rem;font-weight:600;cursor:pointer}
+.btn-red{background:#DC2626;color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:.82rem;font-weight:600;cursor:pointer}
+.btn-sm{padding:6px 11px;font-size:.75rem}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;font-size:.72rem;font-weight:700;border:1px solid transparent;white-space:nowrap}
+.b-done{background:#D1FAE5;color:#065F46;border-color:#6EE7B7}
+.b-pend{background:#FEF3C7;color:#92400E;border-color:#FDE68A}
+.b-off{background:#F1F5F9;color:#64748B;border-color:#CBD5E1}
+.b-info{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE}
+.b-red{background:#FEE2E2;color:#B91C1C;border-color:#FECACA}
+table{width:100%;border-collapse:collapse}
+thead th{padding:9px 12px;background:#F5F8FC;border-bottom:1px solid var(--border);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#586980;text-align:left;white-space:nowrap}
+.tbl-row td{padding:11px 12px;border-bottom:1px solid #F1F5F9;font-size:.82rem;vertical-align:middle}
+.tbl-row:hover{background:#F7FAFD}
+.tbl-wrap{overflow-x:auto}
+.tab-btn{white-space:nowrap;background:#fff;border:1.5px solid #E2E8F0;border-radius:10px;padding:8px 15px;margin:3px 2px;font-weight:600;font-size:.82rem;color:#334155;cursor:pointer;box-shadow:0 1px 3px rgba(15,42,74,.08);transition:.15s}
+.tab-btn:hover{background:#F1F5FF;border-color:#93C5FD}
+.tab-btn.active{background:#0F2A4A;border-color:#0F2A4A;color:#fff;box-shadow:0 4px 12px rgba(15,42,74,.25)}
+.modal-bg{position:fixed;inset:0;z-index:60;background:rgba(8,18,36,.62);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:12px}
+.modal-box{background:#fff;border-radius:20px;box-shadow:0 28px 80px rgba(8,18,36,.28);width:100%;max-width:520px;max-height:92vh;overflow-y:auto}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 22px;border-bottom:1px solid var(--border)}
+.modal-head h3{margin:0;font-size:1rem;color:var(--navy)}
+.modal-body{padding:20px 22px;display:grid;gap:14px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid var(--border)}
+.x-btn{background:none;border:none;color:#94A3B8;font-size:1.1rem;cursor:pointer;padding:4px}
+#toast{position:fixed;bottom:22px;right:22px;z-index:99;background:var(--navy);color:#fff;padding:11px 17px;border-radius:11px;box-shadow:0 14px 34px rgba(8,18,36,.25);font-size:.84rem;display:none;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 24px))}
+.help{font-size:.75rem;color:var(--muted);margin:0}
+.err-box{color:#B91C1C;font-size:.78rem;background:#FEF2F2;border:1px solid #FECACA;border-radius:9px;padding:8px 10px}
+.temp-pwd{font-family:'Space Mono',monospace;font-size:1.35rem;letter-spacing:.06em;text-align:center;padding:14px;border:1.5px dashed #94A3B8;border-radius:12px;background:#F8FAFC;user-select:all}
+
+/* ═══ Barra lateral (igual que Facilities) ═══ */
+#sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar);z-index:80;background:linear-gradient(180deg,#0B1730 0%,#10213D 100%);border-right:1px solid rgba(255,255,255,.08);box-shadow:4px 0 22px rgba(15,23,42,.16);display:none;flex-direction:column;gap:10px;padding:14px 10px;overflow-y:auto;overflow-x:hidden;transition:width .2s ease}
+body.logged #sidebar{display:flex}
+body.logged{padding-left:var(--sidebar);transition:padding-left .2s ease}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:3px 8px 13px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#16A374,var(--safety));display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 6px 16px rgba(18,128,92,.35)}
+.sb-logo i{color:#fff;font-size:15px}
+.sb-title{color:#fff;font-weight:700;font-size:.9rem;line-height:1.15;white-space:nowrap}
+.sb-sub{color:#778BA8;font-size:.62rem;white-space:nowrap}
+.sb-section{font-size:.60rem;letter-spacing:.13em;text-transform:uppercase;color:#637793;font-weight:800;padding:13px 10px 5px;white-space:nowrap}
+.sb-btn{width:100%;display:flex;align-items:center;gap:9px;padding:9px 10px;color:#AAB8CD;background:transparent;border:0;border-radius:9px;font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;white-space:nowrap}
+.sb-btn i{width:17px;text-align:center;color:#8294AF;flex:0 0 17px}
+.sb-btn:hover{background:rgba(255,255,255,.07);color:#fff}
+.sb-btn.active{background:#2563EB;color:#fff;box-shadow:0 6px 18px rgba(37,99,235,.25)}
+.sb-btn.active i{color:#fff}
+#sb-user{display:flex;align-items:center;gap:9px;width:100%;padding:9px 10px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.04);border-radius:10px;margin-top:auto}
+#sb-user-name{font-size:.70rem;color:#EDF3FC;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sb-user-meta{font-size:.59rem;color:#778BA8;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avatar{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;background:#2F4A73;overflow:hidden;cursor:pointer;border:2px solid rgba(255,255,255,.15)}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar.lg{width:38px;height:38px;cursor:default;border-color:#E2E8F0;background:#64748B}
+#sb-tools{display:flex;align-items:center;gap:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+.sb-icon{width:32px;height:32px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);color:#9FB0C8;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sb-icon:hover{background:rgba(255,255,255,.10);color:#fff}
+#lang-switch{display:flex;background:#1E293B;border:1px solid #334155;border-radius:8px;padding:2px}
+#lang-switch button{padding:4px 7px;border:none;border-radius:6px;font-size:.68rem;font-weight:700;cursor:pointer;background:transparent;color:#94A3B8}
+#lang-switch button.on{background:#2563EB;color:#fff}
+#btn-logout{margin-left:auto;padding:6px 9px;font-size:.70rem;border:1px solid rgba(255,255,255,.12);background:transparent;color:#CBD5E1;border-radius:8px;cursor:pointer;font-weight:600}
+#btn-logout:hover{background:rgba(239,68,68,.15);color:#FCA5A5}
+body.sb-mini #sidebar{width:var(--sidebar-mini)}
+body.sb-mini.logged{padding-left:var(--sidebar-mini)}
+body.sb-mini .sb-title,body.sb-mini .sb-sub,body.sb-mini .sb-section,body.sb-mini #sb-user>div:last-child,body.sb-mini #lang-switch,body.sb-mini #btn-logout{display:none}
+body.sb-mini .sb-btn{justify-content:center;font-size:0;padding:10px}
+body.sb-mini .sb-btn i{font-size:.85rem}
+body.sb-mini #sb-user{justify-content:center;padding:8px}
+body.sb-mini #sb-tools{justify-content:center}
+body.sb-mini #sb-collapse i{transform:rotate(180deg)}
+@media (max-width:1000px){
+  body.logged,body.sb-mini.logged{padding-left:0}
+  #sidebar,body.sb-mini #sidebar{position:sticky;top:0;width:100%;height:auto;flex-direction:row;align-items:center;padding:8px 10px;overflow-x:auto;gap:6px;bottom:auto}
+  .sb-brand{border:0;padding:0 6px 0 0}
+  .sb-sub,.sb-section,#sb-collapse{display:none!important}
+  #sb-user{width:auto;margin:0;padding:0;border:0;background:none;order:9}
+  #sb-user>div:last-child{display:none}
+  .sb-btn{width:auto;flex:0 0 auto}
+  #sb-tools{border:0;padding:0;margin-left:auto;flex-wrap:nowrap}
+}
+
+/* ═══ Vistas ═══ */
+.view{display:none}
+.page{max-width:1180px;margin:0 auto;padding:30px 20px 48px}
+.hero{background:linear-gradient(120deg,#0B1730 0%,#17345F 58%,#2463EB 140%);border-radius:22px;padding:28px 30px;margin-bottom:24px;position:relative;overflow:hidden;box-shadow:0 16px 38px rgba(11,23,48,.18)}
+.hero:after{content:'';position:absolute;width:280px;height:280px;border-radius:50%;right:-90px;top:-130px;background:rgba(255,255,255,.07)}
+.hero h1{color:#fff;font-size:1.65rem;letter-spacing:-.025em;margin:0 0 6px}
+.hero p{color:#C8D5EA;max-width:720px;line-height:1.55;margin:0;font-size:.9rem}
+.mod-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}
+.mod{padding:22px;min-height:190px;display:flex;flex-direction:column}
+.mod.go{cursor:pointer;transition:transform .18s,box-shadow .18s,border-color .18s}
+.mod.go:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:#BFCDE0}
+.mod.soon{background:#FBFCFE}
+.mod-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.mod h3{font-size:.98rem;color:#162238;margin:0 0 6px}
+.mod p{line-height:1.5;color:#6B7A90;font-size:.82rem;margin:0 0 14px;flex:1}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.page-head h2{margin:0;font-size:1.35rem;color:var(--navy);letter-spacing:-.02em}
+.page-head p{margin:4px 0 0;color:var(--muted);font-size:.85rem}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.grid-2{grid-template-columns:1fr}.page{padding:18px 12px 32px}.hero{padding:22px 20px}.hero h1{font-size:1.35rem}#toast{left:10px;right:10px;bottom:12px}}
+
+/* Ingreso */
+#view-login{min-height:100vh;align-items:center;justify-content:center;padding:16px;background:radial-gradient(ellipse at top,#E8EEF8 0%,var(--page) 60%)}
+.login-card{width:100%;max-width:350px;padding:32px}
+.login-mark{width:52px;height:52px;background:linear-gradient(135deg,#16A374,var(--safety));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 10px 24px rgba(18,128,92,.30)}
+.login-mark i{color:#fff;font-size:20px}
+</style>
+</head>
+<body>
+
+<!-- ═══ Barra lateral ═══ -->
+<aside id="sidebar" aria-label="Menú principal">
+  <div class="sb-brand">
+    <div class="sb-logo"><i class="fas fa-helmet-safety"></i></div>
+    <div><div class="sb-title no-i18n">KTMEX Safety</div><div class="sb-sub">Seguridad industrial</div></div>
+  </div>
+  <div class="sb-section">Operación</div>
+  <button class="sb-btn" id="nav-home" type="button" onclick="showView('home')"><i class="fas fa-house"></i>Inicio</button>
+  <div class="sb-section" id="sec-gestion">Gestión</div>
+  <button class="sb-btn" id="nav-admin" type="button" onclick="showView('admin')"><i class="fas fa-users-gear"></i>Administración</button>
+  <div id="sb-user">
+    <div class="avatar" id="sb-avatar" title="Cambiar mi foto" onclick="elegirFoto()"></div>
+    <div style="min-width:0;flex:1"><div id="sb-user-name" class="no-i18n">—</div><div id="sb-user-meta" class="no-i18n">—</div></div>
+  </div>
+  <div id="sb-tools">
+    <button class="sb-icon" id="sb-collapse" type="button" title="Contraer o expandir el menú" onclick="toggleSidebar()"><i class="fas fa-chevron-left"></i></button>
+    <div id="lang-switch">
+      <button id="lang-es" type="button" class="on" onclick="setLanguage('es')" title="Español">ES</button>
+      <button id="lang-en" type="button" onclick="setLanguage('en')" title="English">EN</button>
+    </div>
+    <button id="btn-logout" type="button" onclick="logout()"><i class="fas fa-right-from-bracket"></i> Salir</button>
+  </div>
+</aside>
+<input type="file" id="foto-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="fotoSeleccionada(this)">
+
+<!-- ═══ Ingreso ═══ -->
+<div id="view-login" class="view">
+  <div class="card login-card fade">
+    <div style="text-align:center;margin-bottom:24px">
+      <div class="login-mark"><i class="fas fa-helmet-safety"></i></div>
+      <h2 class="no-i18n" style="font-size:1.15rem;font-weight:700;color:var(--navy);margin:0 0 4px">KTMEX Safety</h2>
+      <p style="color:#64748B;font-size:.78rem;margin:0">Ingresa con tu usuario del sistema de Safety</p>
+    </div>
+    <label class="lbl" for="log-user">Usuario</label>
+    <input id="log-user" type="text" class="inp" autocomplete="username" autocapitalize="none" style="margin-bottom:12px" onkeydown="if(event.key==='Enter')$('log-pwd').focus()">
+    <label class="lbl" for="log-pwd">Contraseña</label>
+    <input id="log-pwd" type="password" class="inp" autocomplete="current-password" placeholder="••••••••" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')login()">
+    <div id="log-err" class="err-box" style="display:none;margin-bottom:10px"></div>
+    <button class="btn-p" id="btn-login" type="button" onclick="login()" style="width:100%"><i class="fas fa-right-to-bracket" style="margin-right:8px"></i>Ingresar</button>
+    <p class="help" style="text-align:center;margin-top:14px">¿Olvidaste tu contraseña? Pide a Safety que la reinicie.</p>
+  </div>
+</div>
+
+<!-- ═══ Inicio ═══ -->
+<div id="view-home" class="view">
+  <div class="page fade">
+    <div class="hero">
+      <h1 id="home-saludo">Bienvenido</h1>
+      <p>Sistema de Safety de KTMEX. Aquí vivirán la matriz de riesgos, los análisis JSA y JRA, los comunicados y alertas, y los indicadores de seguridad.</p>
+    </div>
+    <div class="mod-grid" id="home-mods"></div>
+  </div>
+</div>
+
+<!-- ═══ Administración (tablero con pestañas) ═══ -->
+<div id="view-admin" class="view">
+  <div class="page fade">
+    <div class="page-head">
+      <div><h2>Administración</h2><p>Usuarios del sistema y registro de movimientos.</p></div>
+    </div>
+    <div style="margin-bottom:14px">
+      <button class="tab-btn" id="tab-usuarios" type="button" onclick="switchTab('usuarios')"><i class="fas fa-users" style="margin-right:6px"></i>Usuarios</button>
+      <button class="tab-btn" id="tab-bitacora" type="button" onclick="switchTab('bitacora')"><i class="fas fa-clock-rotate-left" style="margin-right:6px"></i>Bitácora</button>
+    </div>
+
+    <section id="panel-usuarios" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 18px;border-bottom:1px solid var(--border)">
+        <input id="usr-q" class="inp" style="max-width:300px" placeholder="Buscar nombre, usuario o área" oninput="pintarUsuarios()">
+        <div class="toolbar">
+          <label class="help" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="usr-inactivos" onchange="pintarUsuarios()"> Mostrar inactivos</label>
+          <button class="btn-p btn-sm" type="button" onclick="abrirUsuario()"><i class="fas fa-user-plus" style="margin-right:6px"></i>Nuevo usuario</button>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th></th><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Área</th><th>Estatus</th><th></th></tr></thead>
+        <tbody id="usr-rows"></tbody>
+      </table></div>
+      <p class="help" id="usr-count" style="padding:10px 18px"></p>
+    </section>
+
+    <section id="panel-bitacora" class="card" style="display:none">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Movimiento</th><th>Detalle</th></tr></thead>
+        <tbody id="bit-rows"></tbody>
+      </table></div>
+      <p class="help" style="padding:10px 18px">Se muestran los últimos 200 movimientos.</p>
+    </section>
+  </div>
+</div>
+
+<!-- ═══ Ventana: cambio de contraseña ═══ -->
+<div class="modal-bg" id="m-pwd" role="dialog" aria-modal="true" aria-labelledby="m-pwd-t">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="m-pwd-t">Define tu contraseña</h3><button class="x-btn" id="m-pwd-x" type="button" onclick="closeModal('m-pwd')" aria-label="Cerrar">✕</button></div>
+    <div class="modal-body">
+      <p class="help" id="m-pwd-msg">Es tu primer ingreso. Cambia la contraseña temporal por una propia.</p>
+      <div><label class="lbl" for="pwd-actual">Contraseña actual</label><input id="pwd-actual" type="password" class="inp" autocomplete="current-password"></div>
+      <div><label class="lbl" for="pwd-nueva">Contraseña nueva</label><input id="pwd-nueva" type="password" class="inp" autocomplete="new-password"></div>
+      <div><label class="lbl" for="pwd-conf">Confirma la contraseña nueva</label><input id="pwd-conf" type="password" class="inp" autocomplete="new-password" onkeydown="if(event.key==='Enter')guardarPassword()"></div>
+      <p class="help" id="pwd-politica">Mínimo 8 caracteres, con al menos una letra y un número.</p>
+      <div id="pwd-err" class="err-box" style="display:none"></div>
+    </div>
+    <div class="modal-foot"><button class="btn-p" id="btn-pwd" type="button" onclick="guardarPassword()">Guardar contraseña</button></div>
+  </div>
+</div>
+
+<!-- ═══ Ventana: alta y edición de usuario ═══ -->
+<div class="modal-bg" id="m-usr" role="dialog" aria-modal="true" aria-labelledby="m-usr-t">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="m-usr-t">Nuevo usuario</h3><button class="x-btn" type="button" onclick="closeModal('m-usr')" aria-label="Cerrar">✕</button></div>
+    <div class="modal-body">
+      <div><label class="lbl" for="u-nombre">Nombre completo</label><input id="u-nombre" class="inp" maxlength="120"></div>
+      <div class="grid-2">
+        <div><label class="lbl" for="u-username">Usuario</label><input id="u-username" class="inp mono" maxlength="30" autocapitalize="none" placeholder="ej. jperez"></div>
+        <div><label class="lbl" for="u-rol">Rol</label><select id="u-rol" class="inp"></select></div>
+      </div>
+      <div class="grid-2">
+        <div><label class="lbl" for="u-depto">Área / departamento</label><input id="u-depto" class="inp" maxlength="80"></div>
+        <div><label class="lbl" for="u-correo">Correo (opcional)</label><input id="u-correo" class="inp" type="email" maxlength="120"></div>
+      </div>
+      <p class="help" id="u-ayuda-rol"></p>
+      <div id="u-err" class="err-box" style="display:none"></div>
+    </div>
+    <div class="modal-foot"><button class="btn-g" type="button" onclick="closeModal('m-usr')">Cancelar</button><button class="btn-p" id="btn-usr" type="button" onclick="guardarUsuario()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- ═══ Ventana: contraseña temporal (se muestra una sola vez) ═══ -->
+<div class="modal-bg" id="m-temp" role="dialog" aria-modal="true" aria-labelledby="m-temp-t">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="m-temp-t">Contraseña temporal</h3></div>
+    <div class="modal-body">
+      <p style="margin:0;font-size:.88rem">Entrégale a <strong id="temp-user"></strong> esta contraseña. El sistema le pedirá cambiarla al entrar.</p>
+      <div class="temp-pwd" id="temp-pwd"></div>
+      <p class="help">No se guarda en ningún lado y no se vuelve a mostrar. Si se pierde, reiníciala otra vez.</p>
+    </div>
+    <div class="modal-foot"><button class="btn-g" type="button" onclick="copiarTemporal()"><i class="fas fa-copy" style="margin-right:6px"></i>Copiar</button><button class="btn-p" type="button" onclick="closeModal('m-temp')">Listo, ya la anoté</button></div>
+  </div>
+</div>
+
+<!-- ═══ Ventana: la sesión venció (se repite la acción sin perder lo capturado) ═══ -->
+<div class="modal-bg" id="m-relogin" role="dialog" aria-modal="true" aria-labelledby="m-relogin-t" style="z-index:90">
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-head"><h3 id="m-relogin-t">Tu sesión venció</h3></div>
+    <div class="modal-body">
+      <p class="help">Escribe tu contraseña para continuar. Lo que estabas capturando no se pierde.</p>
+      <div><label class="lbl" for="rl-pwd">Contraseña de <span id="rl-user"></span></label><input id="rl-pwd" type="password" class="inp" autocomplete="current-password" onkeydown="if(event.key==='Enter')$('btn-rl').click()"></div>
+      <div id="rl-err" class="err-box" style="display:none"></div>
+    </div>
+    <div class="modal-foot"><button class="btn-g" type="button" id="btn-rl-no">Salir</button><button class="btn-p" type="button" id="btn-rl">Continuar</button></div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"><i id="toast-ico" class="fas fa-circle-check"></i><span id="toast-txt"></span></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY_SESSION = 'ktmex_safety_session', KEY_LANG = 'ktmex_safety_lang', KEY_SIDEBAR = 'ktmex_safety_sidebar';
+let SESSION = null;        // {token, user}
+let BOOT = null;           // respuesta de getBootstrap
+let LANG = (()=>{ try { return localStorage.getItem(KEY_LANG) || 'es'; } catch(e){ return 'es'; } })();
+let CURRENT_VIEW = '';
+let USUARIOS = [];
+
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function iniciales(nombre){ return String(nombre||'?').trim().split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase() || '?'; }
+function avatarHtml(u, cls){
+  const foto = u && u.fotoPerfil;
+  return `<div class="avatar ${cls||''}">${foto ? `<img src="${esc(foto)}" alt="">` : esc(iniciales(u && u.nombre))}</div>`;
+}
+function fecha(iso){
+  if(!iso) return '—';
+  const d = new Date(iso); if(isNaN(d)) return esc(iso);
+  return d.toLocaleString(LANG==='en'?'en-US':'es-MX',{year:'numeric',month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+/* ═══ Cliente de la API ═══ */
+async function api(data){
+  if(!window.SCRIPT_URL || window.SCRIPT_URL.indexOf('REEMPLAZA_')===0){
+    toast('Falta configurar SCRIPT_URL con la URL /exec de Safety.','err');
+    throw new Error('SCRIPT_URL no configurado');
+  }
+  let r;
+  try{
+    r = await fetch(window.SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(data),cache:'no-store'});
+  }catch(e){ throw new Error('No se pudo conectar con el servidor. Revisa tu conexión.'); }
+  if(!r.ok) throw new Error('El servidor respondió con error ' + r.status + '.');
+  let res;
+  try{ res = await r.json(); }catch(e){ throw new Error('La respuesta del servidor no es válida. Revisa que SCRIPT_URL sea la implementación de Safety.'); }
+  const err = String(res && res.error || '');
+  if(/sesión inválida|expirada/i.test(err) && data.action!=='login' && data.token && !data.__reintento){
+    const nuevo = await pedirRelogin();
+    if(nuevo) return api(Object.assign({}, data, {token:nuevo, __reintento:true}));
+    cerrarSesionLocal(); showView('login');
+  }
+  return res;
+}
+
+function pedirRelogin(){
+  return new Promise(resolve=>{
+    if(!SESSION){ resolve(null); return; }
+    $('rl-user').textContent = SESSION.user.username;
+    $('rl-pwd').value=''; $('rl-err').style.display='none';
+    openModal('m-relogin'); setTimeout(()=>$('rl-pwd').focus(),50);
+    $('btn-rl-no').onclick = ()=>{ closeModal('m-relogin'); resolve(null); };
+    $('btn-rl').onclick = async ()=>{
+      $('btn-rl').disabled = true;
+      try{
+        const res = await api({action:'login', username:SESSION.user.username, password:$('rl-pwd').value});
+        if(!res.success){ $('rl-err').textContent = uiText(res.error||'No se pudo ingresar.'); $('rl-err').style.display=''; return; }
+        SESSION.token = res.token; guardarSesion();
+        closeModal('m-relogin'); resolve(res.token);
+      }catch(e){ $('rl-err').textContent = uiText(e.message); $('rl-err').style.display=''; }
+      finally{ $('btn-rl').disabled = false; }
+    };
+  });
+}
+
+/* ═══ Avisos y ventanas ═══ */
+function toast(msg, type='ok'){
+  const t=$('toast'); $('toast-txt').textContent = uiText(String(msg||''));
+  const ico=$('toast-ico');
+  ico.className = type==='ok'?'fas fa-circle-check':type==='err'?'fas fa-circle-xmark':'fas fa-circle-info';
+  ico.style.color = type==='ok'?'#4ADE80':type==='err'?'#F87171':'#60A5FA';
+  t.style.display='flex'; clearTimeout(t._t);
+  t._t=setTimeout(()=>t.style.display='none', type==='err'?6500:3500);
+}
+function openModal(id){ $(id).style.display='flex'; }
+function closeModal(id){ $(id).style.display='none'; }
+
+/* ═══ Sesión ═══ */
+function guardarSesion(){ try{ sessionStorage.setItem(KEY_SESSION, JSON.stringify(SESSION)); }catch(e){} }
+function cerrarSesionLocal(){
+  SESSION=null; BOOT=null; USUARIOS=[];
+  try{ sessionStorage.removeItem(KEY_SESSION); }catch(e){}
+  document.body.classList.remove('logged');
+}
+
+async function login(){
+  const u=$('log-user').value.trim(), p=$('log-pwd').value;
+  const box=$('log-err'); box.style.display='none';
+  if(!u||!p){ box.textContent=uiText('Escribe tu usuario y tu contraseña.'); box.style.display=''; return; }
+  $('btn-login').disabled=true;
+  try{
+    const res = await api({action:'login', username:u, password:p});
+    if(!res.success){ box.textContent=uiText(res.error||'Usuario o contraseña incorrectos.'); box.style.display=''; return; }
+    SESSION = {token:res.token, user:res.user}; guardarSesion();
+    $('log-pwd').value='';
+    await arrancar();
+    if(res.mustChangePassword) pedirCambioPassword(true, res.passwordPolicy);
+  }catch(e){ box.textContent=uiText(e.message); box.style.display=''; }
+  finally{ $('btn-login').disabled=false; }
+}
+
+async function arrancar(){
+  const res = await api({action:'getBootstrap', token:SESSION.token});
+  if(!SESSION) return;            // el usuario salió desde la ventana de sesión vencida
+  if(!res.success){ toast(res.error,'err'); cerrarSesionLocal(); showView('login'); return; }
+  BOOT = res; SESSION.user = Object.assign({}, SESSION.user, res.user); guardarSesion();
+  document.body.classList.add('logged');
+  configureRoleUI();
+  showView('home');
+  if(res.user.mustChangePassword) pedirCambioPassword(true);
+}
+
+async function logout(){
+  const token = SESSION && SESSION.token;
+  cerrarSesionLocal(); showView('login');
+  if(token){ try{ await api({action:'logout', token}); }catch(e){} }
+}
+
+function pedirCambioPassword(obligatorio, policy){
+  ['pwd-actual','pwd-nueva','pwd-conf'].forEach(id=>$(id).value='');
+  $('pwd-err').style.display='none';
+  $('m-pwd-x').style.display = obligatorio ? 'none' : '';
+  $('m-pwd-t').textContent = uiText(obligatorio ? 'Define tu contraseña' : 'Cambiar contraseña');
+  $('m-pwd-msg').textContent = uiText(obligatorio ? 'Es tu primer ingreso. Cambia la contraseña temporal por una propia.' : 'Escribe tu contraseña actual y la nueva.');
+  if(policy) $('pwd-politica').textContent = uiText(`Mínimo ${policy.minLength} caracteres, con al menos una letra y un número.`);
+  openModal('m-pwd'); setTimeout(()=>$('pwd-actual').focus(),50);
+}
+async function guardarPassword(){
+  const err=$('pwd-err'); err.style.display='none';
+  $('btn-pwd').disabled=true;
+  try{
+    const res = await api({action:'changePassword', token:SESSION.token, passwordActual:$('pwd-actual').value, passwordNueva:$('pwd-nueva').value, passwordConfirma:$('pwd-conf').value});
+    if(!res.success){ err.textContent=uiText(res.error); err.style.display=''; return; }
+    if(BOOT) BOOT.user.mustChangePassword=false;
+    SESSION.user.mustChangePassword=false; guardarSesion();
+    closeModal('m-pwd'); toast('Contraseña actualizada correctamente.');
+  }catch(e){ err.textContent=uiText(e.message); err.style.display=''; }
+  finally{ $('btn-pwd').disabled=false; }
+}
+
+/* ═══ Roles y vistas ═══ */
+function puedeAdministrar(){ return !!(BOOT && BOOT.permisos && BOOT.permisos.administrarUsuarios); }
+function soloIngles(){ return !!(BOOT && BOOT.permisos && BOOT.permisos.soloIngles); }
+function nombreRol(id){
+  const r = BOOT && BOOT.roles && BOOT.roles.find(x=>x.id===id);
+  return r ? (LANG==='en' ? r.etiquetaEn : r.etiqueta) : id;
+}
+
+function roleCanView(v){
+  if(!SESSION) return v==='login';
+  if(v==='admin') return puedeAdministrar();
+  return ['home'].includes(v);
+}
+
+function configureRoleUI(){
+  const adm = puedeAdministrar();
+  $('nav-admin').style.display = adm ? '' : 'none';
+  $('sec-gestion').style.display = adm ? '' : 'none';
+  if(soloIngles()){ LANG='en'; $('lang-switch').style.display='none'; }
+  else $('lang-switch').style.display='flex';
+  pintarUsuarioSidebar();
+  pintarInicio();
+  applyLanguage();
+}
+
+function pintarUsuarioSidebar(){
+  const u = SESSION && SESSION.user;
+  $('sb-user-name').textContent = u ? (u.nombre||u.username) : '—';
+  $('sb-user-meta').textContent = u ? nombreRol(u.rol) + ' · v' + window.FRONT_VERSION : '—';
+  $('sb-avatar').innerHTML = u && u.fotoPerfil ? `<img src="${esc(u.fotoPerfil)}" alt="">` : esc(iniciales(u && u.nombre));
+}
+
+const MODULOS = [
+  {id:'matriz', ico:'fa-table-cells', color:'#2463EB', bg:'#EEF4FF', titulo:'Matriz de riesgos', texto:'Peligros, evaluación y contramedidas acordadas por el equipo de Safety, con un solo criterio.', version:'0.2'},
+  {id:'jsa', ico:'fa-clipboard-check', color:'#12805C', bg:'#ECFDF5', titulo:'JSA y JRA', texto:'Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.', version:'0.3'},
+  {id:'comunicados', ico:'fa-bullhorn', color:'#D97706', bg:'#FFFBEB', titulo:'Comunicados y alertas', texto:'Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.', version:'0.4'},
+  {id:'kpi', ico:'fa-chart-column', color:'#7C3AED', bg:'#F5F3FF', titulo:'Indicadores', texto:'Gráficas de eventos por mes, área y tipo, y el plano de la planta.', version:'0.5'}
+];
+function pintarInicio(){
+  const u = SESSION && SESSION.user;
+  $('home-saludo').textContent = u ? 'Hola, ' + String(u.nombre||'').split(' ')[0] : 'Bienvenido';
+  let html = MODULOS.map(m=>`<div class="card mod soon">
+      <div class="mod-ico" style="background:${m.bg}"><i class="fas ${m.ico}" style="color:${m.color};font-size:18px"></i></div>
+      <h3>${esc(m.titulo)}</h3><p>${esc(m.texto)}</p>
+      <span><span class="badge b-off">Llega en la versión ${esc(m.version)}</span></span></div>`).join('');
+  if(puedeAdministrar()){
+    html = `<div class="card mod go" onclick="showView('admin')" tabindex="0" onkeydown="if(event.key==='Enter')showView('admin')">
+      <div class="mod-ico" style="background:#F1F5F9"><i class="fas fa-users-gear" style="color:#0F2A4A;font-size:18px"></i></div>
+      <h3>Administración</h3><p>Alta de usuarios, roles, contraseñas temporales y bitácora de movimientos.</p>
+      <span><span class="badge b-done">Disponible</span></span></div>` + html;
+  }
+  $('home-mods').innerHTML = html;
+}
+
+function showView(v){
+  if(!roleCanView(v)){
+    if(SESSION) toast('Tu usuario no tiene permiso para esta sección.','err');
+    v = SESSION ? 'home' : 'login';
+  }
+  document.querySelectorAll('.view').forEach(el=>el.style.display='none');
+  const target=$('view-'+v); if(target) target.style.display = v==='login' ? 'flex' : 'block';
+  CURRENT_VIEW = v;
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.toggle('active', b.id==='nav-'+v));
+  if(v==='admin') switchTab(CURRENT_TAB || 'usuarios');
+  if(v==='login') setTimeout(()=>$('log-user').focus(),50);
+  window.scrollTo(0,0);
+}
+
+/* ═══ Pestañas del tablero: cargan sus datos solo al abrirlas ═══ */
+let CURRENT_TAB = '';
+const TAB_CARGADA = {};
+function switchTab(tab){
+  CURRENT_TAB = tab;
+  ['usuarios','bitacora'].forEach(t=>{
+    $('tab-'+t).classList.toggle('active', t===tab);
+    $('panel-'+t).style.display = t===tab ? '' : 'none';
+  });
+  if(tab==='usuarios') cargarUsuarios(!TAB_CARGADA.usuarios);
+  if(tab==='bitacora') cargarBitacora();
+}
+
+/* ═══ Usuarios ═══ */
+async function cargarUsuarios(mostrarCargando){
+  if(mostrarCargando) $('usr-rows').innerHTML = `<tr><td colspan="7" style="padding:22px;text-align:center;color:#94A3B8">${esc(uiText('Cargando…'))}</td></tr>`;
+  try{
+    const res = await api({action:'usuariosListar', token:SESSION.token});
+    if(!res.success){ toast(res.error,'err'); return; }
+    USUARIOS = res.usuarios; TAB_CARGADA.usuarios = true; pintarUsuarios();
+  }catch(e){ toast(e.message,'err'); }
+}
+function pintarUsuarios(){
+  const q = $('usr-q').value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const inact = $('usr-inactivos').checked;
+  const rows = USUARIOS.filter(u => (inact || u.activo) &&
+    (!q || [u.nombre,u.username,u.departamento].join(' ').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(q)));
+  const yo = SESSION.user.username.toLowerCase();
+  $('usr-rows').innerHTML = rows.length ? rows.map(u=>`<tr class="tbl-row">
+      <td style="width:50px">${avatarHtml(u,'lg')}</td>
+      <td><strong class="no-i18n">${esc(u.nombre)}</strong>${u.username.toLowerCase()===yo?' <span class="badge b-info">Tú</span>':''}</td>
+      <td class="mono" style="font-size:.75rem">${esc(u.username)}</td>
+      <td class="no-i18n">${esc(nombreRol(u.rol))}</td>
+      <td class="no-i18n">${esc(u.departamento||'—')}</td>
+      <td>${!u.activo?'<span class="badge b-off">Inactivo</span>':u.debeCambiarPassword?'<span class="badge b-pend">Pendiente de primer ingreso</span>':'<span class="badge b-done">Activo</span>'}</td>
+      <td style="white-space:nowrap;text-align:right">
+        <button class="btn-g btn-sm" type="button" onclick="abrirUsuario('${esc(u.username)}')" title="Editar" aria-label="Editar"><i class="fas fa-pen"></i></button>
+        <button class="btn-g btn-sm" type="button" onclick="reiniciarPassword('${esc(u.username)}')" title="Reiniciar contraseña" aria-label="Reiniciar contraseña"><i class="fas fa-key"></i></button>
+        <button class="btn-g btn-sm" type="button" onclick="elegirFoto('${esc(u.username)}')" title="Cambiar foto" aria-label="Cambiar foto"><i class="fas fa-camera"></i></button>
+        ${u.username.toLowerCase()===yo?'':`<button class="btn-g btn-sm" type="button" onclick="activarUsuario('${esc(u.username)}',${!u.activo})" title="${u.activo?'Desactivar':'Activar'}" aria-label="${u.activo?'Desactivar':'Activar'}"><i class="fas ${u.activo?'fa-user-slash':'fa-user-check'}"></i></button>`}
+      </td></tr>`).join('')
+    : `<tr><td colspan="7" style="padding:22px;text-align:center;color:#94A3B8">${esc(uiText('Ningún usuario coincide con la búsqueda.'))}</td></tr>`;
+  $('usr-count').textContent = `${rows.length} de ${USUARIOS.length} usuarios`;
+}
+
+let EDITANDO = null;
+const AYUDA_ROL = {
+  safety:'Safety administra el sistema: usuarios, matriz de riesgos y aprobaciones.',
+  area:'Personal de las áreas: captura JSA y JRA y consulta lo de su área.',
+  manager:'Gerencia: consulta e indicadores. Siempre ve el sistema en inglés.',
+  consulta:'Solo consulta, sin capturar ni aprobar.'
+};
+function abrirUsuario(username){
+  EDITANDO = username ? USUARIOS.find(u=>u.username===username) : null;
+  $('m-usr-t').textContent = uiText(EDITANDO ? 'Editar usuario' : 'Nuevo usuario');
+  $('u-rol').innerHTML = BOOT.roles.map(r=>`<option value="${esc(r.id)}">${esc(LANG==='en'?r.etiquetaEn:r.etiqueta)}</option>`).join('');
+  $('u-nombre').value = EDITANDO ? EDITANDO.nombre : '';
+  $('u-username').value = EDITANDO ? EDITANDO.username : '';
+  $('u-username').disabled = !!EDITANDO;
+  $('u-rol').value = EDITANDO ? EDITANDO.rol : 'area';
+  $('u-depto').value = EDITANDO ? EDITANDO.departamento : '';
+  $('u-correo').value = EDITANDO ? EDITANDO.correo : '';
+  $('u-err').style.display='none';
+  const ayuda = ()=> $('u-ayuda-rol').textContent = uiText(AYUDA_ROL[$('u-rol').value]||'');
+  $('u-rol').onchange = ayuda; ayuda();
+  openModal('m-usr'); setTimeout(()=>$('u-nombre').focus(),50);
+}
+async function guardarUsuario(){
+  const err=$('u-err'); err.style.display='none';
+  const payload = {action:'usuarioGuardar', token:SESSION.token, nuevo:!EDITANDO,
+    username:$('u-username').value.trim(), nombre:$('u-nombre').value.trim(), rol:$('u-rol').value,
+    departamento:$('u-depto').value.trim(), correo:$('u-correo').value.trim()};
+  $('btn-usr').disabled=true;
+  try{
+    const res = await api(payload);
+    if(!res.success){ err.textContent=uiText(res.error); err.style.display=''; return; }
+    closeModal('m-usr');
+    if(res.passwordTemporal) mostrarTemporal(res.username, res.passwordTemporal);
+    else toast('Cambios guardados.');
+    cargarUsuarios(false);
+  }catch(e){ err.textContent=uiText(e.message); err.style.display=''; }
+  finally{ $('btn-usr').disabled=false; }
+}
+async function reiniciarPassword(username){
+  const u = USUARIOS.find(x=>x.username===username);
+  if(!confirm(uiText(`¿Reiniciar la contraseña de ${u?u.nombre:username}? Se cerrarán sus sesiones abiertas.`))) return;
+  try{
+    const res = await api({action:'usuarioReiniciarPassword', token:SESSION.token, username});
+    if(!res.success){ toast(res.error,'err'); return; }
+    mostrarTemporal(username, res.passwordTemporal); cargarUsuarios(false);
+  }catch(e){ toast(e.message,'err'); }
+}
+async function activarUsuario(username, activo){
+  const u = USUARIOS.find(x=>x.username===username);
+  if(!activo && !confirm(uiText(`¿Desactivar a ${u?u.nombre:username}? Ya no podrá entrar al sistema.`))) return;
+  try{
+    const res = await api({action:'usuarioActivar', token:SESSION.token, username, activo});
+    if(!res.success){ toast(res.error,'err'); return; }
+    toast(activo?'Usuario activado.':'Usuario desactivado.'); cargarUsuarios(false);
+  }catch(e){ toast(e.message,'err'); }
+}
+function mostrarTemporal(username, pwd){
+  $('temp-user').textContent = username; $('temp-pwd').textContent = pwd; openModal('m-temp');
+}
+async function copiarTemporal(){
+  try{ await navigator.clipboard.writeText($('temp-pwd').textContent); toast('Copiada.'); }
+  catch(e){ toast('Selecciona la contraseña y cópiala manualmente.','info'); }
+}
+
+/* ═══ Bitácora ═══ */
+async function cargarBitacora(){
+  $('bit-rows').innerHTML = `<tr><td colspan="4" style="padding:22px;text-align:center;color:#94A3B8">${esc(uiText('Cargando…'))}</td></tr>`;
+  try{
+    const res = await api({action:'getBitacora', token:SESSION.token});
+    if(!res.success){ toast(res.error,'err'); return; }
+    $('bit-rows').innerHTML = res.eventos.length ? res.eventos.map(e=>`<tr class="tbl-row"><td style="white-space:nowrap">${fecha(e.fecha)}</td><td class="mono" style="font-size:.75rem">${esc(e.usuario)}</td><td>${esc(uiText(e.accion))}</td><td class="no-i18n">${esc(e.detalle||'')}</td></tr>`).join('')
+      : `<tr><td colspan="4" style="padding:22px;text-align:center;color:#94A3B8">${esc(uiText('Todavía no hay movimientos.'))}</td></tr>`;
+  }catch(e){ toast(e.message,'err'); }
+}
+
+/* ═══ Foto de perfil: se recorta al centro y se reduce a 200×200 en el navegador ═══ */
+let FOTO_PARA = null;
+function elegirFoto(username){
+  if(!SESSION) return;
+  FOTO_PARA = username || SESSION.user.username;
+  $('foto-input').value=''; $('foto-input').click();
+}
+function fotoSeleccionada(input){
+  const f = input.files && input.files[0]; if(!f || !SESSION) return;
+  FOTO_PARA = FOTO_PARA || SESSION.user.username;
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type)){ toast('La imagen debe ser JPG, PNG o WEBP.','err'); return; }
+  if(f.size > 15*1024*1024){ toast('La imagen es demasiado grande.','err'); return; }
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = async ()=>{
+    URL.revokeObjectURL(url);
+    const lado = Math.min(img.width, img.height), c = document.createElement('canvas');
+    c.width = c.height = 200;
+    c.getContext('2d').drawImage(img, (img.width-lado)/2, (img.height-lado)/2, lado, lado, 0, 0, 200, 200);
+    let data = c.toDataURL('image/jpeg', .82);
+    if(data.length > 46000) data = c.toDataURL('image/jpeg', .6);
+    try{
+      const res = await api({action:'setFotoPerfil', token:SESSION.token, username:FOTO_PARA, foto:data});
+      if(!res.success){ toast(res.error,'err'); return; }
+      if(FOTO_PARA.toLowerCase()===SESSION.user.username.toLowerCase()){ SESSION.user.fotoPerfil=data; guardarSesion(); pintarUsuarioSidebar(); }
+      const u = USUARIOS.find(x=>x.username.toLowerCase()===FOTO_PARA.toLowerCase()); if(u){ u.fotoPerfil=data; pintarUsuarios(); }
+      toast('Foto actualizada.');
+    }catch(e){ toast(e.message,'err'); }
+    finally{ FOTO_PARA = null; }
+  };
+  img.onerror = ()=>{ URL.revokeObjectURL(url); toast('No se pudo leer la imagen.','err'); };
+  img.src = url;
+}
+
+/* ═══ Barra lateral ═══ */
+function toggleSidebar(){
+  document.body.classList.toggle('sb-mini');
+  try{ localStorage.setItem(KEY_SIDEBAR, document.body.classList.contains('sb-mini')?'1':'0'); }catch(e){}
+}
+
+/* ═══ Idiomas: la interfaz está en español y el inglés se aplica sobre la pantalla ═══
+   Reglas: (1) todo texto nuevo va en TEXT_I18N o en I18N_PATRONES;
+   (2) solo se traduce lo que se ve, nunca el value de un campo o filtro. */
+const TEXT_I18N = {
+  'Seguridad industrial':'Industrial safety','Operación':'Operations','Gestión':'Management','Inicio':'Home','Administración':'Administration',
+  'Salir':'Sign out','Ingresar':'Sign in','Usuario':'Username','Contraseña':'Password','Ingresa con tu usuario del sistema de Safety':'Sign in with your Safety system username',
+  '¿Olvidaste tu contraseña? Pide a Safety que la reinicie.':'Forgot your password? Ask Safety to reset it.',
+  'Bienvenido':'Welcome',
+  'Sistema de Safety de KTMEX. Aquí vivirán la matriz de riesgos, los análisis JSA y JRA, los comunicados y alertas, y los indicadores de seguridad.':'KTMEX Safety system. This is where the risk matrix, JSA and JRA analyses, safety communications and alerts, and safety indicators will live.',
+  'Matriz de riesgos':'Risk matrix','Peligros, evaluación y contramedidas acordadas por el equipo de Safety, con un solo criterio.':'Hazards, assessment and countermeasures agreed by the Safety team, with a single criterion.',
+  'JSA y JRA':'JSA and JRA','Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.':'Risk analysis filled from the matrix that produces the official form for signature.',
+  'Comunicados y alertas':'Communications and alerts','Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.':'Incident communications and unsafe-act alerts, ready to print.',
+  'Indicadores':'Indicators','Gráficas de eventos por mes, área y tipo, y el plano de la planta.':'Charts of events by month, area and type, and the plant layout.',
+  'Alta de usuarios, roles, contraseñas temporales y bitácora de movimientos.':'User accounts, roles, temporary passwords and activity log.',
+  'Disponible':'Available','Usuarios del sistema y registro de movimientos.':'System users and activity log.',
+  'Usuarios':'Users','Bitácora':'Activity log','Buscar nombre, usuario o área':'Search name, username or area','Mostrar inactivos':'Show inactive','Nuevo usuario':'New user',
+  'Nombre':'Name','Rol':'Role','Área':'Area','Estatus':'Status','Fecha':'Date','Movimiento':'Action','Detalle':'Detail',
+  'Activo':'Active','Inactivo':'Inactive','Pendiente de primer ingreso':'Pending first sign-in','Tú':'You',
+  'Editar':'Edit','Reiniciar contraseña':'Reset password','Cambiar foto':'Change photo','Desactivar':'Deactivate','Activar':'Activate',
+  'Se muestran los últimos 200 movimientos.':'Showing the last 200 entries.','Cargando…':'Loading…',
+  'Define tu contraseña':'Set your password','Cambiar contraseña':'Change password','Es tu primer ingreso. Cambia la contraseña temporal por una propia.':'This is your first sign-in. Replace the temporary password with your own.',
+  'Escribe tu contraseña actual y la nueva.':'Enter your current and new password.','Contraseña actual':'Current password','Contraseña nueva':'New password','Confirma la contraseña nueva':'Confirm new password',
+  'Guardar contraseña':'Save password','Nombre completo':'Full name','Área / departamento':'Area / department','Correo (opcional)':'Email (optional)',
+  'Cancelar':'Cancel','Guardar':'Save','Editar usuario':'Edit user','Contraseña temporal':'Temporary password',
+  'No se guarda en ningún lado y no se vuelve a mostrar. Si se pierde, reiníciala otra vez.':'It is not stored anywhere and will not be shown again. If it is lost, reset it again.',
+  'Copiar':'Copy','Listo, ya la anoté':'Done, I wrote it down','Tu sesión venció':'Your session expired',
+  'Escribe tu contraseña para continuar. Lo que estabas capturando no se pierde.':'Enter your password to continue. Nothing you were entering is lost.',
+  'Continuar':'Continue','Cambiar mi foto':'Change my photo','Contraer o expandir el menú':'Collapse or expand the menu',
+  'Safety administra el sistema: usuarios, matriz de riesgos y aprobaciones.':'Safety manages the system: users, risk matrix and approvals.',
+  'Personal de las áreas: captura JSA y JRA y consulta lo de su área.':'Area staff: enter JSA and JRA and view their area.',
+  'Gerencia: consulta e indicadores. Siempre ve el sistema en inglés.':'Management: views and indicators. Always sees the system in English.',
+  'Solo consulta, sin capturar ni aprobar.':'Read only, cannot enter or approve.',
+  'Safety':'Safety','Área / supervisor':'Area / supervisor','Manager':'Manager','Consulta':'Read only',
+  'Ningún usuario coincide con la búsqueda.':'No user matches the search.','Todavía no hay movimientos.':'No activity yet.',
+  'Escribe tu usuario y tu contraseña.':'Enter your username and password.','Usuario o contraseña incorrectos.':'Incorrect username or password.',
+  'Contraseña actualizada correctamente.':'Password updated successfully.','Cambios guardados.':'Changes saved.','Usuario activado.':'User activated.','Usuario desactivado.':'User deactivated.',
+  'Foto actualizada.':'Photo updated.','Copiada.':'Copied.','Tu usuario no tiene permiso para esta sección.':'Your account does not have access to this section.',
+  'La contraseña actual no es correcta.':'The current password is incorrect.','La nueva contraseña y su confirmación no coinciden.':'The new password and its confirmation do not match.',
+  'La nueva contraseña debe ser distinta de la actual.':'The new password must be different from the current one.',
+  'La contraseña debe incluir al menos una letra.':'The password must include at least one letter.','La contraseña debe incluir al menos un número.':'The password must include at least one number.',
+  'La contraseña no puede contener espacios.':'The password cannot contain spaces.','La contraseña no puede ser igual a tu usuario.':'The password cannot be the same as your username.',
+  'Escribe tu contraseña actual.':'Enter your current password.','No se pudo conectar con el servidor. Revisa tu conexión.':'Could not connect to the server. Check your connection.',
+  'Sesión inválida o expirada. Inicia sesión de nuevo.':'Invalid or expired session. Please sign in again.',
+  'Debes definir una nueva contraseña antes de continuar.':'You must set a new password before continuing.',
+  'La imagen debe ser JPG, PNG o WEBP.':'The image must be JPG, PNG or WEBP.','No se pudo leer la imagen.':'The image could not be read.',
+  'Selecciona la contraseña y cópiala manualmente.':'Select the password and copy it manually.',
+  'login':'sign-in','cambio de contraseña':'password change','alta de usuario':'user created','edición de usuario':'user edited',
+  'activación de usuario':'user activated','desactivación de usuario':'user deactivated','reinicio de contraseña':'password reset',
+  'foto de perfil':'profile photo','foto de perfil eliminada':'profile photo removed','rescate de acceso':'access recovery'
+};
+const I18N_PATRONES = [
+  [/^(\d+) de (\d+) usuarios$/, '$1 of $2 users'],
+  [/^Hola, (.+)$/, 'Hello, $1'],
+  [/^Llega en la versión ([\d.]+)$/, 'Coming in version $1'],
+  [/^Mínimo (\d+) caracteres, con al menos una letra y un número\.$/, 'At least $1 characters, including one letter and one number.'],
+  [/^La contraseña debe tener al menos (\d+) caracteres\.$/, 'The password must be at least $1 characters long.'],
+  [/^Demasiados intentos fallidos\. Espera (\d+) minutos e intenta de nuevo\.$/, 'Too many failed attempts. Wait $1 minutes and try again.'],
+  [/^¿Reiniciar la contraseña de (.+)\? Se cerrarán sus sesiones abiertas\.$/, 'Reset the password for $1? Their open sessions will be closed.'],
+  [/^¿Desactivar a (.+)\? Ya no podrá entrar al sistema\.$/, 'Deactivate $1? They will no longer be able to sign in.'],
+  [/^Ya existe el usuario "(.+)"\.$/, 'The username "$1" already exists.']
+];
+const I18N_VALORES = new Set(Object.values(TEXT_I18N));
+function uiText(s){
+  if(LANG!=='en') return s;
+  const raw = String(s ?? ''), key = raw.trim();
+  if(!key) return raw;
+  if(Object.prototype.hasOwnProperty.call(TEXT_I18N,key)) return raw.replace(key, TEXT_I18N[key]);
+  for(const [re,rep] of I18N_PATRONES){ if(re.test(key)) return raw.replace(key, key.replace(re,rep)); }
+  return raw;
+}
+const ORIG_TEXT = new WeakMap(), ORIG_ATTR = new WeakMap();
+function traducirNodo(root){
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode:n=>{
+    const p=n.parentNode; if(!p||/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.nodeName)) return NodeFilter.FILTER_REJECT;
+    if(p.closest && p.closest('.mono,.temp-pwd,.no-i18n')) return NodeFilter.FILTER_REJECT;
+    return n.nodeValue.trim()?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});
+  const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    if(!ORIG_TEXT.has(n)) ORIG_TEXT.set(n, n.nodeValue);
+    const orig = ORIG_TEXT.get(n), nuevo = LANG==='en' ? uiTextForzado(orig) : orig;
+    if(n.nodeValue!==nuevo){ n.nodeValue = nuevo; ORIG_TEXT.set(n, orig); }
+  });
+  const els = root.querySelectorAll ? root.querySelectorAll('[placeholder],[title]') : [];
+  els.forEach(el=>{
+    if(!ORIG_ATTR.has(el)) ORIG_ATTR.set(el,{placeholder:el.getAttribute('placeholder'),title:el.getAttribute('title')});
+    const o=ORIG_ATTR.get(el);
+    ['placeholder','title'].forEach(a=>{ if(o[a]!=null) el.setAttribute(a, LANG==='en'?uiTextForzado(o[a]):o[a]); });
+  });
+}
+function uiTextForzado(s){ const prev=LANG; LANG='en'; const r=uiText(s); LANG=prev; return r; }
+let I18N_OBS = null, I18N_PAUSA = false;
+function applyLanguage(){
+  if(soloIngles()) LANG='en';
+  document.documentElement.lang = LANG;
+  $('lang-es').classList.toggle('on', LANG==='es'); $('lang-en').classList.toggle('on', LANG==='en');
+  I18N_PAUSA = true; traducirNodo(document.body); I18N_PAUSA = false;
+  if(!I18N_OBS){
+    I18N_OBS = new MutationObserver(muts=>{
+      if(I18N_PAUSA || LANG!=='en') return;
+      I18N_PAUSA = true;
+      muts.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType===1) traducirNodo(n); else if(n.nodeType===3 && n.parentNode) traducirNodo(n.parentNode); }));
+      I18N_PAUSA = false;
+    });
+    I18N_OBS.observe(document.body,{childList:true,subtree:true});
+  }
+}
+function setLanguage(l){
+  if(soloIngles()) return;
+  LANG = l==='en'?'en':'es';
+  try{ localStorage.setItem(KEY_LANG, LANG); }catch(e){}
+  pintarUsuarioSidebar(); pintarInicio();
+  if(CURRENT_VIEW==='admin' && USUARIOS.length) pintarUsuarios();
+  applyLanguage();
+}
+// Lista lo que sigue sin traducir en la pantalla actual (para revisar en la consola).
+function i18nAuditar(){
+  const falta=new Set(), w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  while(w.nextNode()){ const n=w.currentNode, p=n.parentNode, t=(ORIG_TEXT.get(n)||n.nodeValue).trim();
+    if(!t||!p||/^(SCRIPT|STYLE)$/.test(p.nodeName)||(p.closest&&p.closest('.mono,.temp-pwd,.no-i18n'))||p.offsetParent===null) continue;
+    if(Object.prototype.hasOwnProperty.call(TEXT_I18N,t) || I18N_VALORES.has(t)) continue;
+    if(/[a-záéíóúñ]{3,}/i.test(t) && uiTextForzado(t)===t) falta.add(t); }
+  return [...falta];
+}
+
+/* ═══ Arranque ═══ */
+(async function init(){
+  try{ if(localStorage.getItem(KEY_SIDEBAR)==='1') document.body.classList.add('sb-mini'); }catch(e){}
+  applyLanguage();
+  let guardada=null;
+  try{ guardada = JSON.parse(sessionStorage.getItem(KEY_SESSION)||'null'); }catch(e){}
+  if(guardada && guardada.token){
+    SESSION = guardada;
+    try{ await arrancar(); return; }catch(e){ toast(e.message,'err'); cerrarSesionLocal(); }
+  }
+  showView('login');
+})();
+
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'}).catch(()=>{}); });
+}
+</script>
+</body>
+</html>
