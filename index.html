@@ -15,8 +15,8 @@
 /* ── Configuración ─────────────────────────────────────────────
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
-window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.1.1';
+window.SCRIPT_URL = 'REEMPLAZA_CON_LA_URL_EXEC_DE_SAFETY';
+window.FRONT_VERSION = '0.2.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -64,14 +64,14 @@ thead th{padding:9px 12px;background:#F5F8FC;border-bottom:1px solid var(--borde
 .tab-btn{white-space:nowrap;background:#fff;border:1.5px solid #E2E8F0;border-radius:10px;padding:8px 15px;margin:3px 2px;font-weight:600;font-size:.82rem;color:#334155;cursor:pointer;box-shadow:0 1px 3px rgba(15,42,74,.08);transition:.15s}
 .tab-btn:hover{background:#F1F5FF;border-color:#93C5FD}
 .tab-btn.active{background:#0F2A4A;border-color:#0F2A4A;color:#fff;box-shadow:0 4px 12px rgba(15,42,74,.25)}
-.modal-bg{position:fixed;inset:0;z-index:60;background:rgba(8,18,36,.62);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:12px}
+.modal-bg{position:fixed;inset:0;z-index:90;background:rgba(8,18,36,.62);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:12px}
 .modal-box{background:#fff;border-radius:20px;box-shadow:0 28px 80px rgba(8,18,36,.28);width:100%;max-width:520px;max-height:92vh;overflow-y:auto}
 .modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:18px 22px;border-bottom:1px solid var(--border)}
 .modal-head h3{margin:0;font-size:1rem;color:var(--navy)}
 .modal-body{padding:20px 22px;display:grid;gap:14px}
 .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid var(--border)}
 .x-btn{background:none;border:none;color:#94A3B8;font-size:1.1rem;cursor:pointer;padding:4px}
-#toast{position:fixed;bottom:22px;right:22px;z-index:99;background:var(--navy);color:#fff;padding:11px 17px;border-radius:11px;box-shadow:0 14px 34px rgba(8,18,36,.25);font-size:.84rem;display:none;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 24px))}
+#toast{position:fixed;bottom:22px;right:22px;z-index:100;background:var(--navy);color:#fff;padding:11px 17px;border-radius:11px;box-shadow:0 14px 34px rgba(8,18,36,.25);font-size:.84rem;display:none;align-items:center;gap:10px;max-width:min(420px,calc(100vw - 24px))}
 .help{font-size:.75rem;color:var(--muted);margin:0}
 .err-box{color:#B91C1C;font-size:.78rem;background:#FEF2F2;border:1px solid #FECACA;border-radius:9px;padding:8px 10px}
 .temp-pwd{font-family:'Space Mono',monospace;font-size:1.35rem;letter-spacing:.06em;text-align:center;padding:14px;border:1.5px dashed #94A3B8;border-radius:12px;background:#F8FAFC;user-select:all}
@@ -151,7 +151,55 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .login-card{width:100%;max-width:350px;padding:32px}
 .login-mark{width:52px;height:52px;background:linear-gradient(135deg,#16A374,var(--safety));border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 10px 24px rgba(18,128,92,.30)}
 .login-mark i{color:#fff;font-size:20px}
+
+/* ═══ v0.2: módulos ═══ */
+.modal-box.wide{max-width:980px}
+.modal-box.xl{max-width:1200px}
+.nv{display:inline-block;padding:3px 8px;border-radius:7px;font-size:.68rem;font-weight:800;letter-spacing:.02em;white-space:nowrap}
+.nv-1{background:#DCFCE7;color:#166534}.nv-2{background:#FEF9C3;color:#854D0E}.nv-3{background:#FFEDD5;color:#9A3412}.nv-4{background:#FEE2E2;color:#991B1B}.nv-0{background:#F1F5F9;color:#64748B}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)}
+.filters .inp{width:auto;min-width:150px;min-height:38px;padding:7px 10px}
+.sec-title{font-size:.78rem;font-weight:800;color:#0F2A4A;margin:6px 0 2px;text-transform:uppercase;letter-spacing:.06em}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:820px){.grid-3,.grid-4{grid-template-columns:1fr 1fr}}
+@media (max-width:520px){.grid-3,.grid-4{grid-template-columns:1fr}}
+.box{border:1px solid var(--border);border-radius:12px;padding:14px;background:#FBFCFE}
+.task{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fff;margin-bottom:12px}
+.risk{border:1px dashed #CBD5E1;border-radius:11px;padding:12px;margin-top:10px;background:#FBFCFE}
+.risk .grid-4,.risk .grid-3{gap:8px}
+.kpi{padding:16px}.kpi .v{font-size:1.6rem;font-weight:800;color:var(--navy);letter-spacing:-.02em}.kpi .l{font-size:.74rem;color:var(--muted);font-weight:600}
+.chart-card{padding:16px;min-height:280px}.chart-card h3{margin:0 0 10px;font-size:.9rem;color:var(--navy)}
+.plano{position:relative;display:inline-block;max-width:100%;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#F8FAFC}
+.plano img{display:block;max-width:100%}
+.dot{position:absolute;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}.thumb{width:110px;height:84px;border-radius:9px;overflow:hidden;position:relative;background:#E2E8F0;border:1px solid var(--border)}
+.thumb img{width:100%;height:100%;object-fit:cover}.thumb button{position:absolute;top:3px;right:3px;background:rgba(15,23,42,.75);color:#fff;border:0;border-radius:6px;font-size:.7rem;cursor:pointer;padding:2px 6px}
+#face-canvas{max-width:100%;cursor:crosshair;border-radius:10px;touch-action:none;display:block;margin:0 auto}
+.heat{border-collapse:separate;border-spacing:3px}.heat td{width:46px;height:34px;text-align:center;font-weight:800;font-size:.78rem;border-radius:6px}
+.q-opt{display:flex;gap:10px;align-items:center;padding:11px 13px;border:1.5px solid var(--border);border-radius:11px;margin-bottom:8px;cursor:pointer;font-size:.88rem}
+.q-opt:hover{border-color:#93C5FD}.q-opt.sel{border-color:var(--blue);background:var(--blue-soft)}
+.timer{font-family:'Space Mono',monospace;font-size:1.1rem;font-weight:700}
+.apt{text-align:center;font-weight:700}
+#print-area{display:none}
+@media print{
+  body{padding:0!important;background:#fff}
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block!important}
+  @page{size:letter;margin:10mm}
+  body.print-wide{} 
+}
+.pf{font-size:9.5pt;color:#000;font-family:Arial,sans-serif}
+.pf table{width:100%;border-collapse:collapse;margin-bottom:6px}
+.pf td,.pf th{border:1px solid #000;padding:3px 5px;vertical-align:top;font-size:8.5pt;text-transform:none;letter-spacing:0;color:#000;background:none;white-space:normal}
+.pf th{background:#D9E2F3!important;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pf .hdr td{font-weight:700}
+.pf .t{font-size:13pt;font-weight:700;text-align:center}
+.pf .chk{display:inline-block;width:10px;height:10px;border:1px solid #000;margin-right:4px;vertical-align:-1px;text-align:center;line-height:9px;font-size:9px}
+.pf .firma{height:52px;vertical-align:bottom;font-size:7.5pt}
+.pf .fotos{display:flex;gap:6px;flex-wrap:wrap}.pf .fotos img{max-width:48%;max-height:260px;object-fit:contain;border:1px solid #000}
+.pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -163,6 +211,14 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
   </div>
   <div class="sb-section">Operación</div>
   <button class="sb-btn" id="nav-home" type="button" onclick="showView('home')"><i class="fas fa-house"></i>Inicio</button>
+  <button class="sb-btn" id="nav-matriz" type="button" onclick="showView('matriz')"><i class="fas fa-table-cells"></i>Matriz de riesgos</button>
+  <button class="sb-btn" id="nav-analisis" type="button" onclick="showView('analisis')"><i class="fas fa-clipboard-check"></i>JSA y JRA</button>
+  <button class="sb-btn" id="nav-eventos" type="button" onclick="showView('eventos')"><i class="fas fa-bullhorn"></i>Comunicados y alertas</button>
+  <div class="sb-section">Control</div>
+  <button class="sb-btn" id="nav-kpi" type="button" onclick="showView('kpi')"><i class="fas fa-chart-column"></i>Indicadores</button>
+  <div class="sb-section" id="sec-contr">Contratistas</div>
+  <button class="sb-btn" id="nav-contratistas" type="button" onclick="showView('contratistas')"><i class="fas fa-id-card"></i>Contratistas y DC-3</button>
+  <button class="sb-btn" id="nav-cursos" type="button" onclick="showView('cursos')"><i class="fas fa-graduation-cap"></i>Capacitación</button>
   <div class="sb-section" id="sec-gestion">Gestión</div>
   <button class="sb-btn" id="nav-admin" type="button" onclick="showView('admin')"><i class="fas fa-users-gear"></i>Administración</button>
   <div id="sb-user">
@@ -195,6 +251,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
     <div id="log-err" class="err-box" style="display:none;margin-bottom:10px"></div>
     <button class="btn-p" id="btn-login" type="button" onclick="login()" style="width:100%"><i class="fas fa-right-to-bracket" style="margin-right:8px"></i>Ingresar</button>
     <p class="help" style="text-align:center;margin-top:14px">¿Olvidaste tu contraseña? Pide a Safety que la reinicie.</p>
+    <button type="button" class="btn-g" style="width:100%;margin-top:12px" onclick="showView('publico')">Regresar</button>
   </div>
 </div>
 
@@ -203,7 +260,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
   <div class="page fade">
     <div class="hero">
       <h1 id="home-saludo">Bienvenido</h1>
-      <p>Sistema de Safety de KTMEX. Aquí vivirán la matriz de riesgos, los análisis JSA y JRA, los comunicados y alertas, y los indicadores de seguridad.</p>
+      <p>Sistema de Safety de KTMEX: matriz de riesgos, análisis JSA y JRA, comunicados y alertas, indicadores, contratistas y capacitación.</p>
     </div>
     <div class="mod-grid" id="home-mods"></div>
   </div>
@@ -245,6 +302,34 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
   </div>
 </div>
 
+
+<!-- ═══ Vistas de módulos (se dibujan desde JS) ═══ -->
+<div id="view-publico" class="view"><div class="page fade" id="publico-body"></div></div>
+<div id="view-matriz" class="view"><div class="page fade" id="matriz-body"></div></div>
+<div id="view-analisis" class="view"><div class="page fade" id="analisis-body"></div></div>
+<div id="view-editor" class="view"><div class="page fade" id="editor-body"></div></div>
+<div id="view-eventos" class="view"><div class="page fade" id="eventos-body"></div></div>
+<div id="view-kpi" class="view"><div class="page fade" id="kpi-body"></div></div>
+<div id="view-contratistas" class="view"><div class="page fade" id="contratistas-body"></div></div>
+<div id="view-cursos" class="view"><div class="page fade" id="cursos-body"></div></div>
+<div id="view-curso" class="view"><div class="page fade" id="curso-body" style="max-width:820px"></div></div>
+<!-- Ventana genérica para formularios de los módulos -->
+<div class="modal-bg" id="m-gen" role="dialog" aria-modal="true" aria-labelledby="m-gen-t">
+  <div class="modal-box wide" id="m-gen-box">
+    <div class="modal-head"><h3 id="m-gen-t"></h3><button class="x-btn" type="button" onclick="closeModal('m-gen')" aria-label="Cerrar">✕</button></div>
+    <div class="modal-body" id="m-gen-body"></div>
+    <div class="modal-foot" id="m-gen-foot"></div>
+  </div>
+</div>
+<!-- Segunda ventana (encima de la primera): selector de riesgos, editor de caras, plano -->
+<div class="modal-bg" id="m-gen2" role="dialog" aria-modal="true" aria-labelledby="m-gen2-t" style="z-index:95">
+  <div class="modal-box wide" id="m-gen2-box">
+    <div class="modal-head"><h3 id="m-gen2-t"></h3><button class="x-btn" type="button" onclick="closeModal('m-gen2')" aria-label="Cerrar">✕</button></div>
+    <div class="modal-body" id="m-gen2-body"></div>
+    <div class="modal-foot" id="m-gen2-foot"></div>
+  </div>
+</div>
+<div id="print-area"></div>
 <!-- ═══ Ventana: cambio de contraseña ═══ -->
 <div class="modal-bg" id="m-pwd" role="dialog" aria-modal="true" aria-labelledby="m-pwd-t">
   <div class="modal-box">
@@ -296,7 +381,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 </div>
 
 <!-- ═══ Ventana: la sesión venció (se repite la acción sin perder lo capturado) ═══ -->
-<div class="modal-bg" id="m-relogin" role="dialog" aria-modal="true" aria-labelledby="m-relogin-t" style="z-index:90">
+<div class="modal-bg" id="m-relogin" role="dialog" aria-modal="true" aria-labelledby="m-relogin-t" style="z-index:99">
   <div class="modal-box" style="max-width:380px">
     <div class="modal-head"><h3 id="m-relogin-t">Tu sesión venció</h3></div>
     <div class="modal-body">
@@ -423,7 +508,7 @@ async function arrancar(){
 
 async function logout(){
   const token = SESSION && SESSION.token;
-  cerrarSesionLocal(); showView('login');
+  cerrarSesionLocal(); showView('publico');
   if(token){ try{ await api({action:'logout', token}); }catch(e){} }
 }
 
@@ -458,15 +543,18 @@ function nombreRol(id){
 }
 
 function roleCanView(v){
-  if(!SESSION) return v==='login';
+  if(v==='login'||v==='publico'||v==='curso') return true;
+  if(!SESSION) return v==='editor' && !!(ED && ED.publico);
   if(v==='admin') return puedeAdministrar();
-  return ['home'].includes(v);
+  if(v==='contratistas'||v==='cursos') return esGestor();
+  return ['home','matriz','analisis','eventos','kpi','editor'].includes(v);
 }
 
 function configureRoleUI(){
   const adm = puedeAdministrar();
   $('nav-admin').style.display = adm ? '' : 'none';
   $('sec-gestion').style.display = adm ? '' : 'none';
+  ['nav-contratistas','nav-cursos','sec-contr'].forEach(id=>$(id).style.display = esGestor() ? '' : 'none');
   if(soloIngles()){ LANG='en'; $('lang-switch').style.display='none'; }
   else $('lang-switch').style.display='flex';
   pintarUsuarioSidebar();
@@ -482,37 +570,39 @@ function pintarUsuarioSidebar(){
 }
 
 const MODULOS = [
-  {id:'matriz', ico:'fa-table-cells', color:'#2463EB', bg:'#EEF4FF', titulo:'Matriz de riesgos', texto:'Peligros, evaluación y contramedidas acordadas por el equipo de Safety, con un solo criterio.', version:'0.2'},
-  {id:'jsa', ico:'fa-clipboard-check', color:'#12805C', bg:'#ECFDF5', titulo:'JSA y JRA', texto:'Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.', version:'0.3'},
-  {id:'comunicados', ico:'fa-bullhorn', color:'#D97706', bg:'#FFFBEB', titulo:'Comunicados y alertas', texto:'Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.', version:'0.4'},
-  {id:'kpi', ico:'fa-chart-column', color:'#7C3AED', bg:'#F5F3FF', titulo:'Indicadores', texto:'Gráficas de eventos por mes, área y tipo, y el plano de la planta.', version:'0.5'}
+  {v:'matriz', ico:'fa-table-cells', color:'#2463EB', bg:'#EEF4FF', titulo:'Matriz de riesgos', texto:'Peligros, evaluación y contramedidas acordadas por el equipo de Safety, con un solo criterio.'},
+  {v:'analisis', ico:'fa-clipboard-check', color:'#12805C', bg:'#ECFDF5', titulo:'JSA y JRA', texto:'Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.'},
+  {v:'eventos', ico:'fa-bullhorn', color:'#D97706', bg:'#FFFBEB', titulo:'Comunicados y alertas', texto:'Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.'},
+  {v:'kpi', ico:'fa-chart-column', color:'#7C3AED', bg:'#F5F3FF', titulo:'Indicadores', texto:'Gráficas de eventos por mes, área y tipo, y el plano de la planta.'},
+  {v:'contratistas', ico:'fa-id-card', color:'#0E7490', bg:'#ECFEFF', titulo:'Contratistas y DC-3', texto:'Empresas, trabajadores, constancias DC-3 con vigencia y aptitud por permiso de trabajo.'},
+  {v:'cursos', ico:'fa-graduation-cap', color:'#9333EA', bg:'#FAF5FF', titulo:'Capacitación', texto:'Cursos y exámenes para contratistas, con calificación en el servidor y resultados.'},
+  {v:'admin', ico:'fa-users-gear', color:'#0F2A4A', bg:'#F1F5F9', titulo:'Administración', texto:'Alta de usuarios, roles, contraseñas temporales y bitácora de movimientos.'}
 ];
 function pintarInicio(){
   const u = SESSION && SESSION.user;
   $('home-saludo').textContent = u ? 'Hola, ' + String(u.nombre||'').split(' ')[0] : 'Bienvenido';
-  let html = MODULOS.map(m=>`<div class="card mod soon">
+  $('home-mods').innerHTML = MODULOS.filter(m=>roleCanView(m.v)).map(m=>`<div class="card mod go" tabindex="0" onclick="showView('${m.v}')" onkeydown="if(event.key==='Enter')showView('${m.v}')">
       <div class="mod-ico" style="background:${m.bg}"><i class="fas ${m.ico}" style="color:${m.color};font-size:18px"></i></div>
-      <h3>${esc(m.titulo)}</h3><p>${esc(m.texto)}</p>
-      <span><span class="badge b-off">Llega en la versión ${esc(m.version)}</span></span></div>`).join('');
-  if(puedeAdministrar()){
-    html = `<div class="card mod go" onclick="showView('admin')" tabindex="0" onkeydown="if(event.key==='Enter')showView('admin')">
-      <div class="mod-ico" style="background:#F1F5F9"><i class="fas fa-users-gear" style="color:#0F2A4A;font-size:18px"></i></div>
-      <h3>Administración</h3><p>Alta de usuarios, roles, contraseñas temporales y bitácora de movimientos.</p>
-      <span><span class="badge b-done">Disponible</span></span></div>` + html;
-  }
-  $('home-mods').innerHTML = html;
+      <h3>${esc(m.titulo)}</h3><p>${esc(m.texto)}</p></div>`).join('');
 }
-
 function showView(v){
   if(!roleCanView(v)){
     if(SESSION) toast('Tu usuario no tiene permiso para esta sección.','err');
-    v = SESSION ? 'home' : 'login';
+    v = SESSION ? 'home' : 'publico';
   }
   document.querySelectorAll('.view').forEach(el=>el.style.display='none');
   const target=$('view-'+v); if(target) target.style.display = v==='login' ? 'flex' : 'block';
   CURRENT_VIEW = v;
-  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.toggle('active', b.id==='nav-'+v));
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.toggle('active', b.id==='nav-'+(v==='editor'?'analisis':v)));
   if(v==='admin') switchTab(CURRENT_TAB || 'usuarios');
+  if(v==='publico') renderPublico();
+  if(v==='matriz') cargarMatriz();
+  if(v==='analisis') cargarAnalisis();
+  if(v==='eventos') cargarEventos();
+  if(v==='kpi') cargarKPI();
+  if(v==='contratistas') cargarContratistas();
+  if(v==='cursos') cargarCursos();
+  if(v!=='curso' && CP && CP.examen){ clearInterval(CP.examen.timer); }
   if(v==='login') $('log-user').focus();
   window.scrollTo(0,0);
 }
@@ -685,13 +775,13 @@ const TEXT_I18N = {
   'Salir':'Sign out','Ingresar':'Sign in','Usuario':'Username','Contraseña':'Password','Ingresa con tu usuario del sistema de Safety':'Sign in with your Safety system username',
   '¿Olvidaste tu contraseña? Pide a Safety que la reinicie.':'Forgot your password? Ask Safety to reset it.',
   'Bienvenido':'Welcome',
-  'Sistema de Safety de KTMEX. Aquí vivirán la matriz de riesgos, los análisis JSA y JRA, los comunicados y alertas, y los indicadores de seguridad.':'KTMEX Safety system. This is where the risk matrix, JSA and JRA analyses, safety communications and alerts, and safety indicators will live.',
+  'Sistema de Safety de KTMEX: matriz de riesgos, análisis JSA y JRA, comunicados y alertas, indicadores, contratistas y capacitación.':'KTMEX Safety system: risk matrix, JSA and JRA analyses, communications and alerts, indicators, contractors and training.','Contratistas y DC-3':'Contractors and DC-3','Capacitación':'Training','Control':'Control','Contratistas':'Contractors','Empresas, trabajadores, constancias DC-3 con vigencia y aptitud por permiso de trabajo.':'Companies, workers, DC-3 certificates with expiry and fitness by work permit.','Cursos y exámenes para contratistas, con calificación en el servidor y resultados.':'Courses and exams for contractors, graded on the server, with results.','Regresar':'Back',
   'Matriz de riesgos':'Risk matrix','Peligros, evaluación y contramedidas acordadas por el equipo de Safety, con un solo criterio.':'Hazards, assessment and countermeasures agreed by the Safety team, with a single criterion.',
   'JSA y JRA':'JSA and JRA','Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.':'Risk analysis filled from the matrix that produces the official form for signature.',
   'Comunicados y alertas':'Communications and alerts','Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.':'Incident communications and unsafe-act alerts, ready to print.',
   'Indicadores':'Indicators','Gráficas de eventos por mes, área y tipo, y el plano de la planta.':'Charts of events by month, area and type, and the plant layout.',
   'Alta de usuarios, roles, contraseñas temporales y bitácora de movimientos.':'User accounts, roles, temporary passwords and activity log.',
-  'Disponible':'Available','Usuarios del sistema y registro de movimientos.':'System users and activity log.',
+  'Disponible':'Available','Versión vigente:':'Current version:','Folio':'ID','Cat.':'Cat.','Implementado':'Implemented','En proceso':'In progress','Pendiente':'Pending','Verificado':'Verified','Abierto':'Open','En seguimiento':'In follow-up','Cerrado':'Closed','Abierta':'Open','Cerrada':'Closed','Accidente':'Accident','Incidente':'Incident','Casi accidente':'Near miss','Daño a la propiedad':'Property damage','Lesión':'Injury','Tratamiento médico':'Medical treatment','Primer auxilio':'First aid','Alerta':'Alert','Alertas (actos inseguros)':'Alerts (unsafe acts)','SIN EVALUAR':'NOT ASSESSED','Usuarios del sistema y registro de movimientos.':'System users and activity log.',
   'Usuarios':'Users','Bitácora':'Activity log','Buscar nombre, usuario o área':'Search name, username or area','Mostrar inactivos':'Show inactive','Nuevo usuario':'New user',
   'Nombre':'Name','Rol':'Role','Área':'Area','Estatus':'Status','Fecha':'Date','Movimiento':'Action','Detalle':'Detail',
   'Activo':'Active','Inactivo':'Inactive','Pendiente de primer ingreso':'Pending first sign-in','Tú':'You',
@@ -732,6 +822,23 @@ const TEXT_I18N = {
 const I18N_PATRONES = [
   [/^(\d+) de (\d+) usuarios$/, '$1 of $2 users'],
   [/^Hola, (.+)$/, 'Hello, $1'],
+  [/^Propuestas \((\d+)\)$/, 'Proposals ($1)'],
+  [/^(\d+) de (\d+) riesgos$/, '$1 of $2 risks'], [/^(\d+) de (\d+) documentos$/, '$1 of $2 documents'],
+  [/^· (\d+) de (\d+) eventos con ubicación$/, '· $1 of $2 events with location'],
+  [/^(TOLERABLE|MODERADO|IMPORTANTE|INTOLERABLE) · (\d+)$/, (m,a,b)=>({TOLERABLE:'TOLERABLE',MODERADO:'MODERATE',IMPORTANTE:'SIGNIFICANT',INTOLERABLE:'INTOLERABLE'}[a])+' · '+b],
+  [/^Tarea (\d+)$/, 'Task $1'],
+  [/^Con «(.+)» la P residual mínima es (\d+)\.$/, 'With «$1» the minimum residual P is $2.'],
+  [/^P residual permitida: (\d+) a (\d+)$/, 'Allowed residual P: $1 to $2'],
+  [/^Con ese control la P residual no puede ser menor a (\d+)$/, 'With that control residual P cannot be lower than $1'],
+  [/^Vence en (\d+) días$/, 'Expires in $1 days'],
+  [/^(\d+) constancias DC-3 vencidas o por vencer en 30 días\.$/, '$1 DC-3 certificates expired or expiring within 30 days.'],
+  [/^Pregunta (\d+) de (\d+) · intento (\d+) de (\d+)$/, 'Question $1 of $2 · attempt $3 of $4'],
+  [/^(\d+) preguntas · mínimo (\d+)% · (\d+) intentos$/, '$1 questions · pass mark $2% · $3 attempts'],
+  [/^(\d+) preguntas · (\d+) segundos por pregunta · mínimo (\d+)% · (\d+) intentos$/, '$1 questions · $2 seconds per question · pass mark $3% · $4 attempts'],
+  [/^(\d+) de (\d+) correctas · mínimo (\d+)%$/, '$1 of $2 correct · pass mark $3%'],
+  [/^Tiempo promedio de aprobación: ([\d.]+) horas \((\d+) aprobados\)\.$/, 'Average approval time: $1 hours ($2 approved).'],
+  [/^Horas-hombre por mes · (\d{4})$/, 'Man-hours per month · $1'],
+  [/^Tasa de frecuencia = accidentes × ([\d,]+) ÷ horas-hombre\. Tasa de gravedad = días perdidos × ([\d,]+) ÷ horas-hombre\. Horas-hombre del año: ([\d,]+)\.$/, 'Frequency rate = accidents × $1 ÷ man-hours. Severity rate = lost days × $2 ÷ man-hours. Man-hours this year: $3.'],
   [/^Llega en la versión ([\d.]+)$/, 'Coming in version $1'],
   [/^Mínimo (\d+) caracteres, con al menos una letra y un número\.$/, 'At least $1 characters, including one letter and one number.'],
   [/^La contraseña debe tener al menos (\d+) caracteres\.$/, 'The password must be at least $1 characters long.'],
@@ -803,6 +910,778 @@ function i18nAuditar(){
   return [...falta];
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   MÓDULOS v0.2 — toda la interfaz de los módulos vive aquí.
+   L('español','English') registra la traducción y devuelve el español.
+   ═══════════════════════════════════════════════════════════════ */
+function L(es, en){ if(en && !Object.prototype.hasOwnProperty.call(TEXT_I18N, es)){ TEXT_I18N[es]=en; I18N_VALORES.add(en); } return es; }
+const tok = () => SESSION && SESSION.token;
+const esGestor = () => !!(SESSION && ['safety','admin'].includes(SESSION.user.rol));
+const esSafety = () => !!(SESSION && SESSION.user.rol==='safety');
+const hoy = () => new Date().toISOString().slice(0,10);
+function opts(list, val, ph){
+  return (ph!==undefined?`<option value="">${esc(ph)}</option>`:'') + (list||[]).map(o=>{
+    const v = typeof o==='object' ? (o.v ?? o.valor) : o, t = typeof o==='object' ? (o.t ?? o.valor) : o;
+    return `<option value="${esc(v)}" ${String(v)===String(val??'')?'selected':''}>${esc(t)}</option>`; }).join('');
+}
+const fld = (label, inner, cls) => `<div class="${cls||''}"><label class="lbl">${esc(label)}</label>${inner}</div>`;
+const inp = (id, val, attrs) => `<input id="${id}" class="inp" value="${esc(val??'')}" ${attrs||''}>`;
+const sel = (id, list, val, ph, attrs) => `<select id="${id}" class="inp" ${attrs||''}>${opts(list,val,ph)}</select>`;
+const ta  = (id, val, attrs) => `<textarea id="${id}" class="inp" rows="3" ${attrs||''}>${esc(val??'')}</textarea>`;
+const val = id => { const e=$(id); return e ? String(e.value).trim() : ''; };
+function modal(n, titulo, cuerpo, pie, tam){
+  const k = n===2 ? 'm-gen2' : 'm-gen';
+  $(k+'-t').textContent = titulo; $(k+'-body').innerHTML = cuerpo; $(k+'-foot').innerHTML = pie||'';
+  $(k+'-box').className = 'modal-box ' + (tam||'wide'); openModal(k);
+}
+async function llamar(data, msgOk){
+  const r = await api(data);
+  if(!r || !r.success){ toast((r && r.error) || L('No se pudo completar la acción.','The action could not be completed.'),'err'); return null; }
+  if(msgOk) toast(msgOk);
+  return r;
+}
+const vacio = (cols, txt) => `<tr><td colspan="${cols}" style="padding:22px;text-align:center;color:#94A3B8">${esc(txt)}</td></tr>`;
+function cabecera(titulo, sub, acciones){ return `<div class="page-head"><div><h2>${esc(titulo)}</h2><p>${esc(sub)}</p></div><div class="toolbar">${acciones||''}</div></div>`; }
+function pestanas(lista, activa, fn){ return `<div style="margin-bottom:14px">${lista.map(([id,t,ico])=>`<button class="tab-btn ${id===activa?'active':''}" type="button" onclick="${fn}('${id}')"><i class="fas ${ico}" style="margin-right:6px"></i>${esc(t)}</button>`).join('')}</div>`; }
+function leerArchivo(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); }); }
+function reducirImagen(dataUrl, maxLado, calidad){
+  return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ const k=Math.min(1, maxLado/Math.max(img.width,img.height));
+    const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height); res(c.toDataURL('image/jpeg', calidad||.82)); }; img.onerror=rej; img.src=dataUrl; });
+}
+const ARCH_CACHE = {};
+async function archivo(id){
+  if(!id) return null; if(ARCH_CACHE[id]) return ARCH_CACHE[id];
+  const r = await api({action:'archivoObtener', token:tok(), id}); if(!r.success) return null;
+  return (ARCH_CACHE[id] = r.dataUrl);
+}
+function abrirDataUrl(dataUrl){
+  const m=/^data:([^;]+);base64,(.+)$/.exec(dataUrl); if(!m) return;
+  const bin=atob(m[2]), arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  window.open(URL.createObjectURL(new Blob([arr],{type:m[1]})),'_blank');
+}
+function imprimir(html){ $('print-area').innerHTML = html; setTimeout(()=>window.print(), 300); }
+
+/* ═══ Criterio único (copia del servidor para calcular en pantalla; el servidor recalcula) ═══ */
+let CRITC = null, CATS = {}, PUB = null;
+function nivelJS(s,p,res){
+  s=Number(s); p=Number(p); if(!CRITC || !(s>=1&&s<=5&&p>=1&&p<=5)) return null;
+  const pt=s*p, porPt=CRITC.niveles.filter(l=>pt>=l.min).length||1, sv=CRITC.severidad[s-1];
+  const i=Math.max(porPt, res?sv.pisoRes:sv.pisoIni); return {puntaje:pt, i, n:CRITC.niveles[i-1].n};
+}
+const bajaMax = c => { const x=CRITC && CRITC.controles.find(k=>k.n===c); return x?x.baja:0; };
+const pMinDe = (p,c) => Math.max(1, Number(p)-bajaMax(c));
+const nvB = n => n ? `<span class="nv nv-${n.i}">${esc(L(n.n,{TOLERABLE:'TOLERABLE',MODERADO:'MODERATE',IMPORTANTE:'SIGNIFICANT',INTOLERABLE:'INTOLERABLE'}[n.n]))} · ${n.puntaje}</span>` : `<span class="nv nv-0">${esc(L('Sin evaluar','Not assessed'))}</span>`;
+const nvTxt = s => { const i={TOLERABLE:1,MODERADO:2,IMPORTANTE:3,INTOLERABLE:4}[s]||0; return `<span class="nv nv-${i}">${esc(s?L(s,{TOLERABLE:'TOLERABLE',MODERADO:'MODERATE',IMPORTANTE:'SIGNIFICANT',INTOLERABLE:'INTOLERABLE'}[s]):L('Sin evaluar','Not assessed'))}</span>`; };
+const sOpts = () => (CRITC?CRITC.severidad:[]).map(x=>({v:x.v,t:x.v+' · '+L(x.n,{Insignificante:'Negligible',Leve:'Minor',Moderada:'Moderate',Grave:'Serious','Catastrófica':'Catastrophic'}[x.n])}));
+const pOpts = () => (CRITC?CRITC.probabilidad:[]).map(x=>({v:x.v,t:x.v+' · '+L(x.n,{'Muy baja':'Very low',Baja:'Low',Media:'Medium',Alta:'High','Muy alta':'Very high'}[x.n])}));
+const cOpts = () => (CRITC?CRITC.controles:[]).map(x=>({v:x.n,t:L(x.n,{Ninguno:'None',EPP:'PPE',Administrativo:'Administrative','Ingeniería':'Engineering','Sustitución':'Substitution','Eliminación':'Elimination'}[x.n])}));
+const catOpts = () => (CRITC?CRITC.categorias:[]).map(c=>({v:c[0],t:c[0]+' – '+c[1]}));
+const pResOpts = (p,c) => { if(!p) return []; const a=[]; for(let k=pMinDe(p,c);k<=Number(p);k++) a.push(k); return a; };
+const areas = () => (CATS.area||[]).map(a=>typeof a==='object'?a.valor:a);
+async function cargarPublicos(){ if(PUB) return PUB; const r=await api({action:'datosPublicos'}); if(r.success){ PUB=r; CRITC=r.criterio; CATS=r.catalogos; } return PUB; }
+
+/* ═══════════════ MATRIZ DE RIESGOS ═══════════════ */
+let MZ = null, MZ_TAB = 'publicada';
+async function cargarMatriz(){
+  $('matriz-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+  const r = await llamar({action:'matrizListar', token:tok()}); if(!r) return;
+  MZ = r; CRITC = r.criterio; CATS = r.catalogos; renderMatriz();
+}
+function tabMatriz(t){ MZ_TAB=t; renderMatriz(); }
+function renderMatriz(){
+  const tabs=[['publicada',L('Matriz publicada','Published matrix'),'fa-table'],['propuestas',L('Propuestas','Proposals')+' ('+MZ.propuestas.length+')','fa-pen-ruler'],['criterio',L('Criterio','Criteria'),'fa-scale-balanced'],['historial',L('Historial','History'),'fa-clock-rotate-left']];
+  if(esGestor()) tabs.push(['catalogos',L('Catálogos','Catalogs'),'fa-list']);
+  const acc = esSafety() ? `<button class="btn-p btn-sm" type="button" onclick="abrirPropuesta()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Proponer peligro nuevo','Propose new hazard'))}</button>` : '';
+  let h = cabecera(L('Matriz de riesgos','Risk matrix'), L('Un solo criterio: S × P con piso por severidad; los controles solo bajan la probabilidad.','One criterion: S × P with a severity floor; controls only lower probability.'), acc)
+    + `<p class="help" style="margin:-8px 0 12px">${esc(L('Versión vigente','Current version'))}: <strong>v${MZ.version}</strong></p>` + pestanas(tabs, MZ_TAB, 'tabMatriz');
+  if(MZ_TAB==='publicada') h += `<section class="card"><div class="filters">${inp('mz-q','','placeholder="'+esc(L('Buscar peligro, tarea o folio','Search hazard, task or ID'))+'" oninput="filasMatriz()"')}${sel('mz-area',areas(),'',L('Todas las áreas','All areas'),'onchange="filasMatriz()"')}${sel('mz-cat',catOpts(),'',L('Todas las categorías','All categories'),'onchange="filasMatriz()"')}${sel('mz-nv',['TOLERABLE','MODERADO','IMPORTANTE','INTOLERABLE'],'',L('Todos los niveles','All levels'),'onchange="filasMatriz()"')}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Área','Area'))}</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>Cat.</th><th>S</th><th>P</th><th>${esc(L('Inicial','Initial'))}</th><th>${esc(L('Control mayor','Top control'))}</th><th>${esc(L('P res.','Res. P'))}</th><th>${esc(L('Vigente','Current'))}</th><th>${esc(L('Estado','Status'))}</th><th></th></tr></thead><tbody id="mz-rows"></tbody></table></div><p class="help" id="mz-count" style="padding:10px 16px"></p></section>`;
+  if(MZ_TAB==='propuestas') h += htmlPropuestas();
+  if(MZ_TAB==='criterio') h += htmlCriterio();
+  if(MZ_TAB==='historial') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Versión','Version'))}</th><th>${esc(L('Fecha','Date'))}</th><th>Folio</th><th>${esc(L('Publicó','Published by'))}</th><th>${esc(L('Motivo','Reason'))}</th></tr></thead><tbody>${MZ.versiones.length?MZ.versiones.map(v=>`<tr class="tbl-row"><td><strong>v${esc(v.version)}</strong></td><td>${fecha(v.fecha)}</td><td class="mono">${esc(v.folio)}</td><td class="no-i18n">${esc(v.publicadoPor)}</td><td class="no-i18n">${esc(v.motivo)}</td></tr>`).join(''):vacio(5,L('Todavía no hay versiones publicadas.','No published versions yet.'))}</tbody></table></div></section>`;
+  if(MZ_TAB==='catalogos') h += htmlCatalogos();
+  $('matriz-body').innerHTML = h;
+  if(MZ_TAB==='publicada') filasMatriz();
+}
+function filasMatriz(){
+  const q=val('mz-q').toLowerCase(), a=val('mz-area'), c=val('mz-cat'), n=val('mz-nv');
+  const rows = MZ.riesgos.filter(r=>(!a||r.area===a)&&(!c||r.categoria===c)&&(!n||(r.eval.vigente&&r.eval.vigente.n===n))&&(!q||[r.folio,r.tarea,r.peligro,r.causa,r.puesto].join(' ').toLowerCase().includes(q)));
+  $('mz-rows').innerHTML = rows.length ? rows.map(r=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(r.folio)}</td><td class="no-i18n">${esc(r.area)}</td><td class="no-i18n">${esc(r.tarea)}</td><td class="no-i18n"><strong>${esc(r.peligro)}</strong><br><span class="help">${esc(r.causa||'')}</span></td><td>${esc(r.categoria)}</td><td>${esc(r.s)}</td><td>${esc(r.p)}</td><td>${nvB(r.eval.inicial)}</td><td>${esc(r.ctlMayor||'—')}</td><td>${esc(r.pRes||'—')}</td><td>${nvB(r.eval.vigente)}${r.eval.validacion!=='OK'?`<br><span class="help" style="color:#B45309">${esc(r.eval.validacion)}</span>`:''}</td><td>${esc(r.estadoCtl||'—')}</td>
+    <td style="white-space:nowrap"><button class="btn-g btn-sm" type="button" onclick="verRiesgo('${r.id}')" title="${esc(L('Ver detalle','View details'))}" aria-label="${esc(L('Ver detalle','View details'))}"><i class="fas fa-eye"></i></button>${esSafety()?` <button class="btn-g btn-sm" type="button" onclick="abrirPropuesta(null,'${r.id}')" title="${esc(L('Proponer cambio','Propose change'))}" aria-label="${esc(L('Proponer cambio','Propose change'))}"><i class="fas fa-pen"></i></button>`:''}</td></tr>`).join('') : vacio(13, MZ.riesgos.length?L('Ningún riesgo coincide con los filtros.','No risk matches the filters.'):L('Todavía no hay riesgos publicados. Revisa la pestaña Propuestas.','No published risks yet. Check the Proposals tab.'));
+  $('mz-count').textContent = `${rows.length} de ${MZ.riesgos.length} riesgos`;
+}
+function detalleRiesgoHtml(r){
+  const epp=['eppCabeza','eppOjos','eppResp','eppAud','eppManos','eppPies','eppCuerpo'].map(k=>r[k]).filter(x=>x&&x!=='N/A').join(', ');
+  const ev = r.eval || evaluarJS(r);
+  return `<div class="grid-3">${[['Folio',r.folio],[L('Área','Area'),r.area],[L('Puesto','Position'),r.puesto],[L('Tarea','Task'),r.tarea],[L('Peligro','Hazard'),r.peligro],[L('Causa / evento','Cause / event'),r.causa],[L('Categoría','Category'),r.categoria],[L('Norma','Standard'),r.norma],[L('Programa / permiso','Program / permit'),r.programa]].map(([k,v])=>`<div><span class="help">${esc(k)}</span><div class="no-i18n" style="font-size:.86rem">${esc(v||'—')}</div></div>`).join('')}</div>
+    <div class="box"><div class="grid-3"><div><span class="help">${esc(L('Inicial','Initial'))} (S${esc(r.s||'?')} × P${esc(r.p||'?')})</span><div>${nvB(ev.inicial)}</div></div><div><span class="help">${esc(L('Residual','Residual'))} (P ${esc(r.pRes||'?')})</span><div>${nvB(ev.residual)}</div></div><div><span class="help">${esc(L('Vigente','Current'))}</span><div>${nvB(ev.vigente)}</div></div></div>
+    <p class="help" style="margin-top:8px">${esc(L('Validación','Validation'))}: <span class="no-i18n">${esc(ev.validacion)}</span></p></div>
+    <div class="grid-2">${[[L('Eliminación / sustitución','Elimination / substitution'),r.ctlElim],[L('Ingeniería','Engineering'),r.ctlIng],[L('Administrativo','Administrative'),r.ctlAdm],['EPP',epp],[L('Control de mayor jerarquía','Highest control'),r.ctlMayor],[L('Estado de controles','Control status'),r.estadoCtl],[L('Responsable','Owner'),r.responsable],[L('Fecha compromiso','Due date'),r.fechaCompromiso]].map(([k,v])=>`<div><span class="help">${esc(k)}</span><div class="no-i18n" style="font-size:.86rem">${esc(v||'—')}</div></div>`).join('')}</div>
+    ${r.notas?`<div><span class="help">${esc(L('Notas','Notes'))}</span><div class="no-i18n" style="font-size:.86rem">${esc(r.notas)}</div></div>`:''}`;
+}
+function verRiesgo(id){ const r=MZ.riesgos.find(x=>x.id===id); modal(1, (r.folio||'')+' · '+r.peligro, detalleRiesgoHtml(r), `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cerrar','Close'))}</button>`); }
+function evaluarJS(r){
+  const ini=nivelJS(r.s,r.p,false), pMin=r.p?pMinDe(r.p,r.ctlMayor):null, res=(r.pRes&&r.s)?nivelJS(r.s,r.pRes,true):null, obs=[];
+  if(!ini) obs.push(L('Falta S o P','Missing S or P')); if(!r.ctlMayor) obs.push(L('Falta el control de mayor jerarquía','Missing highest control')); if(!r.pRes) obs.push(L('Falta la P residual','Missing residual P'));
+  if(r.pRes&&r.p&&Number(r.pRes)>Number(r.p)) obs.push(L('La P residual no puede ser mayor que la inicial','Residual P cannot exceed initial P'));
+  if(r.pRes&&pMin&&Number(r.pRes)<pMin) obs.push(`Con ese control la P residual no puede ser menor a ${pMin}`);
+  const impl=r.estadoCtl==='Implementado'||r.estadoCtl==='Verificado';
+  return {inicial:ini, residual:res, vigente:(impl&&res&&!obs.length)?res:ini, pMin, validacion:obs.length?obs.join('. '):'OK'};
+}
+function htmlPropuestas(){
+  const yo = SESSION.user.username;
+  const filas = MZ.propuestas.map(p=>{ const d=p.datos||{}, n=Object.keys(p.votos||{}).length, puedePub=MZ.puedePublicar&&p.propuso!==yo;
+    return `<tr class="tbl-row"><td><span class="badge ${p.tipo==='NUEVO'?'b-info':'b-pend'}">${esc(p.tipo==='NUEVO'?L('Nuevo','New'):L('Cambio','Change'))}</span><div class="mono" style="font-size:.72rem;margin-top:4px">${esc(p.folio||'—')}</div></td>
+      <td class="no-i18n">${esc(d.area)}</td><td class="no-i18n"><strong>${esc(d.peligro)}</strong><br><span class="help">${esc(d.tarea)}</span></td><td>${d.s&&d.p?esc('S'+d.s+' · P'+d.p):'—'}</td><td>${nvB(p.eval.inicial)}</td>
+      <td>${n} ${p.discutir?`<span class="badge b-red">${esc(L('Discutir','Discuss'))}</span>`:''}</td><td class="no-i18n">${esc(p.propusoNombre)}</td>
+      <td style="max-width:220px"><span class="help no-i18n" style="${p.eval.validacion==='OK'?'color:#15803D':'color:#B45309'}">${esc(p.eval.validacion)}</span></td>
+      <td style="white-space:nowrap;text-align:right">${esSafety()?`<button class="btn-g btn-sm" type="button" onclick="abrirPropuesta('${p.id}')">${esc(L('Editar','Edit'))}</button> <button class="btn-g btn-sm" type="button" onclick="abrirVoto('${p.id}')">${esc(L('Votar','Vote'))}</button>`:''}
+        ${puedePub?` <button class="btn-ok btn-sm" type="button" onclick="resolverPropuesta('${p.id}','PUBLICAR')">${esc(L('Publicar','Publish'))}</button>`:''}
+        ${(p.propuso===yo||MZ.puedePublicar)?` <button class="btn-g btn-sm" type="button" onclick="resolverPropuesta('${p.id}','DESCARTAR')" title="${esc(L('Descartar','Discard'))}" aria-label="${esc(L('Descartar','Discard'))}"><i class="fas fa-trash"></i></button>`:''}</td></tr>`; }).join('');
+  return `<div class="box" style="margin-bottom:12px"><p class="help">${esc(L('Cada técnico de Safety vota S y P por separado. Si difieren 2 puntos o más, se marca «Discutir». Publican Sergio Raya o Luz María Cervantez, y nadie publica su propia propuesta.','Each Safety technician votes S and P separately. A difference of 2 or more is flagged «Discuss». Sergio Raya or Luz María Cervantez publish, and nobody publishes their own proposal.'))}</p></div>
+    <section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Área','Area'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>S / P</th><th>${esc(L('Inicial','Initial'))}</th><th>${esc(L('Votos','Votes'))}</th><th>${esc(L('Propuso','Proposed by'))}</th><th>${esc(L('Validación','Validation'))}</th><th></th></tr></thead><tbody>${filas||vacio(9,L('No hay propuestas abiertas.','No open proposals.'))}</tbody></table></div></section>`;
+}
+let PR = null;
+function abrirPropuesta(id, riesgoId){
+  const p = id ? MZ.propuestas.find(x=>x.id===id) : null;
+  const base = p ? p.datos : (riesgoId ? Object.assign({}, MZ.riesgos.find(x=>x.id===riesgoId)) : {});
+  PR = {id: id||'', riesgoId: riesgoId||'', d: base};
+  const d = base, c = CATS;
+  const eppSel = (k,t) => fld(t, sel('pr-'+k, c[k]||[], d[k]||'', '—'));
+  const cuerpo = `
+    <div class="sec-title">${esc(L('Identificación del peligro','Hazard identification'))}</div>
+    <div class="grid-3">${fld(L('Área','Area'), sel('pr-area',areas(),d.area,'—'))}${fld(L('Puesto / rol','Position / role'), inp('pr-puesto',d.puesto))}${fld(L('Tarea / actividad','Task / activity'), inp('pr-tarea',d.tarea))}</div>
+    <div class="grid-2">${fld(L('Peligro identificado','Identified hazard'), inp('pr-peligro',d.peligro))}${fld(L('Causa / evento','Cause / event'), inp('pr-causa',d.causa))}</div>
+    <div class="grid-3">${fld(L('Categoría (A–G)','Category (A–G)'), sel('pr-categoria',catOpts(),d.categoria,'—'))}${fld(L('Norma principal','Main standard'), sel('pr-norma',c.norma||[],d.norma,'—'))}${fld(L('Programa / permiso','Program / permit'), sel('pr-programa',c.programa||[],d.programa,'—'))}</div>
+    <div class="sec-title">${esc(L('Evaluación inicial (sin controles)','Initial assessment (no controls)'))}</div>
+    <div class="grid-2">${fld(L('Severidad (S)','Severity (S)'), sel('pr-s',sOpts(),d.s,'—','onchange="prRecalc()"'))}${fld(L('Probabilidad (P)','Probability (P)'), sel('pr-p',pOpts(),d.p,'—','onchange="prRecalc()"'))}</div>
+    <div class="sec-title">${esc(L('Controles (de mayor a menor jerarquía)','Controls (highest to lowest)'))}</div>
+    <div class="grid-3">${fld(L('Eliminación / sustitución','Elimination / substitution'), inp('pr-ctlElim',d.ctlElim))}${fld(L('Control de ingeniería','Engineering control'), inp('pr-ctlIng',d.ctlIng))}${fld(L('Control administrativo','Administrative control'), inp('pr-ctlAdm',d.ctlAdm))}</div>
+    <div class="grid-4">${eppSel('eppCabeza',L('EPP cabeza','PPE head'))}${eppSel('eppOjos',L('EPP ojos / cara','PPE eyes / face'))}${eppSel('eppResp',L('EPP respiratoria','PPE respiratory'))}${eppSel('eppAud',L('EPP auditiva','PPE hearing'))}${eppSel('eppManos',L('EPP manos','PPE hands'))}${eppSel('eppPies',L('EPP pies','PPE feet'))}${eppSel('eppCuerpo',L('EPP cuerpo / altura','PPE body / height'))}</div>
+    <div class="sec-title">${esc(L('Evaluación residual y seguimiento','Residual assessment and follow-up'))}</div>
+    <div class="grid-3">${fld(L('Control de mayor jerarquía implementado','Highest control implemented'), sel('pr-ctlMayor',cOpts(),d.ctlMayor,'—','onchange="prRecalc()"'))}${fld(L('P residual','Residual P'), sel('pr-pRes',pResOpts(d.p,d.ctlMayor),d.pRes,'—','onchange="prRecalc(true)"'))}${fld(L('Estado de controles','Control status'), sel('pr-estadoCtl',(CRITC&&CRITC.estadosCtl)||[],d.estadoCtl,'—','onchange="prRecalc(true)"'))}</div>
+    <div class="grid-3">${fld(L('Responsable','Owner'), inp('pr-responsable',d.responsable))}${fld(L('Fecha compromiso','Due date'), inp('pr-fechaCompromiso',d.fechaCompromiso,'type="date"'))}${fld(L('Motivo del cambio','Reason for change'), inp('pr-motivo',p?p.motivo:''))}</div>
+    ${fld(L('Notas de la sesión','Session notes'), ta('pr-notas',d.notas))}
+    <div class="box" id="pr-eval"></div>`;
+  modal(1, p ? L('Editar propuesta','Edit proposal') : riesgoId ? L('Proponer cambio','Propose change') : L('Proponer peligro nuevo','Propose new hazard'), cuerpo,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" id="btn-pr" onclick="guardarPropuesta()">${esc(L('Guardar propuesta','Save proposal'))}</button>`, 'xl');
+  prRecalc(true);
+}
+const CAMPOS_PR = ['area','puesto','tarea','peligro','causa','categoria','norma','programa','s','p','ctlElim','ctlIng','ctlAdm','eppCabeza','eppOjos','eppResp','eppAud','eppManos','eppPies','eppCuerpo','ctlMayor','pRes','estadoCtl','responsable','fechaCompromiso','notas'];
+function leerPropuesta(){ const o={}; CAMPOS_PR.forEach(k=>o[k]=val('pr-'+k)); return o; }
+function prRecalc(sinReconstruir){
+  const d = leerPropuesta();
+  if(!sinReconstruir){ const opc=pResOpts(d.p,d.ctlMayor); const keep=opc.includes(Number(d.pRes))?d.pRes:''; $('pr-pRes').innerHTML=opts(opc,keep,'—'); d.pRes=keep; }
+  const e = evaluarJS(d);
+  $('pr-eval').innerHTML = `<div class="grid-3"><div><span class="help">${esc(L('Inicial','Initial'))}</span><div>${nvB(e.inicial)}</div></div><div><span class="help">${esc(L('Residual','Residual'))}</span><div>${nvB(e.residual)}</div></div><div><span class="help">${esc(L('Vigente','Current'))}</span><div>${nvB(e.vigente)}</div></div></div><p class="help" style="margin-top:8px">${esc(L('Validación','Validation'))}: <span class="no-i18n">${esc(e.validacion)}</span>${e.pMin&&d.ctlMayor?' · '+esc(`Con «${d.ctlMayor}» la P residual mínima es ${e.pMin}.`):''}</p>`;
+}
+async function guardarPropuesta(){
+  $('btn-pr').disabled=true;
+  try{ const r = await llamar({action:'propuestaGuardar', token:tok(), id:PR.id, riesgoId:PR.riesgoId, datos:leerPropuesta(), motivo:val('pr-motivo')}, L('Propuesta guardada.','Proposal saved.'));
+    if(r){ closeModal('m-gen'); MZ_TAB='propuestas'; cargarMatriz(); } }
+  finally{ const b=$('btn-pr'); if(b) b.disabled=false; }
+}
+function abrirVoto(id){
+  const p = MZ.propuestas.find(x=>x.id===id), mio = (p.votos||{})[SESSION.user.username];
+  const otros = Object.entries(p.votos||{}).filter(([u])=>u!==SESSION.user.username);
+  const cuerpo = `<p class="help no-i18n"><strong>${esc(p.datos.peligro)}</strong> · ${esc(p.datos.tarea)} · ${esc(p.datos.area)}</p>
+    <p class="help">${esc(L('Califica sin considerar los controles actuales. Los votos de los demás se muestran después de que votas.','Rate without considering current controls. Others\' votes are shown after you vote.'))}</p>
+    <div class="grid-2">${fld(L('Severidad (S)','Severity (S)'), sel('vt-s',sOpts(),mio?mio.s:'','—'))}${fld(L('Probabilidad (P)','Probability (P)'), sel('vt-p',pOpts(),mio?mio.p:'','—'))}</div>
+    ${mio?`<div class="box"><div class="sec-title">${esc(L('Votos del equipo','Team votes'))}</div>${[[SESSION.user.username,mio]].concat(otros).map(([u,v])=>`<div class="no-i18n" style="font-size:.84rem">${esc(v.nombre||u)}: S${esc(v.s)} · P${esc(v.p)}</div>`).join('')}${p.discutir?`<p style="color:#B91C1C;font-weight:700;font-size:.82rem;margin:8px 0 0">${esc(L('Diferencia de 2 puntos o más: discutir con las tablas del criterio. Sin acuerdo, se toma el valor más alto.','Difference of 2 or more: discuss with the criteria tables. Without agreement, the highest value is used.'))}</p>`:''}</div>`:''}`;
+  modal(1, L('Votar','Vote'), cuerpo, `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cerrar','Close'))}</button><button class="btn-p" type="button" onclick="guardarVoto('${id}')">${esc(L('Guardar voto','Save vote'))}</button>`, '');
+}
+async function guardarVoto(id){
+  const r = await llamar({action:'propuestaVotar', token:tok(), id, s:val('vt-s'), p:val('vt-p')}, L('Voto registrado.','Vote recorded.'));
+  if(r){ await cargarMatriz(); abrirVoto(id); }
+}
+async function resolverPropuesta(id, decision){
+  const pub = decision==='PUBLICAR';
+  if(!confirm(uiText(pub?L('¿Publicar esta propuesta? Entrará en vigor en la matriz.','Publish this proposal? It will take effect in the matrix.'):L('¿Descartar esta propuesta?','Discard this proposal?')))) return;
+  const r = await llamar({action:'propuestaResolver', token:tok(), id, decision}, pub?L('Publicado en la matriz.','Published to the matrix.'):L('Propuesta descartada.','Proposal discarded.'));
+  if(r){ PUB = null; cargarMatriz(); }
+}
+function htmlCriterio(){
+  const C = CRITC, t = (cab, filas) => `<div class="tbl-wrap"><table><thead><tr>${cab.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${filas.map(f=>`<tr class="tbl-row">${f.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  let heat = '<table class="heat"><tr><td></td>'+[1,2,3,4,5].map(p=>`<td class="help">P${p}</td>`).join('')+'</tr>';
+  for(let s=5;s>=1;s--){ heat += `<tr><td class="help">S${s}</td>`+[1,2,3,4,5].map(p=>{ const n=nivelJS(s,p,false); return `<td class="nv-${n.i}">${n.puntaje}</td>`; }).join('')+'</tr>'; }
+  heat += '</table>';
+  return `<div class="grid-2"><section class="card" style="padding:16px"><div class="sec-title">${esc(L('Severidad (S)','Severity (S)'))}</div>${t([L('Valor','Value'),L('Nivel','Level'),L('Descripción','Description'),L('Piso inicial','Initial floor'),L('Piso residual','Residual floor')], C.severidad.map(x=>[x.v,esc(x.n),`<span class="no-i18n">${esc(x.d)}</span>`,esc(C.niveles[x.pisoIni-1].n),esc(C.niveles[x.pisoRes-1].n)]))}</section>
+    <section class="card" style="padding:16px"><div class="sec-title">${esc(L('Probabilidad (P)','Probability (P)'))}</div>${t([L('Valor','Value'),L('Nivel','Level'),L('Descripción','Description')], C.probabilidad.map(x=>[x.v,esc(x.n),`<span class="no-i18n">${esc(x.d)}</span>`]))}</section>
+    <section class="card" style="padding:16px"><div class="sec-title">${esc(L('Niveles de riesgo','Risk levels'))}</div>${t([L('Nivel','Level'),L('Desde','From'),L('Acción','Action'),L('Plazo','Deadline')], C.niveles.map(x=>[`<span class="nv nv-${x.i}">${esc(x.n)}</span>`,x.min,`<span class="no-i18n">${esc(x.accion)}</span>`,`<span class="no-i18n">${esc(x.plazo)}</span>`]))}<p class="help" style="margin-top:8px">${esc(L('Un JSA o JRA con riesgo residual IMPORTANTE o mayor no se puede aprobar.','A JSA or JRA with SIGNIFICANT or higher residual risk cannot be approved.'))}</p></section>
+    <section class="card" style="padding:16px"><div class="sec-title">${esc(L('Jerarquía de controles','Hierarchy of controls'))}</div>${t([L('Control de mayor jerarquía','Highest control'),L('Baja máxima de P','Max P reduction')], C.controles.map(x=>[esc(x.n),x.baja]))}<div class="sec-title" style="margin-top:14px">${esc(L('Matriz S × P (nivel inicial)','S × P matrix (initial level)'))}</div>${heat}</section></div>`;
+}
+function htmlCatalogos(){
+  const tipos = [['area',L('Áreas (Nombre | CÓDIGO de folio)','Areas (Name | ID CODE)')],['departamento',L('Departamentos','Departments')],['turno',L('Turnos','Shifts')],['norma',L('Normas','Standards')],['programa',L('Programas / permisos','Programs / permits')],['eppCabeza','EPP cabeza'],['eppOjos','EPP ojos / cara'],['eppResp','EPP respiratoria'],['eppAud','EPP auditiva'],['eppManos','EPP manos'],['eppPies','EPP pies'],['eppCuerpo','EPP cuerpo / altura']];
+  return `<div class="box" style="margin-bottom:12px"><p class="help">${esc(L('Una opción por renglón. Los cambios aplican de inmediato a los formularios.','One option per line. Changes apply to forms immediately.'))}</p></div><div class="grid-3">${tipos.map(([k,t])=>`<section class="card" style="padding:14px"><label class="lbl" for="cat-${k}">${esc(t)}</label><textarea id="cat-${k}" class="inp no-i18n" rows="7">${esc((CATS[k]||[]).map(x=>typeof x==='object'?x.valor+(x.codigo?' | '+x.codigo:''):x).join('\n'))}</textarea><button class="btn-g btn-sm" type="button" style="margin-top:8px" onclick="guardarCatalogo('${k}')">${esc(L('Guardar','Save'))}</button></section>`).join('')}</div>`;
+}
+async function guardarCatalogo(tipo){
+  const valores = $('cat-'+tipo).value.split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{ if(tipo!=='area') return x; const [v,c]=x.split('|').map(y=>y.trim()); return {valor:v, codigo:(c||'').toUpperCase()}; });
+  const r = await llamar({action:'catalogoGuardar', token:tok(), tipo, valores}, L('Catálogo guardado.','Catalog saved.'));
+  if(r){ CATS = r.catalogos; MZ.catalogos = r.catalogos; PUB = null; }
+}
+
+/* ═══════════════ JSA / JRA ═══════════════ */
+let AN = [], ED = null;
+const ESTATUS_AN = {BORRADOR:['b-off',L('Borrador','Draft')], ENVIADO:['b-pend',L('En revisión de Safety','Under Safety review')], APROBADO:['b-done',L('Aprobado','Approved')], RECHAZADO:['b-red',L('Regresado para corregir','Returned for corrections')]};
+const chipAn = s => `<span class="badge ${(ESTATUS_AN[s]||['b-off'])[0]}">${esc((ESTATUS_AN[s]||['',s])[1])}</span>`;
+async function cargarAnalisis(){
+  $('analisis-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+  const r = await llamar({action:'analisisListar', token:tok()}); if(!r) return; AN = r.analisis;
+  $('analisis-body').innerHTML = cabecera(L('JSA y JRA','JSA and JRA'), L('Análisis de riesgo con el criterio único. Safety revisa y aprueba antes de ejecutar el trabajo.','Risk analyses with the single criterion. Safety reviews and approves before the work is done.'),
+    `<button class="btn-p btn-sm" type="button" onclick="nuevoAnalisis('JSA',false)"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo JSA','New JSA'))}</button><button class="btn-ok btn-sm" type="button" onclick="nuevoAnalisis('JRA',false)"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo JRA','New JRA'))}</button>`)
+    + `<section class="card"><div class="filters">${inp('an-q','','placeholder="'+esc(L('Buscar folio, actividad, área o compañía','Search ID, activity, area or company'))+'" oninput="filasAnalisis()"')}${sel('an-tipo',['JSA','JRA'],'',L('JSA y JRA','JSA and JRA'),'onchange="filasAnalisis()"')}${sel('an-est',Object.keys(ESTATUS_AN).map(k=>({v:k,t:ESTATUS_AN[k][1]})),'',L('Todos los estatus','All statuses'),'onchange="filasAnalisis()"')}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Estatus','Status'))}</th><th>${esc(L('Actividad','Activity'))}</th><th>${esc(L('Área / compañía','Area / company'))}</th><th>${esc(L('Residual máx.','Max residual'))}</th><th>${esc(L('Capturó','Entered by'))}</th><th>${esc(L('Fecha','Date'))}</th><th></th></tr></thead><tbody id="an-rows"></tbody></table></div><p class="help" id="an-count" style="padding:10px 16px"></p></section>`;
+  filasAnalisis();
+}
+function filasAnalisis(){
+  const q=val('an-q').toLowerCase(), t=val('an-tipo'), e=val('an-est');
+  const rows = AN.filter(a=>(!t||a.tipo===t)&&(!e||a.estatus===e)&&(!q||[a.folio,a.actividad,a.area,a.compania,a.capturoNombre].join(' ').toLowerCase().includes(q)));
+  $('an-rows').innerHTML = rows.length ? rows.map(a=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(a.folio)}</td><td><strong>${esc(a.tipo)}</strong></td><td>${chipAn(a.estatus)}${String(a.bloqueado).toUpperCase()==='TRUE'?`<br><span class="help" style="color:#B91C1C">${esc(L('Bloqueado por riesgo residual','Blocked by residual risk'))}</span>`:''}</td><td class="no-i18n">${esc(a.actividad)}</td><td class="no-i18n">${esc(a.area)}${a.compania?' / '+esc(a.compania):''}</td><td>${nvTxt(a.nivelResidual)}</td><td class="no-i18n">${esc(a.capturoNombre||'—')}${a.origen==='PUBLICO'?` <span class="badge b-info">${esc(L('Sin cuenta','No account'))}</span>`:''}</td><td style="white-space:nowrap">${fecha(a.creado)}</td><td><button class="btn-g btn-sm" type="button" onclick="verAnalisis('${a.id}')">${esc(L('Ver','View'))}</button></td></tr>`).join('') : vacio(9, L('No hay documentos con esos filtros.','No documents match the filters.'));
+  $('an-count').textContent = `${rows.length} de ${AN.length} documentos`;
+}
+function resumenAnalisisHtml(a){
+  const d = a.datos||{}, g = d.general||{};
+  return `<div class="grid-3">${[[L('Actividad','Activity'),g.actividad],[L('Área','Area'),g.area],[L('Compañía','Company'),g.compania],[L('Departamento','Department'),g.departamento],[L('Fecha del trabajo','Work date'),g.fechaTrabajo],[L('Capturó','Entered by'),a.capturoNombre||g.capturoNombre]].map(([k,v])=>`<div><span class="help">${esc(k)}</span><div class="no-i18n" style="font-size:.86rem">${esc(v||'—')}</div></div>`).join('')}</div>
+    ${g.descripcion?`<p class="no-i18n" style="font-size:.86rem;margin:0">${esc(g.descripcion)}</p>`:''}
+    <div class="tbl-wrap"><table><thead><tr><th>#</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>${esc(L('Inicial','Initial'))}</th><th>${esc(L('Controles','Controls'))}</th><th>${esc(L('Residual','Residual'))}</th></tr></thead><tbody>${(d.tareas||[]).map((t,i)=>(t.riesgos||[]).map((r,j)=>`<tr class="tbl-row">${j===0?`<td rowspan="${t.riesgos.length}">${i+1}</td><td rowspan="${t.riesgos.length}" class="no-i18n">${esc(t.texto)}</td>`:''}<td class="no-i18n">${esc(r.peligro)}${r.ambiental?` <span class="badge b-done">${esc(L('Ambiental','Environmental'))}</span>`:''}${r.folio?`<br><span class="mono help">${esc(r.folio)}</span>`:''}</td><td>${nvB(nivelJS(r.s,r.p,false))}</td><td class="no-i18n" style="font-size:.76rem">${esc([r.ctlElim,r.ctlIng,r.ctlAdm,r.epp].filter(Boolean).join(' · ')||'—')}</td><td>${nvB(nivelJS(r.s,r.pRes||r.p,true))}</td></tr>`).join('')).join('')}</tbody></table></div>
+    ${a.comentarioRevision?`<div class="box"><span class="help">${esc(L('Comentario de Safety','Safety comment'))} · <span class="no-i18n">${esc(a.revisadoPor||'')}</span></span><div class="no-i18n" style="font-size:.86rem">${esc(a.comentarioRevision)}</div></div>`:''}`;
+}
+async function verAnalisis(id){
+  await cargarPublicos();
+  const a = AN.find(x=>x.id===id), yo = SESSION.user.username;
+  const puedeEditar = (a.capturo===yo && ['BORRADOR','RECHAZADO'].includes(a.estatus)) || esSafety();
+  const revisar = esSafety() && a.estatus==='ENVIADO';
+  modal(1, `${a.folio} · ${a.tipo}`, `<div>${chipAn(a.estatus)} ${nvTxt(a.nivelResidual)}</div>` + resumenAnalisisHtml(a) + (revisar?`<div class="box">${fld(L('Comentario para quien capturó (obligatorio si se regresa)','Comment for the author (required when returning)'), ta('rev-com',''))}</div>`:''),
+    `<button class="btn-g" type="button" onclick="imprimirAnalisis('${id}')"><i class="fas fa-print" style="margin-right:6px"></i>${esc(L('Imprimir formato','Print form'))}</button>`
+    + (puedeEditar?`<button class="btn-g" type="button" onclick="closeModal('m-gen');editarAnalisis('${id}')">${esc(L('Editar','Edit'))}</button>`:'')
+    + (revisar?`<button class="btn-red" type="button" onclick="revisarAnalisis('${id}','REGRESAR')">${esc(L('Regresar para corregir','Return for corrections'))}</button><button class="btn-ok" type="button" onclick="revisarAnalisis('${id}','APROBAR')">${esc(L('Aprobar','Approve'))}</button>`:''), 'xl');
+}
+async function revisarAnalisis(id, decision){
+  const r = await llamar({action:'analisisRevisar', token:tok(), id, decision, comentario:val('rev-com')}, decision==='APROBAR'?L('Análisis aprobado.','Analysis approved.'):L('Regresado para corregir.','Returned for corrections.'));
+  if(r){ closeModal('m-gen'); cargarAnalisis(); }
+}
+async function nuevoAnalisis(tipo, publico){
+  PUB = null; await cargarPublicos();   // siempre la matriz vigente
+  ED = {id:'', tipo, publico, datos:{general:{fechaTrabajo:hoy(), capturoNombre: publico?'':(SESSION?SESSION.user.nombre:'')}, tareas:[{texto:'', riesgos:[]}], personal:[]}};
+  showView('editor'); renderEditor();
+}
+async function editarAnalisis(id){
+  PUB = null; await cargarPublicos();
+  const a = AN.find(x=>x.id===id);
+  ED = {id, tipo:a.tipo, publico:false, datos:JSON.parse(JSON.stringify(a.datos||{general:{},tareas:[],personal:[]}))};
+  ED.datos.tareas = ED.datos.tareas||[]; ED.datos.personal = ED.datos.personal||[];
+  showView('editor'); renderEditor();
+}
+function renderEditor(){
+  const d = ED.datos, g = d.general, jsa = ED.tipo==='JSA';
+  const gen = jsa
+    ? `<div class="grid-3">${fld(L('Compañía','Company'), inp('g-compania',g.compania,'data-g="compania"'))}${fld(L('Actividad','Activity'), inp('g-actividad',g.actividad,'data-g="actividad"'))}${fld(L('Área','Area'), sel('g-area',areas(),g.area,'—','data-g="area"'))}</div>
+       <div class="grid-4">${fld(L('Departamento','Department'), sel('g-departamento',CATS.departamento||[],g.departamento,'—','data-g="departamento"'))}${fld(L('Fecha del trabajo','Work date'), inp('g-fechaTrabajo',g.fechaTrabajo,'type="date" data-g="fechaTrabajo"'))}${fld(L('Periodo','Period'), inp('g-periodo',g.periodo,'data-g="periodo" placeholder="'+esc(L('Ej. 20 al 22 de octubre','e.g. Oct 20 to 22'))+'"'))}${fld(L('Horario','Schedule'), inp('g-horario',g.horario,'data-g="horario"'))}</div>`
+    : `<div class="grid-3">${fld(L('Actividad rutinaria','Routine activity'), inp('g-actividad',g.actividad,'data-g="actividad"'))}${fld(L('Área','Area'), sel('g-area',areas(),g.area,'—','data-g="area"'))}${fld(L('Departamento','Department'), sel('g-departamento',CATS.departamento||[],g.departamento,'—','data-g="departamento"'))}</div>
+       <div class="grid-4">${fld(L('Líneas / máquina','Lines / machine'), inp('g-lineaMaquina',g.lineaMaquina,'data-g="lineaMaquina"'))}${fld(L('Proceso','Process'), inp('g-proceso',g.proceso,'data-g="proceso"'))}${fld(L('¿Cuenta con MOE?','Has MOE?'), sel('g-moe',[{v:'SI',t:L('Sí','Yes')},{v:'NO',t:'No'}],g.moe,'—','data-g="moe"'))}${fld(L('Código de MOE','MOE code'), inp('g-moeCodigo',g.moeCodigo,'data-g="moeCodigo"'))}</div>`;
+  const quien = `<div class="grid-3">${fld(L('Nombre de quien captura','Name of person entering'), inp('g-capturoNombre',g.capturoNombre,'data-g="capturoNombre"'))}${ED.publico&&!jsa?fld(L('Compañía o departamento','Company or department'), inp('g-compania',g.compania,'data-g="compania"')):''}${fld(L('Teléfono (opcional)','Phone (optional)'), inp('g-telefono',g.telefono,'data-g="telefono"'))}</div>
+    ${fld(L('Descripción del trabajo','Work description'), ta('g-descripcion',g.descripcion,'data-g="descripcion"'))}`;
+  const tareas = d.tareas.map((t,i)=>`<div class="task"><div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1">${fld(`Tarea ${i+1}`, inp('t-'+i,t.texto,`data-t="${i}" placeholder="${esc(L('Describe el paso del trabajo','Describe the work step'))}"`))}</div><button class="btn-g btn-sm" type="button" onclick="quitarTarea(${i})" title="${esc(L('Quitar tarea','Remove task'))}" aria-label="${esc(L('Quitar tarea','Remove task'))}"><i class="fas fa-trash"></i></button></div>
+      ${t.riesgos.map((r,j)=>htmlRiesgoEd(i,j,r)).join('')}
+      <div class="toolbar" style="margin-top:10px"><button class="btn-g btn-sm" type="button" onclick="elegirDeMatriz(${i})"><i class="fas fa-table-cells" style="margin-right:6px"></i>${esc(L('Agregar riesgo de la matriz','Add risk from matrix'))}</button><button class="btn-g btn-sm" type="button" onclick="agregarRiesgo(${i})"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Riesgo que no está en la matriz','Risk not in the matrix'))}</button></div></div>`).join('');
+  const personal = jsa ? `<section class="card" style="padding:18px;margin-top:14px"><div class="sec-title">${esc(L('Personal que realizará el trabajo','Workers who will do the job'))}</div>${d.personal.map((p,i)=>`<div class="grid-3" style="margin-top:8px">${inp('pe-n-'+i,p.nombre,`data-pe="${i}" data-pk="nombre" placeholder="${esc(L('Nombre','Name'))}"`)}${inp('pe-p-'+i,p.puesto,`data-pe="${i}" data-pk="puesto" placeholder="${esc(L('Puesto','Position'))}"`)}<button class="btn-g btn-sm" type="button" onclick="ED.datos.personal.splice(${i},1);renderEditor()">${esc(L('Quitar','Remove'))}</button></div>`).join('')}<button class="btn-g btn-sm" type="button" style="margin-top:10px" onclick="ED.datos.personal.push({nombre:'',puesto:''});renderEditor()"><i class="fas fa-user-plus" style="margin-right:6px"></i>${esc(L('Agregar persona','Add person'))}</button></section>` : '';
+  $('editor-body').innerHTML = cabecera(jsa?L('JSA · trabajo especial o no rutinario','JSA · special or non-routine work'):L('JRA · trabajo rutinario','JRA · routine work'),
+      ED.publico?L('No necesitas cuenta. Al enviar recibirás un folio y un código para consultar la respuesta de Safety.','No account needed. When you submit you will get an ID and a code to check Safety\'s response.'):L('Los riesgos de la matriz ya traen la evaluación acordada por Safety; ajústalos a las condiciones reales.','Matrix risks already carry the assessment agreed by Safety; adjust them to real conditions.'),
+      `<button class="btn-g btn-sm" type="button" onclick="${ED.publico?"showView('publico')":"showView('analisis')"}">${esc(L('Salir sin guardar','Leave without saving'))}</button>`)
+    + `<section class="card" style="padding:18px"><div class="sec-title">${esc(L('Datos generales','General information'))}</div>${gen}${quien}</section>
+       <div class="sec-title" style="margin:18px 0 8px">${esc(L('Tareas y riesgos','Tasks and risks'))}</div><div id="ed-tareas">${tareas}</div>
+       <button class="btn-g" type="button" onclick="ED.datos.tareas.push({texto:'',riesgos:[]});renderEditor()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tarea','Add task'))}</button>
+       ${personal}
+       <section class="card" style="padding:18px;margin-top:14px"><div id="ed-resumen"></div><div class="toolbar" style="margin-top:12px;justify-content:flex-end">
+         ${ED.publico?'':`<button class="btn-g" type="button" onclick="guardarEditor(false)">${esc(L('Guardar borrador','Save draft'))}</button>`}
+         <button class="btn-p" type="button" id="btn-enviar-an" onclick="guardarEditor(true)"><i class="fas fa-paper-plane" style="margin-right:6px"></i>${esc(L('Enviar a Safety','Send to Safety'))}</button></div></section>`;
+  resumenEditor();
+}
+function htmlRiesgoEd(i,j,r){
+  const k = `${i}-${j}`;
+  return `<div class="risk" id="rk-${k}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px"><span class="help">${r.folio?`<span class="mono">${esc(r.folio)}</span> · `+esc(L('de la matriz','from the matrix')):esc(L('Riesgo agregado por quien captura','Risk added by the author'))}</span><button class="btn-g btn-sm" type="button" onclick="ED.datos.tareas[${i}].riesgos.splice(${j},1);renderEditor()" title="${esc(L('Quitar riesgo','Remove risk'))}" aria-label="${esc(L('Quitar riesgo','Remove risk'))}"><i class="fas fa-xmark"></i></button></div>
+    <div class="grid-3">${fld(L('Peligro / riesgo','Hazard / risk'), inp('r-peligro-'+k,r.peligro,`data-r="${k}" data-rk="peligro"`))}${fld(L('Categoría','Category'), sel('r-categoria-'+k,catOpts(),r.categoria,'—',`data-r="${k}" data-rk="categoria"`))}<div style="display:flex;align-items:flex-end"><label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" ${r.ambiental?'checked':''} data-r="${k}" data-rk="ambiental"> ${esc(L('Es un aspecto ambiental','It is an environmental aspect'))}</label></div></div>
+    <div class="grid-4">${fld('S', sel('r-s-'+k,sOpts(),r.s,'—',`data-r="${k}" data-rk="s"`))}${fld('P', sel('r-p-'+k,pOpts(),r.p,'—',`data-r="${k}" data-rk="p"`))}${fld(L('Control de mayor jerarquía','Highest control'), sel('r-ctlMayor-'+k,cOpts(),r.ctlMayor,'—',`data-r="${k}" data-rk="ctlMayor"`))}${fld(L('P residual','Residual P'), sel('r-pRes-'+k,pResOpts(r.p,r.ctlMayor),r.pRes,'—',`data-r="${k}" data-rk="pRes"`))}</div>
+    <div class="grid-4">${fld(L('Eliminación / sustitución','Elimination / substitution'), inp('r-ctlElim-'+k,r.ctlElim,`data-r="${k}" data-rk="ctlElim"`))}${fld(L('Ingeniería','Engineering'), inp('r-ctlIng-'+k,r.ctlIng,`data-r="${k}" data-rk="ctlIng"`))}${fld(L('Administrativo','Administrative'), inp('r-ctlAdm-'+k,r.ctlAdm,`data-r="${k}" data-rk="ctlAdm"`))}${fld('EPP', inp('r-epp-'+k,r.epp,`data-r="${k}" data-rk="epp"`))}</div>
+    <div id="rk-ev-${k}" style="margin-top:8px"></div></div>`;
+}
+function evalRiesgoEd(i,j){
+  const r = ED.datos.tareas[i].riesgos[j], k=`${i}-${j}`, el=$('rk-ev-'+k); if(!el) return;
+  const pm = r.p ? pMinDe(r.p,r.ctlMayor) : null;
+  el.innerHTML = `<span class="help">${esc(L('Inicial','Initial'))}</span> ${nvB(nivelJS(r.s,r.p,false))} &nbsp; <span class="help">${esc(L('Residual','Residual'))}</span> ${nvB(nivelJS(r.s,r.pRes||r.p,true))}${pm&&r.ctlMayor?` <span class="help">· ${esc(`P residual permitida: ${pm} a ${r.p}`)}</span>`:''}`;
+}
+function resumenEditor(){
+  let ini=0, res=0, n=0;
+  ED.datos.tareas.forEach((t,i)=>t.riesgos.forEach((r,j)=>{ n++; evalRiesgoEd(i,j); const a=nivelJS(r.s,r.p,false), b=nivelJS(r.s,r.pRes||r.p,true); if(a&&a.i>ini) ini=a.i; if(b&&b.i>res) res=b.i; }));
+  const N = CRITC ? CRITC.niveles : [];
+  $('ed-resumen').innerHTML = `<div class="grid-3"><div><span class="help">${esc(L('Riesgos evaluados','Risks assessed'))}</span><div class="kpi" style="padding:0"><div class="v">${n}</div></div></div><div><span class="help">${esc(L('Inicial máximo','Max initial'))}</span><div>${ini?nvTxt(N[ini-1].n):'—'}</div></div><div><span class="help">${esc(L('Residual máximo','Max residual'))}</span><div>${res?nvTxt(N[res-1].n):'—'}</div></div></div>
+    ${res>=3?`<p style="color:#B91C1C;font-weight:700;font-size:.84rem;margin:10px 0 0">${esc(L('Hay un riesgo residual IMPORTANTE o mayor: Safety no podrá aprobarlo. Agrega controles de mayor jerarquía.','There is a SIGNIFICANT or higher residual risk: Safety will not be able to approve it. Add higher-level controls.'))}</p>`:''}`;
+}
+document.addEventListener('input', edCambio); document.addEventListener('change', edCambio);
+function edCambio(e){
+  const el = e.target; if(!ED || !el.closest || !el.closest('#editor-body')) return;
+  const v = el.type==='checkbox' ? el.checked : el.value;
+  if(el.dataset.g){ ED.datos.general[el.dataset.g] = v; return; }
+  if(el.dataset.t!==undefined){ ED.datos.tareas[+el.dataset.t].texto = v; return; }
+  if(el.dataset.pe!==undefined){ ED.datos.personal[+el.dataset.pe][el.dataset.pk] = v; return; }
+  if(el.dataset.r){
+    const [i,j] = el.dataset.r.split('-').map(Number), r = ED.datos.tareas[i].riesgos[j], k = el.dataset.rk;
+    r[k] = ['s','p','pRes'].includes(k) ? (v?Number(v):'') : v;
+    if((k==='p'||k==='ctlMayor') && e.type==='change'){
+      const opc = pResOpts(r.p,r.ctlMayor); if(!opc.includes(Number(r.pRes))) r.pRes='';
+      $('r-pRes-'+el.dataset.r).innerHTML = opts(opc, r.pRes, '—');
+    }
+    resumenEditor();
+  }
+}
+function agregarRiesgo(i, r){ ED.datos.tareas[i].riesgos.push(r||{peligro:'',s:'',p:'',ctlMayor:'',pRes:''}); renderEditor(); }
+function quitarTarea(i){ if(ED.datos.tareas.length>1 || confirm(uiText(L('¿Quitar la única tarea?','Remove the only task?')))){ ED.datos.tareas.splice(i,1); if(!ED.datos.tareas.length) ED.datos.tareas.push({texto:'',riesgos:[]}); renderEditor(); } }
+function elegirDeMatriz(i){
+  const area = ED.datos.general.area || '';
+  modal(2, L('Riesgos de la matriz publicada','Risks from the published matrix'),
+    `<div class="toolbar">${inp('pk-q','','placeholder="'+esc(L('Buscar peligro o tarea','Search hazard or task'))+'" oninput="filasPicker('+i+')" style="max-width:280px"')}${sel('pk-area',areas(),area,L('Todas las áreas','All areas'),'onchange="filasPicker('+i+')" style="max-width:220px"')}</div><div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>${esc(L('Inicial','Initial'))}</th><th></th></tr></thead><tbody id="pk-rows"></tbody></table></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen2')">${esc(L('Cerrar','Close'))}</button>`);
+  filasPicker(i);
+}
+function filasPicker(i){
+  const q=val('pk-q').toLowerCase(), a=val('pk-area'), lista=(PUB&&PUB.riesgos)||[];
+  const rows = lista.filter(r=>(!a||r.area===a)&&(!q||[r.tarea,r.peligro,r.causa,r.folio].join(' ').toLowerCase().includes(q)));
+  $('pk-rows').innerHTML = rows.length ? rows.map(r=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(r.folio)}</td><td class="no-i18n">${esc(r.tarea)}</td><td class="no-i18n"><strong>${esc(r.peligro)}</strong><br><span class="help">${esc(r.causa||'')}</span></td><td>${nvB(nivelJS(r.s,r.p,false))}</td><td><button class="btn-p btn-sm" type="button" onclick="tomarDeMatriz(${i},'${r.id}')">${esc(L('Agregar','Add'))}</button></td></tr>`).join('')
+    : vacio(5, lista.length?L('Ningún riesgo coincide.','No risk matches.'):L('La matriz todavía no tiene riesgos publicados. Agrega el riesgo manualmente.','The matrix has no published risks yet. Add the risk manually.'));
+}
+function tomarDeMatriz(i, id){
+  const r = PUB.riesgos.find(x=>x.id===id);
+  const epp = ['eppCabeza','eppOjos','eppResp','eppAud','eppManos','eppPies','eppCuerpo'].map(k=>r[k]).filter(x=>x&&x!=='N/A').join(', ');
+  ED.datos.tareas[i].riesgos.push({riesgoId:r.id, folio:r.folio, peligro:r.peligro+(r.causa?' — '+r.causa:''), categoria:r.categoria, s:Number(r.s), p:Number(r.p), ctlElim:r.ctlElim||'', ctlIng:r.ctlIng||'', ctlAdm:r.ctlAdm||'', epp, ctlMayor:r.ctlMayor||'', pRes:r.pRes?Number(r.pRes):''});
+  closeModal('m-gen2'); renderEditor(); toast(L('Riesgo agregado.','Risk added.'));
+}
+async function guardarEditor(enviar){
+  const b = $('btn-enviar-an'); if(b) b.disabled = true;
+  try{
+    const body = {tipo:ED.tipo, datos:ED.datos, enviar, id:ED.id};
+    const r = ED.publico ? await api(Object.assign({action:'analisisGuardarPublico'}, body)) : await api(Object.assign({action:'analisisGuardar', token:tok()}, body));
+    if(!r.success){ toast(r.error,'err'); return; }
+    if(ED.publico){
+      modal(1, L('Enviado a Safety','Sent to Safety'), `<p style="margin:0">${esc(L('Guarda estos datos para consultar la respuesta de Safety:','Keep this information to check Safety\'s response:'))}</p><div class="grid-2"><div><span class="help">Folio</span><div class="temp-pwd">${esc(r.folio)}</div></div><div><span class="help">${esc(L('Código','Code'))}</span><div class="temp-pwd">${esc(r.codigo)}</div></div></div>${r.bloqueado?`<p style="color:#B91C1C;font-size:.84rem">${esc(L('Atención: hay riesgos residuales altos; Safety podría regresarlo para agregar controles.','Note: there are high residual risks; Safety may return it to add controls.'))}</p>`:''}`,
+        `<button class="btn-p" type="button" onclick="closeModal('m-gen');ED=null;showView('publico')">${esc(L('Listo, ya los anoté','Done, I wrote them down'))}</button>`, '');
+    } else {
+      toast(enviar?L('Enviado a Safety.','Sent to Safety.'):L('Borrador guardado.','Draft saved.'));
+      ED = null; showView('analisis');
+    }
+  } catch(e){ toast(e.message,'err'); }
+  finally{ const b2=$('btn-enviar-an'); if(b2) b2.disabled=false; }
+}
+function consultarFolio(){
+  modal(1, L('Consultar mi folio','Check my ID'), `<div class="grid-2">${fld('Folio', inp('cf-folio','','placeholder="JSA-2026-0001" autocapitalize="characters"'))}${fld(L('Código','Code'), inp('cf-cod','','autocapitalize="characters"'))}</div><div id="cf-res"></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cerrar','Close'))}</button><button class="btn-p" type="button" onclick="buscarFolio()">${esc(L('Consultar','Check'))}</button>`, '');
+}
+async function buscarFolio(){
+  await cargarPublicos();
+  const r = await api({action:'analisisConsultar', folio:val('cf-folio'), codigo:val('cf-cod')});
+  if(!r.success){ $('cf-res').innerHTML = `<div class="err-box">${esc(uiText(r.error))}</div>`; return; }
+  const d = r.documento; window.__DOC_PUB = Object.assign({capturoNombre:(d.datos&&d.datos.general||{}).capturoNombre}, d);
+  $('cf-res').innerHTML = `<div class="box"><div>${chipAn(d.estatus)} ${nvTxt(d.nivelResidual)}</div><p class="no-i18n" style="font-size:.88rem;margin:8px 0 0"><strong>${esc(d.actividad)}</strong></p>${d.comentarioRevision?`<p style="font-size:.84rem;margin:8px 0 0"><span class="help">${esc(L('Comentario de Safety','Safety comment'))}:</span> <span class="no-i18n">${esc(d.comentarioRevision)}</span></p>`:''}${d.estatus==='APROBADO'?`<button class="btn-g btn-sm" type="button" style="margin-top:10px" onclick="imprimirAnalisis(null,window.__DOC_PUB)"><i class="fas fa-print" style="margin-right:6px"></i>${esc(L('Imprimir formato','Print form'))}</button>`:''}</div>`;
+}
+function imprimirAnalisis(id, docPub){
+  const a = docPub || AN.find(x=>x.id===id), d = a.datos||{}, g = d.general||{}, jsa = a.tipo==='JSA';
+  const N = n => n?`<span class="nvp">${esc(n.n)} (${n.puntaje})</span>`:'—';
+  const filas = (d.tareas||[]).map((t,i)=>(t.riesgos||[]).map((r,j)=>`<tr>${j===0?`<td rowspan="${t.riesgos.length}">${i+1}</td><td rowspan="${t.riesgos.length}">${esc(t.texto)}</td>`:''}<td>${r.ambiental?'Ambiental':'Seguridad'}</td><td>${esc(r.peligro)}</td><td>${esc(r.categoria||'')}</td><td>${esc(r.s)}</td><td>${esc(r.p)}</td><td>${N(nivelJS(r.s,r.p,false))}</td><td>${esc([r.ctlElim&&'Elim./Sust.: '+r.ctlElim, r.ctlIng&&'Ing.: '+r.ctlIng, r.ctlAdm&&'Adm.: '+r.ctlAdm, r.epp&&'EPP: '+r.epp].filter(Boolean).join(' | '))}</td><td>${esc(r.ctlMayor||'')}</td><td>${esc(r.pRes||r.p)}</td><td>${N(nivelJS(r.s,r.pRes||r.p,true))}</td></tr>`).join('')).join('');
+  const tabla = `<table><thead><tr><th>#</th><th>Descripción de la tarea</th><th>Tipo</th><th>Peligro / riesgo o aspecto</th><th>Cat.</th><th>S</th><th>P</th><th>Nivel inicial</th><th>Medidas de control</th><th>Control mayor</th><th>P res.</th><th>Nivel residual</th></tr></thead><tbody>${filas}</tbody></table>`;
+  const aprob = a.estatus==='APROBADO' ? `Aprobado digitalmente por ${esc(a.revisadoPor)} el ${esc(String(a.fechaRevision||'').slice(0,10))}.` : `Estatus: ${esc((ESTATUS_AN[a.estatus]||['',a.estatus])[1])} (no aprobado).`;
+  const pie = `<p style="font-size:7.5pt;margin:4px 0">Folio ${esc(a.folio)} · Evaluado con el criterio único S × P (piso por severidad; los controles solo bajan P) · ${aprob}</p>`;
+  let html;
+  if(jsa){
+    const firmas = ['1. Firma del Responsable de proyectos validación JSA (KTMEX)','2. Firma de Gerente y/o Asistente de Área (Área responsable de la actividad)','3. Firma del Gerente de Área Producción (Shop Manager) — cuando se afecten los procesos productivos','4. Firma de Autorización de Medio Ambiente (KTMEX)','5. Responsable de Safety validación JSA (KTMEX)','6. Firma del Responsable de la compañía Contratista'];
+    const pers = (d.personal||[]); while(pers.length<6) pers.push({nombre:'',puesto:''});
+    html = `<div class="pf"><table class="hdr"><tr><td style="width:18%">KTMEX</td><td class="t">Análisis de Riesgo para Trabajos Especiales (JSA)</td><td style="width:24%;font-size:7.5pt">F-SGA-8.1-7 · Análisis de Riesgo para Trabajos Especiales</td></tr></table>
+      <table><tr><td style="width:12%"><b>Compañía</b></td><td>${esc(g.compania)}</td><td style="width:10%"><b>Periodo:</b></td><td style="width:22%">${esc(g.periodo||g.fechaTrabajo)}</td></tr><tr><td><b>Actividad:</b></td><td>${esc(g.actividad)} — ${esc(g.area)}</td><td><b>Horario:</b></td><td>${esc(g.horario)}</td></tr>${g.descripcion?`<tr><td><b>Descripción</b></td><td colspan="3">${esc(g.descripcion)}</td></tr>`:''}</table>
+      <div style="font-weight:700;margin:4px 0">Análisis de riesgos &amp; Aspectos Ambientales potenciales</div>${tabla}
+      <table><thead><tr><th colspan="3">LISTE EL NOMBRE DE SU PERSONAL (TRABAJADORES QUE ESTARÁN REALIZANDO LAS ACTIVIDADES PLANEADAS DESCRITAS)</th></tr><tr><th>NOMBRE DEL TRABAJADOR</th><th>PUESTO</th><th>FIRMA DEL TRABAJADOR</th></tr></thead><tbody>${pers.map(p=>`<tr><td style="height:20px">${esc(p.nombre)}</td><td>${esc(p.puesto)}</td><td></td></tr>`).join('')}</tbody></table>
+      <table><tr>${firmas.slice(0,3).map(f=>`<td class="firma" style="width:33%">${esc(f)}</td>`).join('')}</tr><tr>${firmas.slice(3).map(f=>`<td class="firma">${esc(f)}</td>`).join('')}</tr></table>
+      <p style="font-size:7.5pt">Nota: Todas las actividades que sean planeadas a través de este formato serán evaluadas por el departamento de Seguridad &amp; Medio Ambiente, previo a la ejecución de estas tareas.</p>${pie}</div>`;
+  } else {
+    html = `<div class="pf"><table class="hdr"><tr><td style="width:18%">KTMEX</td><td class="t">ANÁLISIS DE RIESGO PARA TRABAJOS RUTINARIOS (JRA)</td><td style="width:20%;font-size:8pt">KQMS-SA-FO-015 · Rev. 00</td></tr></table>
+      <table><tr><td><b>Fecha</b><br>${esc(g.fechaTrabajo)}</td><td><b>Consecutivo</b><br>${esc(a.folio)}</td><td colspan="2"><b>Evaluador, departamento</b><br>${esc((a.capturoNombre||g.capturoNombre||'')+', '+(g.departamento||''))}</td></tr><tr><td><b>Departamento</b><br>${esc(g.departamento)}</td><td><b>Líneas / Máquina</b><br>${esc(g.lineaMaquina)}</td><td><b>Proceso / Actividad</b><br>${esc([g.proceso,g.actividad].filter(Boolean).join(' / '))}</td><td><b>MOE</b><br><span class="chk">${g.moe==='SI'?'✓':''}</span>SI <span class="chk">${g.moe==='NO'?'✓':''}</span>NO ${esc(g.moeCodigo||'')}</td></tr></table>
+      ${tabla}
+      <table><tr>${['MGR / AM','ENG','SAFETY','AMBIENTAL'].map(f=>`<td class="firma" style="width:25%">${f}</td>`).join('')}</tr></table>
+      <p style="font-size:7.5pt">Nota: este formato se imprime con el criterio único propuesto (S × P). El formato controlado vigente usa S × F × P × C; Calidad debe emitir la revisión correspondiente.</p>${pie}</div>`;
+  }
+  imprimir(html);
+}
+
+/* ═══════════════ COMUNICADOS Y ALERTAS ═══════════════ */
+let EV = [], EV_TAB = 'COMUNICADO', EVF = null, PLANO_URL = null;
+const TIPOS_EV = ['Accidente','Incidente','Casi accidente','Daño a la propiedad'];
+const CLASIF = ['Lesión','Tratamiento médico','Primer auxilio','Daño a la propiedad','Casi accidente'];
+const STOP_SEV = ['Sin lesión','Primeros auxilios','Restricción','Incapacidad','Fatalidad'];
+const STOP_R = [['A','Atrapado / pellizcado / otro por equipo energizado'],['B','Contacto con / atrapado con objetos pesados'],['C','Contacto con vehículos'],['D','Caída de altura'],['E','Descarga eléctrica'],['F','Contacto con objetos calientes'],['α1','α · Cortadura'],['α2','α · Caída (al caminar)']];
+async function cargarEventos(){
+  $('eventos-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+  const r = await llamar({action:'eventosListar', token:tok()}); if(!r) return; EV = r.eventos;
+  await cargarPublicos(); renderEventos();
+}
+function tabEventos(t){ EV_TAB=t; renderEventos(); }
+function renderEventos(){
+  const com = EV_TAB==='COMUNICADO', lista = EV.filter(e=>e.clase===EV_TAB);
+  const acc = esGestor() ? `<button class="btn-p btn-sm" type="button" onclick="abrirEvento(null,'${EV_TAB}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(com?L('Nuevo comunicado','New communication'):L('Nueva alerta','New alert'))}</button>` : '';
+  $('eventos-body').innerHTML = cabecera(L('Comunicados y alertas','Communications and alerts'), L('Comunicados (KQMS-SA-FO-014) por incidentes, accidentes, casi accidentes y daños; alertas (KQMS-SA-FO-005) por actos inseguros.','Communications (KQMS-SA-FO-014) for incidents, accidents, near misses and damage; alerts (KQMS-SA-FO-005) for unsafe acts.'), acc)
+    + pestanas([['COMUNICADO',L('Comunicados','Communications'),'fa-bullhorn'],['ALERTA',L('Alertas','Alerts'),'fa-triangle-exclamation']], EV_TAB, 'tabEventos')
+    + `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Fecha','Date'))}</th>${com?`<th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Clasificación','Classification'))}</th>`:`<th>${esc(L('Problema detectado','Detected problem'))}</th>`}<th>${esc(L('Área','Area'))}</th><th>${esc(L('Turno','Shift'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${lista.length?lista.map(e=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(e.folio)}</td><td style="white-space:nowrap">${esc(e.fecha)} ${esc(e.hora||'')}</td>${com?`<td><strong>${esc(e.tipo)}</strong></td><td>${esc(e.clasificacion||'—')}</td>`:`<td class="no-i18n">${esc((e.datos||{}).problema||'—')}</td>`}<td class="no-i18n">${esc(e.area)}</td><td>${esc(e.turno||'—')}</td><td>${esc(e.estatus||'')}</td><td style="white-space:nowrap"><button class="btn-g btn-sm" type="button" onclick="imprimirEvento('${e.id}')" title="${esc(L('Imprimir formato','Print form'))}" aria-label="${esc(L('Imprimir formato','Print form'))}"><i class="fas fa-print"></i></button>${esGestor()?` <button class="btn-g btn-sm" type="button" onclick="abrirEvento('${e.id}')" title="${esc(L('Editar','Edit'))}" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`:''}</td></tr>`).join(''):vacio(8, L('Todavía no hay registros.','No records yet.'))}</tbody></table></div></section>`;
+}
+function abrirEvento(id, clase){
+  const e = id ? EV.find(x=>x.id===id) : {clase, fecha:hoy(), datos:{acciones:[]}, privado:{}, fotos:[], estatus:'Abierto'};
+  const com = e.clase==='COMUNICADO', d = e.datos||{}, pv = e.privado||{};
+  EVF = {id:id||'', clase:e.clase, existentes:(e.fotos||[]).slice(), nuevas:[], acciones:(d.acciones||[]).map(a=>Object.assign({},a)), planoX:e.planoX, planoY:e.planoY};
+  const cuerpo = com ? `
+    <div class="grid-4">${fld(L('Tipo de evento','Event type'), sel('ev-tipo',TIPOS_EV,e.tipo,'—'))}${fld(L('Clasificación','Classification'), sel('ev-clasificacion',CLASIF,e.clasificacion,'—'))}${fld(L('Fecha del evento','Event date'), inp('ev-fecha',e.fecha,'type="date"'))}${fld(L('Hora','Time'), inp('ev-hora',e.hora,'type="time"'))}</div>
+    <div class="grid-4">${fld(L('Turno','Shift'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}${fld(L('Área','Area'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Departamento','Department'), sel('ev-departamento',CATS.departamento||[],e.departamento,'—'))}${fld(L('Ubicación','Location'), inp('ev-ubicacion',d.ubicacion))}</div>
+    <div class="grid-4">${fld(L('Fecha de notificación a Safety','Date notified to Safety'), inp('ev-fechaNotificacion',d.fechaNotificacion,'type="date"'))}${fld(L('Hora de notificación','Notification time'), inp('ev-horaNotificacion',d.horaNotificacion,'type="time"'))}${fld(L('Antigüedad en planta','Plant seniority'), inp('ev-antiguedadPlanta',d.antiguedadPlanta))}${fld(L('Antigüedad en estación / operación','Station seniority'), inp('ev-antiguedadEstacion',d.antiguedadEstacion))}</div>
+    ${fld(L('Descripción general','General description'), ta('ev-descripcion',d.descripcion))}
+    <div class="grid-2">${fld(L('¿Qué ocurrió?','What happened?'), ta('ev-queOcurrio',d.queOcurrio))}${fld(L('¿Cómo ocurrió?','How did it happen?'), ta('ev-comoOcurrio',d.comoOcurrio))}</div>
+    <div class="grid-4">${fld(L('STOP 6 · severidad','STOP 6 · severity'), sel('ev-stopSeveridad',STOP_SEV,e.stopSeveridad,'—'))}${fld(L('STOP 6 · riesgo','STOP 6 · risk'), sel('ev-stopRiesgo',STOP_R.map(x=>({v:x[0],t:x[0].replace(/\d/,'')+' – '+x[1].replace('α · ','')})),e.stopRiesgo,'—'))}${fld(L('Días perdidos','Lost days'), inp('ev-diasPerdidos',e.diasPerdidos||0,'type="number" min="0"'))}${fld(L('Costo estimado del daño (MXN)','Estimated damage cost (MXN)'), inp('ev-costo',e.costo||0,'type="number" min="0"'))}</div>
+    <div class="grid-3">${fld(L('Persona involucrada','Person involved'), sel('ev-tipoPersona',[{v:'Empleado',t:L('Empleado','Employee')},{v:'Contratista',t:L('Contratista','Contractor')},{v:'Visitante',t:L('Visitante','Visitor')}],e.tipoPersona,'—'))}${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}</div>
+    <div class="box" style="border-color:#FCD34D;background:#FFFBEB"><div class="sec-title">${esc(L('Datos confidenciales (nunca se imprimen)','Confidential data (never printed)'))}</div><div class="grid-4">${fld(L('Nombre del lesionado','Injured person'), inp('ev-p-nombre',pv.nombre))}${fld(L('Número de empleado','Employee number'), inp('ev-p-numeroEmpleado',pv.numeroEmpleado))}${fld(L('Tipo de lesión','Injury type'), inp('ev-p-lesion',pv.lesion))}${fld(L('Parte del cuerpo','Body part'), inp('ev-p-parteCuerpo',pv.parteCuerpo))}</div></div>`
+  : `<div class="grid-4">${fld(L('Fecha','Date'), inp('ev-fecha',e.fecha,'type="date"'))}${fld(L('Mes','Month'), inp('ev-mes',d.mes||(e.fecha||'').slice(0,7),'type="month"'))}${fld(L('Área','Area'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Departamento','Department'), sel('ev-departamento',CATS.departamento||[],e.departamento,'—'))}</div>
+    <div class="grid-2">${fld(L('Turno','Shift'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}</div>
+    ${fld(L('Problema detectado (acto inseguro)','Detected problem (unsafe act)'), ta('ev-problema',d.problema))}${fld(L('No cumplimiento','Non-compliance'), ta('ev-noCumplimiento',d.noCumplimiento))}`;
+  modal(1, (id?e.folio+' · ':'') + (com?L('Comunicado de seguridad','Safety communication'):L('Alerta de seguridad','Safety alert')), cuerpo + `
+    <div class="sec-title">${esc(com?L('Contramedidas inmediatas','Immediate countermeasures'):L('Acciones inmediatas','Immediate actions'))}</div><div id="ev-acc"></div>
+    <div class="sec-title">${esc(com?L('Evidencia / simulación (máx. 4 fotos)','Evidence / simulation (max. 4 photos)'):L('Fotografía (máx. 4)','Picture (max. 4)'))}</div>
+    <p class="help">${esc(L('Antes de guardar cada foto podrás tapar las caras arrastrando un recuadro sobre ellas. La foto original no se guarda.','Before saving each photo you can cover faces by dragging a box over them. The original photo is not stored.'))}</p>
+    <div class="thumbs" id="ev-thumbs"></div><input type="file" id="ev-foto" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="fotoEvento(this)">
+    <div class="sec-title">${esc(L('Ubicación en el plano (opcional)','Location on the plant layout (optional)'))}</div><div id="ev-plano"></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" id="btn-ev" onclick="guardarEvento()">${esc(L('Guardar','Save'))}</button>`, 'xl');
+  pintarAcciones(); pintarThumbs(); pintarPlanoEvento();
+}
+function pintarAcciones(){
+  $('ev-acc').innerHTML = EVF.acciones.map((a,i)=>`<div class="grid-4" style="margin-bottom:6px">${inp('ac-a-'+i,a.accion,`placeholder="${esc(L('Acción','Action'))}" oninput="EVF.acciones[${i}].accion=this.value"`)}${inp('ac-r-'+i,a.responsable,`placeholder="${esc(L('Responsable','Owner'))}" oninput="EVF.acciones[${i}].responsable=this.value"`)}<div style="display:flex;gap:6px">${inp('ac-c-'+i,a.cierre,`type="date" title="${esc(L('Fecha de cierre','Close date'))}" oninput="EVF.acciones[${i}].cierre=this.value"`)}</div><div style="display:flex;gap:6px">${sel('ac-e-'+i,['Abierta','En proceso','Cerrada'],a.estatus||'Abierta','',`onchange="EVF.acciones[${i}].estatus=this.value"`)}<button class="btn-g btn-sm" type="button" onclick="EVF.acciones.splice(${i},1);pintarAcciones()" aria-label="${esc(L('Quitar','Remove'))}"><i class="fas fa-xmark"></i></button></div></div>`).join('')
+    + `<button class="btn-g btn-sm" type="button" onclick="EVF.acciones.push({accion:'',responsable:'',cierre:'',estatus:'Abierta'});pintarAcciones()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar acción','Add action'))}</button>`;
+}
+async function pintarThumbs(){
+  const total = EVF.existentes.length + EVF.nuevas.length;
+  $('ev-thumbs').innerHTML = EVF.existentes.map((id,i)=>`<div class="thumb" id="th-x-${i}"><button type="button" onclick="EVF.existentes.splice(${i},1);pintarThumbs()">✕</button></div>`).join('')
+    + EVF.nuevas.map((u,i)=>`<div class="thumb"><img src="${u}" alt=""><button type="button" onclick="EVF.nuevas.splice(${i},1);pintarThumbs()">✕</button></div>`).join('')
+    + (total<4?`<button class="thumb" type="button" style="display:flex;align-items:center;justify-content:center;cursor:pointer;color:#475569" onclick="$('ev-foto').click()"><i class="fas fa-camera"></i>&nbsp;${esc(L('Agregar','Add'))}</button>`:'');
+  EVF.existentes.forEach(async (id,i)=>{ const u = await archivo(id); const el=$('th-x-'+i); if(u && el) el.insertAdjacentHTML('afterbegin', `<img src="${u}" alt="">`); });
+}
+async function planoUrl(){
+  const id = BOOT && BOOT.plano; if(!id) return null;
+  if(!PLANO_URL) PLANO_URL = await archivo(id);
+  return PLANO_URL;
+}
+async function pintarPlanoEvento(){
+  const u = await planoUrl(), el = $('ev-plano'); if(!el) return;
+  if(!u){ el.innerHTML = `<p class="help">${esc(L('Todavía no hay plano. Safety puede subirlo en Indicadores.','No plant layout yet. Safety can upload it in Indicators.'))}</p>`; return; }
+  el.innerHTML = `<p class="help">${esc(L('Toca el plano donde ocurrió.','Tap the layout where it happened.'))}</p><div class="plano" id="ev-plano-img" style="cursor:crosshair"><img src="${u}" alt="Plano">${EVF.planoX!==''&&EVF.planoX!=null?`<span class="dot" style="left:${EVF.planoX}%;top:${EVF.planoY}%;background:#DC2626"></span>`:''}</div>`;
+  $('ev-plano-img').onclick = ev => { const r = ev.currentTarget.getBoundingClientRect(); EVF.planoX = Math.round((ev.clientX-r.left)/r.width*1000)/10; EVF.planoY = Math.round((ev.clientY-r.top)/r.height*1000)/10; pintarPlanoEvento(); };
+}
+async function fotoEvento(input){
+  const f = input.files && input.files[0]; input.value=''; if(!f) return;
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type)){ toast(L('La imagen debe ser JPG, PNG o WEBP.','The image must be JPG, PNG or WEBP.'),'err'); return; }
+  editorCaras(await reducirImagen(await leerArchivo(f), 1400, .9));
+}
+/* Editor para tapar caras: el recuadro se pixela de forma irreversible en la copia que se guarda. */
+function editorCaras(dataUrl){
+  modal(2, L('Tapar caras','Cover faces'), `<p class="help">${esc(L('Arrastra un recuadro sobre cada cara o dato que no deba verse. Puedes deshacer el último.','Drag a box over each face or detail that must not be visible. You can undo the last one.'))}</p><canvas id="face-canvas"></canvas>`,
+    `<button class="btn-g" type="button" onclick="carasDeshacer()">${esc(L('Deshacer','Undo'))}</button><button class="btn-g" type="button" onclick="closeModal('m-gen2')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" onclick="carasUsar()">${esc(L('Usar esta foto','Use this photo'))}</button>`, 'xl');
+  const img = new Image(); img.onload = () => {
+    const c = $('face-canvas'), x = c.getContext('2d'); c.width = img.width; c.height = img.height; x.drawImage(img,0,0);
+    const hist = []; let ini = null, snap = null; window.__CARAS = {c, x, hist};
+    const pos = ev => { const r=c.getBoundingClientRect(); return {x:(ev.clientX-r.left)*c.width/r.width, y:(ev.clientY-r.top)*c.height/r.height}; };
+    c.onpointerdown = ev => { ini = pos(ev); snap = x.getImageData(0,0,c.width,c.height); c.setPointerCapture(ev.pointerId); };
+    c.onpointermove = ev => { if(!ini) return; const p=pos(ev); x.putImageData(snap,0,0); x.strokeStyle='#DC2626'; x.lineWidth=Math.max(3,c.width/300); x.strokeRect(ini.x,ini.y,p.x-ini.x,p.y-ini.y); };
+    c.onpointerup = ev => { if(!ini) return; const p=pos(ev); x.putImageData(snap,0,0);
+      const rx=Math.max(0,Math.min(ini.x,p.x)), ry=Math.max(0,Math.min(ini.y,p.y)), rw=Math.min(c.width-rx,Math.abs(p.x-ini.x)), rh=Math.min(c.height-ry,Math.abs(p.y-ini.y)); ini=null;
+      if(rw<6||rh<6) return; hist.push(snap); pixelar(x, rx, ry, rw, rh, Math.max(10, Math.round(Math.max(rw,rh)/8))); };
+  }; img.src = dataUrl;
+}
+function pixelar(x, rx, ry, rw, rh, b){
+  const d = x.getImageData(rx,ry,rw,rh), w=d.width, h=d.height, px=d.data;
+  for(let yy=0; yy<h; yy+=b) for(let xx=0; xx<w; xx+=b){
+    let r=0,g=0,bl=0,n=0; for(let j=yy;j<Math.min(yy+b,h);j++) for(let i=xx;i<Math.min(xx+b,w);i++){ const k=(j*w+i)*4; r+=px[k]; g+=px[k+1]; bl+=px[k+2]; n++; }
+    r/=n; g/=n; bl/=n; for(let j=yy;j<Math.min(yy+b,h);j++) for(let i=xx;i<Math.min(xx+b,w);i++){ const k=(j*w+i)*4; px[k]=r; px[k+1]=g; px[k+2]=bl; }
+  }
+  x.putImageData(d, rx, ry);
+}
+function carasDeshacer(){ const s=window.__CARAS; if(s && s.hist.length) s.x.putImageData(s.hist.pop(),0,0); }
+async function carasUsar(){
+  const s = window.__CARAS; let u = s.c.toDataURL('image/jpeg', .82);
+  if(u.length > 1800000) u = await reducirImagen(u, 1000, .75);
+  EVF.nuevas.push(u); closeModal('m-gen2'); pintarThumbs();
+}
+async function guardarEvento(){
+  const com = EVF.clase==='COMUNICADO', g = k => val('ev-'+k);
+  const evento = {tipo:g('tipo'), clasificacion:g('clasificacion'), fecha:g('fecha'), hora:g('hora'), turno:g('turno'), area:g('area'), departamento:g('departamento'), stopRiesgo:g('stopRiesgo'), stopSeveridad:g('stopSeveridad'),
+    diasPerdidos:g('diasPerdidos'), costo:g('costo'), tipoPersona:g('tipoPersona'), estatus:g('estatus'), planoX:EVF.planoX??'', planoY:EVF.planoY??'',
+    datos:{fechaNotificacion:g('fechaNotificacion'), horaNotificacion:g('horaNotificacion'), ubicacion:g('ubicacion'), antiguedadPlanta:g('antiguedadPlanta'), antiguedadEstacion:g('antiguedadEstacion'), descripcion:g('descripcion'), queOcurrio:g('queOcurrio'), comoOcurrio:g('comoOcurrio'), problema:g('problema'), noCumplimiento:g('noCumplimiento'), mes:g('mes'), acciones:EVF.acciones},
+    privado: com ? {nombre:g('p-nombre'), numeroEmpleado:g('p-numeroEmpleado'), lesion:g('p-lesion'), parteCuerpo:g('p-parteCuerpo')} : {},
+    fotosExistentes:EVF.existentes, fotosNuevas:EVF.nuevas};
+  $('btn-ev').disabled = true;
+  try{ const r = await llamar({action:'eventoGuardar', token:tok(), id:EVF.id, clase:EVF.clase, evento}, L('Guardado.','Saved.'));
+    if(r){ closeModal('m-gen'); await cargarEventos(); if(!EVF.id) imprimirEvento(r.id); } }
+  finally{ const b=$('btn-ev'); if(b) b.disabled=false; }
+}
+async function imprimirEvento(id){
+  const e = EV.find(x=>x.id===id); if(!e) return;
+  const d = e.datos||{}, fotos = (await Promise.all((e.fotos||[]).map(archivo))).filter(Boolean);
+  const ck = on => `<span class="chk">${on?'✓':''}</span>`;
+  const acc = (d.acciones||[]);
+  let html;
+  if(e.clase==='COMUNICADO'){
+    html = `<div class="pf"><table class="hdr"><tr><td style="width:18%">KTMEX</td><td class="t">COMUNICADO DE SEGURIDAD / SAFETY COMMUNICATION</td><td style="width:20%;font-size:8pt">KQMS-SA-FO-014 · Rev. 03</td></tr></table>
+      <table><tr><th colspan="6">CLASIFICACIÓN / CLASSIFICATION</th></tr><tr>${CLASIF.map(c=>`<td>${ck(e.clasificacion===c)}${esc(c)}</td>`).join('')}<td><b>TURNO / SHIFT:</b> ${esc(e.turno)}</td></tr></table>
+      <table><tr><th colspan="2">INFORMACIÓN GENERAL / GENERAL INFORMATION</th></tr>
+        <tr><td style="width:38%">INCIDENTE # / INCIDENT #</td><td>${esc(e.folio)} · ${esc(e.tipo)}</td></tr>
+        <tr><td>FECHA Y HORA DEL EVENTO / DATE AND TIME OF THE EVENT</td><td>${esc(e.fecha)} ${esc(e.hora)}</td></tr>
+        <tr><td>FECHA Y HORA DE NOTIFICACIÓN A SEGURIDAD / DATE AND TIME NOTIFY TO SAFETY</td><td>${esc(d.fechaNotificacion)} ${esc(d.horaNotificacion)}</td></tr>
+        <tr><td>UBICACIÓN / LOCATION</td><td>${esc([e.area,d.ubicacion].filter(Boolean).join(' · '))}</td></tr>
+        <tr><td>ANTIGÜEDAD EN PLANTA / COMPANY SENIORITY</td><td>${esc(d.antiguedadPlanta)}</td></tr>
+        <tr><td>ANTIGÜEDAD EN ESTACIÓN/OPERACIÓN / STATION SENIORITY</td><td>${esc(d.antiguedadEstacion)}</td></tr></table>
+      <table><tr><th>DESCRIPCIÓN GENERAL / GENERAL DESCRIPTION</th></tr><tr><td>${esc(d.descripcion)}</td></tr><tr><th>¿QUÉ OCURRIÓ? / WHAT HAPPENED?</th></tr><tr><td>${esc(d.queOcurrio)}</td></tr><tr><th>¿CÓMO OCURRIÓ? / HOW DID IT HAPPEN?</th></tr><tr><td>${esc(d.comoOcurrio)}</td></tr></table>
+      <table><tr><th colspan="5">CLASIFICACIÓN STOP 6 / STOP 6 CLASSIFICATION</th></tr><tr>${STOP_SEV.map(s=>`<td>${ck(e.stopSeveridad===s)}${esc(s)}</td>`).join('')}</tr></table>
+      <table><tr><th colspan="2">STOP 6 RISK</th></tr>${STOP_R.map(([k,t])=>`<tr><td style="width:8%">${ck(e.stopRiesgo===k)}${esc(k.replace(/\d/,''))}</td><td>${esc(t.replace('α · ',''))}</td></tr>`).join('')}</table>
+      <table><tr><th>EVIDENCIA - SIMULACIÓN / EVIDENCE - SIMULATION</th></tr><tr><td><div class="fotos">${fotos.map(u=>`<img src="${u}" alt="">`).join('')||'&nbsp;'}</div></td></tr></table>
+      <table><tr><th style="width:70%">CONTRAMEDIDAS INMEDIATAS / IMMEDIATE COUNTERMEASURE</th><th>RESPONSABLE / RESPONSIBLE</th></tr>${(acc.length?acc:[{},{}]).map(a=>`<tr><td style="height:18px">${esc(a.accion||'')}</td><td>${esc(a.responsable||'')}</td></tr>`).join('')}</table></div>`;
+  } else {
+    html = `<div class="pf"><table class="hdr"><tr><td style="width:18%">KTMEX</td><td class="t">ALERTA DE SEGURIDAD / SAFETY ALERT</td><td style="width:20%;font-size:8pt">KQMS-SA-FO-005 · Rev. 03</td></tr></table>
+      <table><tr><th>Mes / Month</th><th>Departamento / Department</th><th>Problema detectado / Detected Problem</th></tr><tr><td>${esc(d.mes||String(e.fecha).slice(0,7))}</td><td>${esc([e.departamento,e.area].filter(Boolean).join(' · '))}</td><td>${esc(d.problema)}</td></tr></table>
+      <table><tr><th>Fotografía / Picture</th></tr><tr><td><div class="fotos">${fotos.map(u=>`<img src="${u}" alt="">`).join('')||'&nbsp;'}</div></td></tr></table>
+      <table><tr><th>No cumplimiento / Non Compliance</th></tr><tr><td style="height:40px">${esc(d.noCumplimiento)}</td></tr></table>
+      <table><tr><th colspan="4">Acciones Inmediatas / Immediate Actions</th></tr><tr><th>Descripción de las acciones inmediatas</th><th>Responsable</th><th>Fecha inicio / cierre</th><th>Estatus</th></tr>${(acc.length?acc:[{},{}]).map(a=>`<tr><td style="height:18px">${esc(a.accion||'')}</td><td>${esc(a.responsable||'')}</td><td>${esc([e.fecha&&a.accion?e.fecha:'',a.cierre].filter(Boolean).join(' / '))}</td><td>${esc(a.estatus||'')}</td></tr>`).join('')}</table>
+      <p style="font-size:7.5pt">Folio ${esc(e.folio)}</p></div>`;
+  }
+  imprimir(html);
+}
+
+/* ═══════════════ INDICADORES ═══════════════ */
+let KP = null, KP_ANIO = String(new Date().getFullYear()), CHARTS = [];
+async function cargarKPI(){
+  $('kpi-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+  const r = await llamar({action:'kpiDatos', token:tok()}); if(!r) return; KP = r;
+  if(BOOT) BOOT.plano = r.plano;
+  renderKPI();
+}
+function renderKPI(){
+  CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); CHARTS = [];
+  const anios = [...new Set(KP.eventos.map(e=>String(e.fecha).slice(0,4)).concat([String(new Date().getFullYear())]))].filter(a=>/^\d{4}$/.test(a)).sort().reverse();
+  const ev = KP.eventos.filter(e=>String(e.fecha).startsWith(KP_ANIO)), com = ev.filter(e=>e.clase==='COMUNICADO'), ale = ev.filter(e=>e.clase==='ALERTA');
+  const cuenta = t => com.filter(e=>e.tipo===t).length;
+  const acc = KP.eventos.filter(e=>e.clase==='COMUNICADO'&&e.tipo==='Accidente').map(e=>e.fecha).sort().pop();
+  const diasSin = acc ? Math.max(0, Math.floor((Date.now()-new Date(acc+'T00:00:00'))/86400000)) : null;
+  const horas = KP.horas.filter(h=>String(h.mes).startsWith(KP_ANIO)).reduce((s,h)=>s+Number(h.horas||0),0);
+  const dias = com.reduce((s,e)=>s+Number(e.diasPerdidos||0),0), base = KP.base;
+  const TF = horas ? (cuenta('Accidente')*base/horas).toFixed(2) : '—', TG = horas ? (dias*base/horas).toFixed(2) : '—';
+  const k = (v,l,c) => `<div class="card kpi"><div class="v" style="${c?'color:'+c:''}">${esc(v)}</div><div class="l">${esc(l)}</div></div>`;
+  $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Se calculan solos a partir de los comunicados, alertas, análisis y la matriz.','Calculated automatically from communications, alerts, analyses and the matrix.'), sel('kp-anio',anios,KP_ANIO,undefined,'onchange="KP_ANIO=this.value;renderKPI()" style="width:auto"'))
+    + `<div class="grid-4" style="margin-bottom:12px">${k(diasSin===null?'—':diasSin, L('Días sin accidentes','Days without accidents'),'#15803D')}${k(cuenta('Accidente'),L('Accidentes','Accidents'),'#B91C1C')}${k(cuenta('Incidente'),L('Incidentes','Incidents'))}${k(cuenta('Casi accidente'),L('Casi accidentes','Near misses'))}${k(cuenta('Daño a la propiedad'),L('Daños a la propiedad','Property damage'))}${k(ale.length,L('Alertas de actos inseguros','Unsafe-act alerts'),'#B45309')}${k(dias,L('Días perdidos','Lost days'))}${k(TF+' / '+TG, L('Tasa de frecuencia / gravedad','Frequency / severity rate'))}</div>
+    <p class="help" style="margin:-4px 0 14px">${esc(`Tasa de frecuencia = accidentes × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Tasa de gravedad = días perdidos × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Horas-hombre del año: ${horas.toLocaleString('es-MX')}.`)}</p>
+    <div class="grid-2"><section class="card chart-card"><h3>${esc(L('Eventos por mes','Events by month'))}</h3><canvas id="ch-mes"></canvas></section><section class="card chart-card"><h3>${esc(L('Pirámide de eventos','Event pyramid'))}</h3><canvas id="ch-pir"></canvas></section>
+    <section class="card chart-card"><h3>${esc(L('Eventos por área','Events by area'))}</h3><canvas id="ch-area"></canvas></section><section class="card chart-card"><h3>${esc(L('Clasificación STOP 6','STOP 6 classification'))}</h3><canvas id="ch-stop"></canvas></section>
+    <section class="card chart-card"><h3>${esc(L('Matriz: riesgos por nivel vigente','Matrix: risks by current level'))}</h3><canvas id="ch-mz"></canvas></section><section class="card chart-card"><h3>${esc(L('JSA y JRA por estatus','JSA and JRA by status'))}</h3><canvas id="ch-an"></canvas><p class="help" id="kp-an"></p></section></div>
+    <section class="card" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 10px;font-size:.9rem;color:var(--navy)">${esc(L('Plano: dónde ocurren los eventos','Layout: where events happen'))}</h3><div id="kp-plano"></div></section>
+    ${esGestor()?`<section class="card" style="padding:16px;margin-top:14px"><div class="sec-title">${esc(L('Horas-hombre por mes','Man-hours per month'))} · ${esc(KP_ANIO)}</div><div class="grid-4" style="margin-top:8px">${Array.from({length:12},(_,i)=>{const m=KP_ANIO+'-'+String(i+1).padStart(2,'0'), h=KP.horas.find(x=>String(x.mes)===m); return fld(m, inp('hh-'+m,h?h.horas:'','type="number" min="0"'));}).join('')}</div>
+      <div class="toolbar" style="margin-top:10px">${sel('hh-base',[{v:200000,t:L('Base 200,000 horas','Base 200,000 hours')},{v:1000000,t:L('Base 1,000,000 horas','Base 1,000,000 hours')}],base,undefined,'style="width:auto"')}<button class="btn-p btn-sm" type="button" onclick="guardarHoras()">${esc(L('Guardar horas-hombre','Save man-hours'))}</button>
+      <label class="btn-g btn-sm" style="cursor:pointer"><i class="fas fa-map" style="margin-right:6px"></i>${esc(L('Subir plano de la planta','Upload plant layout'))}<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="subirPlano(this)"></label></div></section>`:''}`;
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const porMes = t => meses.map((_,i)=>ev.filter(e=>(t==='ALERTA'?e.clase==='ALERTA':e.tipo===t)&&Number(String(e.fecha).slice(5,7))===i+1).length);
+  const colores = {Accidente:'#DC2626',Incidente:'#F59E0B','Casi accidente':'#3B82F6','Daño a la propiedad':'#8B5CF6',ALERTA:'#10B981'};
+  const grafica = (id, cfg) => { if(typeof Chart==='undefined'){ const c=$(id); if(c) c.outerHTML=`<p class="help">${esc(L('No se pudo cargar la librería de gráficas (revisa la conexión).','The chart library could not be loaded (check the connection).'))}</p>`; return; } CHARTS.push(new Chart($(id), cfg)); };
+  const opt = {responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}}};
+  grafica('ch-mes', {type:'bar', data:{labels:meses, datasets:TIPOS_EV.concat(['ALERTA']).map(t=>({label:t==='ALERTA'?'Alerta':t, data:porMes(t), backgroundColor:colores[t]}))}, options:Object.assign({}, opt, {scales:{x:{stacked:true}, y:{stacked:true, beginAtZero:true, ticks:{precision:0}}}})});
+  grafica('ch-pir', {type:'bar', data:{labels:['Accidente','Daño a la propiedad','Incidente','Casi accidente','Alertas (actos inseguros)'], datasets:[{label:KP_ANIO, data:[cuenta('Accidente'),cuenta('Daño a la propiedad'),cuenta('Incidente'),cuenta('Casi accidente'),ale.length], backgroundColor:['#DC2626','#8B5CF6','#F59E0B','#3B82F6','#10B981']}]}, options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
+  const areasEv = [...new Set(ev.map(e=>e.area).filter(Boolean))];
+  grafica('ch-area', {type:'bar', data:{labels:areasEv, datasets:[{label:L('Comunicados','Communications'), data:areasEv.map(a=>com.filter(e=>e.area===a).length), backgroundColor:'#2563EB'},{label:L('Alertas','Alerts'), data:areasEv.map(a=>ale.filter(e=>e.area===a).length), backgroundColor:'#10B981'}]}, options:opt});
+  grafica('ch-stop', {type:'bar', data:{labels:STOP_R.map(x=>x[0].replace(/\d/,'')+' '+x[1].replace('α · ','').slice(0,22)), datasets:[{label:KP_ANIO, data:STOP_R.map(x=>com.filter(e=>e.stopRiesgo===x[0]).length), backgroundColor:'#0F2A4A'}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
+  const nvs = ['INTOLERABLE','IMPORTANTE','MODERADO','TOLERABLE','SIN EVALUAR'];
+  grafica('ch-mz', {type:'bar', data:{labels:nvs, datasets:[{label:L('Riesgos','Risks'), data:nvs.map(n=>KP.riesgos.filter(r=>r.vigente===n).length), backgroundColor:['#DC2626','#F97316','#EAB308','#16A34A','#94A3B8']}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
+  const anA = KP.analisis.filter(a=>String(a.creado).startsWith(KP_ANIO)), est = Object.keys(ESTATUS_AN);
+  grafica('ch-an', {type:'bar', data:{labels:est.map(s=>ESTATUS_AN[s][1]), datasets:['JSA','JRA'].map((t,i)=>({label:t, data:est.map(s=>anA.filter(a=>a.tipo===t&&a.estatus===s).length), backgroundColor:i?'#16A34A':'#2563EB'}))}, options:opt});
+  const tiempos = anA.filter(a=>a.estatus==='APROBADO'&&a.fechaRevision).map(a=>(new Date(a.fechaRevision)-new Date(a.creado))/3600000);
+  $('kp-an').textContent = tiempos.length ? `Tiempo promedio de aprobación: ${(tiempos.reduce((s,x)=>s+x,0)/tiempos.length).toFixed(1)} horas (${tiempos.length} aprobados).` : '';
+  pintarPlanoKPI(ev, colores);
+}
+async function pintarPlanoKPI(ev, colores){
+  const u = await planoUrl(), el = $('kp-plano'); if(!el) return;
+  if(!u){ el.innerHTML = `<p class="help">${esc(esGestor()?L('Sube el plano de la planta con el botón de abajo para ver dónde ocurren los eventos.','Upload the plant layout with the button below to see where events happen.'):L('Safety todavía no ha subido el plano de la planta.','Safety has not uploaded the plant layout yet.'))}</p>`; return; }
+  const pts = ev.filter(e=>e.planoX!==''&&e.planoX!=null);
+  el.innerHTML = `<div class="plano"><img src="${u}" alt="Plano">${pts.map(e=>`<span class="dot" title="${esc(e.folio+' · '+(e.tipo||'Alerta')+' · '+e.area)}" style="left:${e.planoX}%;top:${e.planoY}%;background:${colores[e.clase==='ALERTA'?'ALERTA':e.tipo]||'#64748B'}"></span>`).join('')}</div>
+    <div class="toolbar" style="margin-top:8px">${Object.entries(colores).map(([t,c])=>`<span class="help" style="display:flex;align-items:center;gap:5px"><span class="dot" style="position:static;transform:none;background:${c}"></span>${esc(t==='ALERTA'?L('Alerta','Alert'):t)}</span>`).join('')}<span class="help">· ${pts.length} de ${ev.length} eventos con ubicación</span></div>`;
+}
+async function guardarHoras(){
+  const meses = Array.from({length:12},(_,i)=>KP_ANIO+'-'+String(i+1).padStart(2,'0')).filter(m=>val('hh-'+m)!=='');
+  for(const m of meses){ const r = await llamar({action:'horasGuardar', token:tok(), mes:m, horas:val('hh-'+m), base:val('hh-base')}); if(!r) return; }
+  toast(L('Horas-hombre guardadas.','Man-hours saved.')); cargarKPI();
+}
+async function subirPlano(input){
+  const f = input.files && input.files[0]; input.value=''; if(!f) return;
+  const img = await reducirImagen(await leerArchivo(f), 2200, .85);
+  const r = await llamar({action:'planoGuardar', token:tok(), imagen:img}, L('Plano actualizado.','Layout updated.'));
+  if(r){ PLANO_URL = img; if(BOOT) BOOT.plano = r.id; ARCH_CACHE[r.id] = img; cargarKPI(); }
+}
+
+/* ═══════════════ CONTRATISTAS Y DC-3 ═══════════════ */
+let CT = null, CT_TAB = 'empresas';
+async function cargarContratistas(){
+  $('contratistas-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+  const r = await llamar({action:'contratistasListar', token:tok()}); if(!r) return; CT = r; renderContratistas();
+}
+function tabContr(t){ CT_TAB=t; renderContratistas(); }
+const empNombre = id => (CT.empresas.find(e=>e.id===id)||{}).nombre || '—';
+const trabajador = id => CT.trabajadores.find(t=>t.id===id) || {};
+function vigenciaDC3(x){
+  const d = new Date(x.vigencia+'T00:00:00'), dias = Math.floor((d-Date.now())/86400000);
+  if(isNaN(dias)) return ['b-off',L('Sin fecha','No date'),0];
+  if(dias<0) return ['b-red',L('Vencida','Expired'),-1]; if(dias<=30) return ['b-pend',`Vence en ${dias} días`,1]; return ['b-done',L('Vigente','Valid'),2];
+}
+function renderContratistas(){
+  const tabs = [['empresas',L('Empresas','Companies'),'fa-building'],['trabajadores',L('Trabajadores','Workers'),'fa-users'],['dc3','DC-3','fa-file-certificate'],['aptitud',L('Aptitud por permiso','Fitness by permit'),'fa-check-double']];
+  const btn = {empresas:['Empresas',L('Nueva empresa','New company')], trabajadores:['Trabajadores',L('Nuevo trabajador','New worker')], dc3:['DC3',L('Nueva DC-3','New DC-3')]}[CT_TAB];
+  const porVencer = CT.dc3.filter(x=>vigenciaDC3(x)[2]<=1).length;
+  let h = cabecera(L('Contratistas y DC-3','Contractors and DC-3'), L('Empresas, trabajadores y constancias DC-3 con vigencia, verificación de Safety y aptitud para cada permiso de trabajo.','Companies, workers and DC-3 certificates with expiry, Safety verification and fitness for each work permit.'), btn?`<button class="btn-p btn-sm" type="button" onclick="abrirContr('${btn[0]}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(btn[1])}</button>`:'')
+    + (porVencer?`<div class="box" style="border-color:#FCD34D;background:#FFFBEB;margin-bottom:12px"><strong style="font-size:.86rem">${esc(`${porVencer} constancias DC-3 vencidas o por vencer en 30 días.`)}</strong></div>`:'') + pestanas(tabs, CT_TAB, 'tabContr');
+  const tabla = (cab, filas, n) => `<section class="card"><div class="tbl-wrap"><table><thead><tr>${cab.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas||vacio(n, L('Todavía no hay registros.','No records yet.'))}</tbody></table></div></section>`;
+  const edit = (t,id) => `<button class="btn-g btn-sm" type="button" onclick="abrirContr('${t}','${id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`;
+  const activo = a => String(a).toUpperCase()==='FALSE' ? `<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>` : `<span class="badge b-done">${esc(L('Activo','Active'))}</span>`;
+  if(CT_TAB==='empresas') h += tabla([L('Empresa','Company'),'RFC',L('Contacto','Contact'),L('Teléfono','Phone'),L('Trabajadores','Workers'),L('Estatus','Status'),''], CT.empresas.map(e=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(e.nombre)}</strong></td><td class="mono">${esc(e.rfc||'')}</td><td class="no-i18n">${esc(e.contacto||'')}<br><span class="help">${esc(e.correo||'')}</span></td><td>${esc(e.telefono||'')}</td><td>${CT.trabajadores.filter(t=>t.empresaId===e.id).length}</td><td>${activo(e.activo)}</td><td>${edit('Empresas',e.id)}</td></tr>`).join(''), 7);
+  if(CT_TAB==='trabajadores') h += tabla([L('Nombre','Name'),L('Empresa','Company'),L('Puesto','Position'),'CURP','DC-3',L('Estatus','Status'),''], CT.trabajadores.map(t=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(t.nombre)}</strong></td><td class="no-i18n">${esc(empNombre(t.empresaId))}</td><td class="no-i18n">${esc(t.puesto||'')}</td><td class="mono" id="curp-${t.id}">${esc(t.curp||'—')}${t.curp?` <button class="btn-g btn-sm" type="button" onclick="verCurp('${t.id}')" title="${esc(L('Ver CURP completa (queda registrado)','Show full CURP (logged)'))}" aria-label="${esc(L('Ver CURP completa (queda registrado)','Show full CURP (logged)'))}"><i class="fas fa-eye"></i></button>`:''}</td><td>${CT.dc3.filter(x=>x.trabajadorId===t.id).length}</td><td>${activo(t.activo)}</td><td>${edit('Trabajadores',t.id)}</td></tr>`).join(''), 7);
+  if(CT_TAB==='dc3') h += tabla([L('Trabajador','Worker'),L('Empresa','Company'),L('Tema','Topic'),L('Permiso que habilita','Permit enabled'),L('Emisión','Issued'),L('Vigencia','Valid until'),L('Verificada','Verified'),L('Archivo','File'),''], CT.dc3.map(x=>{ const v=vigenciaDC3(x), t=trabajador(x.trabajadorId); return `<tr class="tbl-row"><td class="no-i18n"><strong>${esc(t.nombre||'—')}</strong></td><td class="no-i18n">${esc(empNombre(t.empresaId))}</td><td class="no-i18n">${esc(x.tema)}</td><td>${esc(x.permiso||'—')}</td><td>${esc(x.fechaEmision||'')}</td><td>${esc(x.vigencia)}<br><span class="badge ${v[0]}">${esc(v[1])}</span></td>
+      <td>${String(x.verificada).toUpperCase()==='TRUE'?`<span class="badge b-done">${esc(L('Sí','Yes'))}</span><br><span class="help no-i18n">${esc(x.verificadaPor||'')}</span>`:`<span class="badge b-pend">${esc(L('Por verificar','To verify'))}</span>`}${esSafety()?`<br><button class="btn-g btn-sm" type="button" style="margin-top:4px" onclick="verificarDC3('${x.id}',${String(x.verificada).toUpperCase()!=='TRUE'})">${esc(String(x.verificada).toUpperCase()==='TRUE'?L('Quitar verificación','Unverify'):L('Verificar','Verify'))}</button>`:''}</td>
+      <td>${x.archivo?`<button class="btn-g btn-sm" type="button" onclick="verArchivo('${x.archivo}')">${esc(L('Ver','View'))}</button>`:'—'}</td><td>${edit('DC3',x.id)}</td></tr>`; }).join(''), 9);
+  if(CT_TAB==='aptitud'){
+    const activos = CT.trabajadores.filter(t=>String(t.activo).toUpperCase()!=='FALSE');
+    h += `<div class="box" style="margin-bottom:12px"><p class="help">${esc(L('✓ = DC-3 verificada por Safety y vigente para ese permiso. «Verificar» = existe pero falta la verificación. «Vencida» = la constancia ya no está vigente.','✓ = DC-3 verified by Safety and valid for that permit. «Verify» = exists but not verified. «Expired» = the certificate is no longer valid.'))}</p></div>`
+      + tabla([L('Trabajador','Worker'),L('Empresa','Company')].concat(CT.permisos), activos.map(t=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(t.nombre)}</strong></td><td class="no-i18n">${esc(empNombre(t.empresaId))}</td>${CT.permisos.map(p=>{ const xs=CT.dc3.filter(x=>x.trabajadorId===t.id&&x.permiso===p); if(!xs.length) return '<td class="apt" style="color:#CBD5E1">—</td>';
+        const ok=xs.some(x=>String(x.verificada).toUpperCase()==='TRUE'&&vigenciaDC3(x)[2]>=1), venc=xs.every(x=>vigenciaDC3(x)[2]<0);
+        return `<td class="apt">${ok?'<span style="color:#15803D">✓</span>':venc?`<span class="badge b-red">${esc(L('Vencida','Expired'))}</span>`:`<span class="badge b-pend">${esc(L('Verificar','Verify'))}</span>`}</td>`; }).join('')}</tr>`).join(''), 2+CT.permisos.length);
+  }
+  $('contratistas-body').innerHTML = h;
+}
+let CTF = null;
+function abrirContr(tabla, id){
+  const lista = {Empresas:CT.empresas, Trabajadores:CT.trabajadores, DC3:CT.dc3}[tabla], o = id ? Object.assign({}, lista.find(x=>x.id===id)) : {};
+  CTF = {tabla, id:id||'', archivo:null};
+  let cuerpo = '';
+  if(tabla==='Empresas') cuerpo = `<div class="grid-2">${fld(L('Nombre de la empresa','Company name'), inp('ct-nombre',o.nombre))}${fld('RFC', inp('ct-rfc',o.rfc))}</div><div class="grid-3">${fld(L('Contacto','Contact'), inp('ct-contacto',o.contacto))}${fld(L('Teléfono','Phone'), inp('ct-telefono',o.telefono))}${fld(L('Correo','Email'), inp('ct-correo',o.correo,'type="email"'))}</div>`;
+  if(tabla==='Trabajadores') cuerpo = `<div class="grid-2">${fld(L('Nombre completo','Full name'), inp('ct-nombre',o.nombre))}${fld(L('Empresa','Company'), sel('ct-empresaId',CT.empresas.map(e=>({v:e.id,t:e.nombre})),o.empresaId,'—'))}</div><div class="grid-3">${fld(L('Puesto','Position'), inp('ct-puesto',o.puesto))}${fld('CURP', inp('ct-curp',o.curp,'maxlength="18" autocapitalize="characters"'))}${fld('NSS', inp('ct-nss',o.nss))}</div><p class="help">${esc(L('La CURP se muestra enmascarada; si no la cambias, se conserva la registrada.','The CURP is shown masked; if you do not change it, the stored one is kept.'))}</p>`;
+  if(tabla==='DC3') cuerpo = `<div class="grid-2">${fld(L('Trabajador','Worker'), sel('ct-trabajadorId',CT.trabajadores.map(t=>({v:t.id,t:t.nombre+' · '+empNombre(t.empresaId)})),o.trabajadorId,'—'))}${fld(L('Tema del curso','Course topic'), inp('ct-tema',o.tema))}</div>
+    <div class="grid-3">${fld(L('Permiso que habilita','Permit enabled'), sel('ct-permiso',CT.permisos,o.permiso,L('Ninguno','None')))}${fld(L('Fecha de emisión','Issue date'), inp('ct-fechaEmision',o.fechaEmision,'type="date"'))}${fld(L('Vigencia (vence el)','Valid until'), inp('ct-vigencia',o.vigencia,'type="date"'))}</div>
+    ${fld(L('Archivo de la constancia (PDF o foto, máx. 5 MB)','Certificate file (PDF or photo, max. 5 MB)'), `<input type="file" id="ct-archivo" class="inp" accept="application/pdf,image/jpeg,image/png,image/webp">`)}<p class="help">${esc(L('Cualquier cambio quita la verificación: Safety debe verificarla de nuevo.','Any change removes the verification: Safety must verify it again.'))}</p>`;
+  if(tabla!=='DC3') cuerpo += `<label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ct-activo" ${String(o.activo).toUpperCase()==='FALSE'?'':'checked'}> ${esc(L('Activo','Active'))}</label>`;
+  modal(1, id?L('Editar','Edit'):L('Nuevo registro','New record'), cuerpo, `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" id="btn-ct" onclick="guardarContr()">${esc(L('Guardar','Save'))}</button>`);
+}
+async function guardarContr(){
+  const t = CTF.tabla, datos = {};
+  ({Empresas:['nombre','rfc','contacto','telefono','correo'], Trabajadores:['nombre','empresaId','puesto','curp','nss'], DC3:['trabajadorId','tema','permiso','fechaEmision','vigencia']})[t].forEach(k=>datos[k]=val('ct-'+k));
+  if($('ct-activo')) datos.activo = $('ct-activo').checked;
+  const f = $('ct-archivo') && $('ct-archivo').files[0];
+  if(f){ if(f.size>5*1024*1024){ toast(L('El archivo es demasiado grande (máximo 5 MB).','The file is too large (max. 5 MB).'),'err'); return; }
+    datos.archivoNuevo = /^image\//.test(f.type) ? await reducirImagen(await leerArchivo(f), 2000, .85) : await leerArchivo(f); }
+  $('btn-ct').disabled = true;
+  try{ const r = await llamar({action:'contratistaGuardar', token:tok(), tabla:t, id:CTF.id, datos}, L('Guardado.','Saved.')); if(r){ closeModal('m-gen'); cargarContratistas(); } }
+  finally{ const b=$('btn-ct'); if(b) b.disabled=false; }
+}
+async function verCurp(id){ const r = await llamar({action:'curpVer', token:tok(), id}); if(r) $('curp-'+id).textContent = r.curp; }
+async function verificarDC3(id, v){ const r = await llamar({action:'dc3Verificar', token:tok(), id, verificada:v}, v?L('DC-3 verificada.','DC-3 verified.'):L('Verificación retirada.','Verification removed.')); if(r) cargarContratistas(); }
+async function verArchivo(id){ const u = await archivo(id); if(u) abrirDataUrl(u); else toast(L('No se pudo abrir el archivo.','The file could not be opened.'),'err'); }
+
+/* ═══════════════ CAPACITACIÓN (administración) ═══════════════ */
+let CU = null, CU_TAB = 'cursos', CUF = null;
+async function cargarCursos(){
+  $('cursos-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+  const r = await llamar({action:'cursosListar', token:tok()}); if(!r) return; CU = r; renderCursos();
+}
+function tabCursos(t){ CU_TAB=t; renderCursos(); }
+function renderCursos(){
+  let h = cabecera(L('Capacitación de contratistas','Contractor training'), L('Safety publica el curso y el banco de preguntas. El examen se califica en el servidor; el contratista nunca ve las respuestas.','Safety publishes the course and question bank. The exam is graded on the server; the contractor never sees the answers.'), CU_TAB==='cursos'?`<button class="btn-p btn-sm" type="button" onclick="abrirCurso()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo curso','New course'))}</button>`:'')
+    + pestanas([['cursos',L('Cursos','Courses'),'fa-book'],['resultados',L('Resultados','Results'),'fa-square-poll-vertical']], CU_TAB, 'tabCursos');
+  if(CU_TAB==='cursos') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Temas','Topics'))}</th><th>${esc(L('Preguntas','Questions'))}</th><th>${esc(L('Mínimo','Pass mark'))}</th><th>${esc(L('Intentos','Attempts'))}</th><th>${esc(L('Segundos por pregunta','Seconds per question'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${CU.cursos.length?CU.cursos.map(c=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(c.titulo)}</strong><br><span class="help">${esc(c.descripcion||'')}</span></td><td>${(c.temas||[]).length}</td><td>${(c.preguntas||[]).length}</td><td>${esc(c.minimo)}%</td><td>${esc(c.intentos)}</td><td>${esc(c.segundos)}</td><td>${String(c.activo).toUpperCase()==='FALSE'?`<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>`:`<span class="badge b-done">${esc(L('Publicado','Published'))}</span>`}</td><td><button class="btn-g btn-sm" type="button" onclick="abrirCurso('${c.id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button></td></tr>`).join(''):vacio(8,L('Todavía no hay cursos.','No courses yet.'))}</tbody></table></div></section>
+    <p class="help" style="margin-top:10px">${esc(L('Los contratistas entran desde la página inicial, en «Capacitación para contratistas», sin cuenta.','Contractors enter from the start page, under «Contractor training», without an account.'))}</p>`;
+  if(CU_TAB==='resultados') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Fecha','Date'))}</th><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Participante','Participant'))}</th><th>${esc(L('Compañía','Company'))}</th><th>${esc(L('Identificador','ID'))}</th><th>${esc(L('Calificación','Score'))}</th><th>${esc(L('Resultado','Result'))}</th></tr></thead><tbody>${CU.intentos.length?CU.intentos.map(i=>`<tr class="tbl-row"><td style="white-space:nowrap">${i.inicio?fecha(new Date(Number(i.inicio)).toISOString()):'—'}</td><td class="no-i18n">${esc(i.cursoTitulo)}</td><td class="no-i18n">${esc(i.nombre)}</td><td class="no-i18n">${esc(i.empresa)}</td><td class="mono">${esc(i.identificador)}</td><td>${i.fin?esc(i.calificacion)+'%':'—'}</td><td>${!i.fin?`<span class="badge b-off">${esc(L('Sin terminar','Not finished'))}</span>`:String(i.aprobado).toUpperCase()==='TRUE'?`<span class="badge b-done">${esc(L('Aprobado','Passed'))}</span>`:`<span class="badge b-red">${esc(L('No aprobado','Failed'))}</span>`}</td></tr>`).join(''):vacio(7,L('Todavía no hay intentos.','No attempts yet.'))}</tbody></table></div></section>`;
+  $('cursos-body').innerHTML = h;
+}
+function abrirCurso(id){
+  const c = id ? JSON.parse(JSON.stringify(CU.cursos.find(x=>x.id===id))) : {titulo:'', descripcion:'', temas:[{titulo:'',contenido:''}], preguntas:[{texto:'',opciones:['',''],correcta:0}], segundos:30, minimo:80, intentos:3, vigenciaMeses:12, activo:'TRUE'};
+  CUF = {id:id||'', c}; pintarCursoForm();
+}
+function leerCursoForm(){
+  const c = CUF.c; c.titulo=val('cu-titulo'); c.descripcion=val('cu-descripcion'); c.segundos=val('cu-segundos'); c.minimo=val('cu-minimo'); c.intentos=val('cu-intentos'); c.vigenciaMeses=val('cu-vigencia'); c.activo=$('cu-activo').checked;
+  c.temas = c.temas.map((t,i)=>({titulo:val('cu-tt-'+i), contenido:$('cu-tc-'+i).value}));
+  c.preguntas = c.preguntas.map((p,i)=>({texto:val('cu-pt-'+i), opciones:$('cu-po-'+i).value.split('\n').map(x=>x.trim()).filter(Boolean), correcta:Number(val('cu-pc-'+i))||0}));
+}
+function pintarCursoForm(){
+  const c = CUF.c;
+  modal(1, CUF.id?L('Editar curso','Edit course'):L('Nuevo curso','New course'), `
+    <div class="grid-2">${fld(L('Título','Title'), inp('cu-titulo',c.titulo))}${fld(L('Descripción','Description'), inp('cu-descripcion',c.descripcion))}</div>
+    <div class="grid-4">${fld(L('Segundos por pregunta','Seconds per question'), inp('cu-segundos',c.segundos,'type="number" min="10" max="300"'))}${fld(L('Calificación mínima (%)','Pass mark (%)'), inp('cu-minimo',c.minimo,'type="number" min="1" max="100"'))}${fld(L('Intentos máximos','Max attempts'), inp('cu-intentos',c.intentos,'type="number" min="1" max="10"'))}${fld(L('Vigencia (meses)','Validity (months)'), inp('cu-vigencia',c.vigenciaMeses,'type="number" min="1" max="60"'))}</div>
+    <label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cu-activo" ${String(c.activo).toUpperCase()==='FALSE'?'':'checked'}> ${esc(L('Publicado para los contratistas','Published to contractors'))}</label>
+    <div class="sec-title">${esc(L('Temas (se leen en orden antes del examen)','Topics (read in order before the exam)'))}</div>
+    ${c.temas.map((t,i)=>`<div class="box">${fld(L('Título del tema','Topic title'), inp('cu-tt-'+i,t.titulo))}${fld(L('Contenido','Content'), ta('cu-tc-'+i,t.contenido,'rows="4"'))}<button class="btn-g btn-sm" type="button" style="margin-top:6px" onclick="leerCursoForm();CUF.c.temas.splice(${i},1);pintarCursoForm()">${esc(L('Quitar tema','Remove topic'))}</button></div>`).join('')}
+    <button class="btn-g btn-sm" type="button" onclick="leerCursoForm();CUF.c.temas.push({titulo:'',contenido:''});pintarCursoForm()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tema','Add topic'))}</button>
+    <div class="sec-title">${esc(L('Preguntas','Questions'))}</div>
+    ${c.preguntas.map((p,i)=>`<div class="box">${fld(L('Pregunta','Question'), inp('cu-pt-'+i,p.texto))}<div class="grid-2">${fld(L('Opciones (una por renglón)','Options (one per line)'), ta('cu-po-'+i,(p.opciones||[]).join('\n'),'rows="4"'))}${fld(L('Respuesta correcta','Correct answer'), sel('cu-pc-'+i,(p.opciones||[]).map((o,k)=>({v:k,t:(k+1)+'. '+o})),p.correcta))}</div><button class="btn-g btn-sm" type="button" style="margin-top:6px" onclick="leerCursoForm();CUF.c.preguntas.splice(${i},1);pintarCursoForm()">${esc(L('Quitar pregunta','Remove question'))}</button></div>`).join('')}
+    <button class="btn-g btn-sm" type="button" onclick="leerCursoForm();CUF.c.preguntas.push({texto:'',opciones:['',''],correcta:0});pintarCursoForm()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar pregunta','Add question'))}</button>
+    <p class="help">${esc(L('Después de escribir las opciones, guarda y vuelve a abrir el curso para elegir la respuesta correcta entre las opciones nuevas.','After writing the options, save and reopen the course to pick the correct answer among the new options.'))}</p>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" onclick="guardarCurso()">${esc(L('Guardar curso','Save course'))}</button>`, 'xl');
+}
+async function guardarCurso(){ leerCursoForm(); const r = await llamar({action:'cursoGuardar', token:tok(), id:CUF.id, datos:CUF.c}, L('Curso guardado.','Course saved.')); if(r){ closeModal('m-gen'); cargarCursos(); } }
+
+/* ═══════════════ CAPACITACIÓN (contratista, sin cuenta) ═══════════════ */
+let CP = null;
+async function abrirCapacitacion(){
+  showView('curso'); $('curso-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+  const r = await api({action:'cursosPublicos'}); if(!r.success){ toast(r.error,'err'); return; }
+  CP = {cursos:r.cursos, curso:null, leidos:{}, examen:null};
+  $('curso-body').innerHTML = cabecera(L('Capacitación para contratistas','Contractor training'), L('Elige tu curso. Lee todos los temas y después presenta el examen cronometrado.','Choose your course. Read all topics, then take the timed exam.'), `<button class="btn-g btn-sm" type="button" onclick="showView('publico')">${esc(L('Regresar','Back'))}</button>`)
+    + (CP.cursos.length ? `<div class="mod-grid">${CP.cursos.map((c,i)=>`<div class="card mod go" tabindex="0" onclick="elegirCurso(${i})" onkeydown="if(event.key==='Enter')elegirCurso(${i})"><div class="mod-ico" style="background:#F5F3FF"><i class="fas fa-graduation-cap" style="color:#7C3AED;font-size:18px"></i></div><h3 class="no-i18n">${esc(c.titulo)}</h3><p class="no-i18n">${esc(c.descripcion||'')}</p><span class="help">${esc(`${c.totalPreguntas} preguntas · mínimo ${c.minimo}% · ${c.intentos} intentos`)}</span></div>`).join('')}</div>` : `<div class="box"><p class="help">${esc(L('No hay cursos publicados por ahora.','No courses published for now.'))}</p></div>`);
+}
+function elegirCurso(i){ CP.curso = CP.cursos[i]; CP.leidos = {}; pintarCursoPublico(); }
+function pintarCursoPublico(){
+  const c = CP.curso, n = (c.temas||[]).length, leidos = Object.keys(CP.leidos).length, listo = leidos>=n;
+  $('curso-body').innerHTML = cabecera(c.titulo, c.descripcion||'', `<button class="btn-g btn-sm" type="button" onclick="abrirCapacitacion()">${esc(L('Otros cursos','Other courses'))}</button>`)
+    + `<section class="card" style="padding:18px;margin-bottom:14px"><div class="sec-title">${esc(L('Tus datos','Your information'))}</div><div class="grid-3">${fld(L('Nombre completo','Full name'), inp('cp-nombre',CP.nombre||''))}${fld(L('Compañía','Company'), inp('cp-empresa',CP.empresa||''))}${fld(L('Identificador (gafete, ID o folio)','ID (badge, ID or number)'), inp('cp-ident',CP.ident||''))}</div></section>`
+    + (c.temas||[]).map((t,i)=>{ const abierto = i<=leidos; return `<section class="card" style="padding:18px;margin-bottom:10px;${abierto?'':'opacity:.5'}"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h3 class="no-i18n" style="margin:0;font-size:.95rem;color:var(--navy)">${i+1}. ${esc(t.titulo)}</h3>${CP.leidos[i]?`<span class="badge b-done">${esc(L('Leído','Read'))}</span>`:''}</div>${abierto?`<p class="no-i18n" style="white-space:pre-wrap;font-size:.88rem;line-height:1.6">${esc(t.contenido)}</p>${CP.leidos[i]?'':`<button class="btn-g btn-sm" type="button" onclick="CP.leidos[${i}]=1;guardarDatosCP();pintarCursoPublico()">${esc(L('Marcar como leído','Mark as read'))}</button>`}`:`<p class="help">${esc(L('Termina el tema anterior para abrir este.','Finish the previous topic to open this one.'))}</p>`}</section>`; }).join('')
+    + `<section class="card" style="padding:18px"><p class="help">${esc(`${c.totalPreguntas} preguntas · ${c.segundos} segundos por pregunta · mínimo ${c.minimo}% · ${c.intentos} intentos`)}</p><button class="btn-p" type="button" ${listo?'':'disabled'} onclick="iniciarExamen()"><i class="fas fa-stopwatch" style="margin-right:6px"></i>${esc(L('Iniciar examen','Start exam'))}</button>${listo?'':`<p class="help" style="margin-top:8px">${esc(L('Lee todos los temas para habilitar el examen.','Read all topics to enable the exam.'))}</p>`}</section>`;
+}
+function guardarDatosCP(){ CP.nombre=val('cp-nombre'); CP.empresa=val('cp-empresa'); CP.ident=val('cp-ident'); }
+async function iniciarExamen(){
+  guardarDatosCP();
+  const r = await api({action:'cursoIniciar', cursoId:CP.curso.id, nombre:CP.nombre, empresa:CP.empresa, identificador:CP.ident});
+  if(!r.success){ toast(r.error,'err'); return; }
+  CP.examen = {token:r.token, preguntas:r.preguntas, segundos:r.segundos, i:0, resp:[], intento:r.intento, max:r.intentosMax};
+  preguntaExamen();
+}
+function preguntaExamen(){
+  const ex = CP.examen, p = ex.preguntas[ex.i]; clearInterval(ex.timer); let rest = ex.segundos;
+  $('curso-body').innerHTML = `<section class="card" style="padding:22px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span class="help">${esc(`Pregunta ${ex.i+1} de ${ex.preguntas.length} · intento ${ex.intento} de ${ex.max}`)}</span><span class="timer" id="cp-timer">${rest}s</span></div>
+    <div class="progress" style="height:6px;background:#E2E8F0;border-radius:6px;overflow:hidden;margin-bottom:16px"><i id="cp-bar" style="display:block;height:100%;width:100%;background:var(--blue);transition:width 1s linear"></i></div>
+    <h3 class="no-i18n" style="font-size:1.05rem;color:var(--navy);margin:0 0 14px">${esc(p.texto)}</h3>${p.opciones.map((o,k)=>`<div class="q-opt no-i18n" role="button" tabindex="0" onclick="marcarOpcion(${k})" id="op-${k}">${esc(o)}</div>`).join('')}
+    <div style="text-align:right;margin-top:12px"><button class="btn-p" type="button" onclick="siguientePregunta()">${esc(ex.i+1<ex.preguntas.length?L('Siguiente','Next'):L('Terminar examen','Finish exam'))}</button></div></section>`;
+  ex.timer = setInterval(()=>{ rest--; const t=$('cp-timer'), b=$('cp-bar'); if(t) t.textContent = rest+'s'; if(b) b.style.width = (rest/ex.segundos*100)+'%'; if(rest<=0) siguientePregunta(); }, 1000);
+}
+function marcarOpcion(k){ CP.examen.resp[CP.examen.i] = k; document.querySelectorAll('.q-opt').forEach((e,i)=>e.classList.toggle('sel', i===k)); }
+async function siguientePregunta(){
+  const ex = CP.examen; clearInterval(ex.timer);
+  if(ex.i+1 < ex.preguntas.length){ ex.i++; preguntaExamen(); return; }
+  $('curso-body').innerHTML = `<p class="help">${esc(L('Calificando…','Grading…'))}</p>`;
+  const r = await api({action:'cursoEnviar', token:ex.token, respuestas:ex.resp});
+  if(!r.success){ toast(r.error,'err'); return; }
+  $('curso-body').innerHTML = `<section class="card" style="padding:28px;text-align:center"><div style="font-size:2.6rem;font-weight:800;color:${r.aprobado?'#15803D':'#B91C1C'}">${r.calificacion}%</div><h3 style="color:var(--navy)">${esc(r.aprobado?L('¡Aprobaste!','You passed!'):L('No aprobaste','You did not pass'))}</h3><p class="help">${esc(`${r.buenas} de ${r.total} correctas · mínimo ${r.minimo}%`)}${r.enTiempo?'':' · '+esc(L('El examen se envió fuera de tiempo.','The exam was submitted after the time limit.'))}</p>
+    <div class="toolbar" style="justify-content:center;margin-top:14px">${r.aprobado?'':`<button class="btn-p" type="button" onclick="pintarCursoPublico()">${esc(L('Volver al curso','Back to the course'))}</button>`}<button class="btn-g" type="button" onclick="showView('publico')">${esc(L('Salir','Exit'))}</button></div></section>`;
+  CP.examen = null;
+}
+
+/* ═══════════════ PÁGINA PÚBLICA (sin cuenta) ═══════════════ */
+function renderPublico(){
+  const card = (fn, ico, color, bg, t, txt) => `<div class="card mod go" tabindex="0" onclick="${fn}" onkeydown="if(event.key==='Enter'){${fn}}"><div class="mod-ico" style="background:${bg}"><i class="fas ${ico}" style="color:${color};font-size:18px"></i></div><h3>${esc(t)}</h3><p>${esc(txt)}</p></div>`;
+  $('publico-body').innerHTML = `<div class="hero"><h1>KTMEX Safety</h1><p>${esc(L('Análisis de riesgo, capacitación de contratistas y consulta de folios. Para capturar un JSA o JRA no necesitas cuenta.','Risk analyses, contractor training and ID lookup. You do not need an account to enter a JSA or JRA.'))}</p></div>
+    <div class="mod-grid">${card("nuevoAnalisis('JSA',true)",'fa-clipboard-check','#2563EB','#EEF4FF',L('Capturar JSA','Enter JSA'),L('Trabajo especial o no rutinario: personal interno, contratistas o personal sin cuenta.','Special or non-routine work: internal staff, contractors or people without an account.'))}
+    ${card("nuevoAnalisis('JRA',true)",'fa-list-check','#12805C','#ECFDF5',L('Capturar JRA','Enter JRA'),L('Trabajo rutinario del personal interno.','Routine work by internal staff.'))}
+    ${card('consultarFolio()','fa-magnifying-glass','#D97706','#FFFBEB',L('Consultar mi folio','Check my ID'),L('Revisa si Safety ya aprobó tu análisis o qué debes corregir.','See whether Safety approved your analysis or what to correct.'))}
+    ${card('abrirCapacitacion()','fa-graduation-cap','#7C3AED','#F5F3FF',L('Capacitación para contratistas','Contractor training'),L('Curso y examen cronometrado antes de entrar a trabajar.','Course and timed exam before starting work.'))}
+    ${card("showView('login')",'fa-right-to-bracket','#0F2A4A','#F1F5F9',L('Ingresar','Sign in'),L('Personal con cuenta: Safety, áreas, gerencia y consulta.','Staff with an account: Safety, areas, management and read-only.'))}</div>`;
+}
+
 /* ═══ Arranque ═══ */
 (async function init(){
   try{ if(localStorage.getItem(KEY_SIDEBAR)==='1') document.body.classList.add('sb-mini'); }catch(e){}
@@ -813,7 +1692,7 @@ function i18nAuditar(){
     SESSION = guardada;
     try{ await arrancar(); return; }catch(e){ toast(e.message,'err'); cerrarSesionLocal(); }
   }
-  showView('login');
+  showView('publico');
 })();
 
 if('serviceWorker' in navigator && location.protocol==='https:'){
