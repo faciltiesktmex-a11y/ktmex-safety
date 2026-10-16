@@ -15,8 +15,8 @@
 /* ── Configuración ─────────────────────────────────────────────
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
-window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.1.0';
+window.SCRIPT_URL = 'REEMPLAZA_CON_LA_URL_EXEC_DE_SAFETY';
+window.FRONT_VERSION = '0.1.1';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -359,7 +359,7 @@ function pedirRelogin(){
     if(!SESSION){ resolve(null); return; }
     $('rl-user').textContent = SESSION.user.username;
     $('rl-pwd').value=''; $('rl-err').style.display='none';
-    openModal('m-relogin'); setTimeout(()=>$('rl-pwd').focus(),50);
+    openModal('m-relogin'); $('rl-pwd').focus();
     $('btn-rl-no').onclick = ()=>{ closeModal('m-relogin'); resolve(null); };
     $('btn-rl').onclick = async ()=>{
       $('btn-rl').disabled = true;
@@ -434,7 +434,7 @@ function pedirCambioPassword(obligatorio, policy){
   $('m-pwd-t').textContent = uiText(obligatorio ? 'Define tu contraseña' : 'Cambiar contraseña');
   $('m-pwd-msg').textContent = uiText(obligatorio ? 'Es tu primer ingreso. Cambia la contraseña temporal por una propia.' : 'Escribe tu contraseña actual y la nueva.');
   if(policy) $('pwd-politica').textContent = uiText(`Mínimo ${policy.minLength} caracteres, con al menos una letra y un número.`);
-  openModal('m-pwd'); setTimeout(()=>$('pwd-actual').focus(),50);
+  openModal('m-pwd'); $('pwd-actual').focus();
 }
 async function guardarPassword(){
   const err=$('pwd-err'); err.style.display='none';
@@ -513,7 +513,7 @@ function showView(v){
   CURRENT_VIEW = v;
   document.querySelectorAll('.sb-btn').forEach(b=>b.classList.toggle('active', b.id==='nav-'+v));
   if(v==='admin') switchTab(CURRENT_TAB || 'usuarios');
-  if(v==='login') setTimeout(()=>$('log-user').focus(),50);
+  if(v==='login') $('log-user').focus();
   window.scrollTo(0,0);
 }
 
@@ -564,6 +564,7 @@ function pintarUsuarios(){
 
 let EDITANDO = null;
 const AYUDA_ROL = {
+  admin:'Administrador del sistema: administra usuarios y ve todos los módulos para revisarlos. No vota ni publica la matriz de riesgos.',
   safety:'Safety administra el sistema: usuarios, matriz de riesgos y aprobaciones.',
   area:'Personal de las áreas: captura JSA y JRA y consulta lo de su área.',
   manager:'Gerencia: consulta e indicadores. Siempre ve el sistema en inglés.',
@@ -582,7 +583,7 @@ function abrirUsuario(username){
   $('u-err').style.display='none';
   const ayuda = ()=> $('u-ayuda-rol').textContent = uiText(AYUDA_ROL[$('u-rol').value]||'');
   $('u-rol').onchange = ayuda; ayuda();
-  openModal('m-usr'); setTimeout(()=>$('u-nombre').focus(),50);
+  openModal('m-usr'); $('u-nombre').focus();
 }
 async function guardarUsuario(){
   const err=$('u-err'); err.style.display='none';
@@ -708,7 +709,9 @@ const TEXT_I18N = {
   'Personal de las áreas: captura JSA y JRA y consulta lo de su área.':'Area staff: enter JSA and JRA and view their area.',
   'Gerencia: consulta e indicadores. Siempre ve el sistema en inglés.':'Management: views and indicators. Always sees the system in English.',
   'Solo consulta, sin capturar ni aprobar.':'Read only, cannot enter or approve.',
-  'Safety':'Safety','Área / supervisor':'Area / supervisor','Manager':'Manager','Consulta':'Read only',
+  'Administrador del sistema':'System administrator','Safety':'Safety','Área / supervisor':'Area / supervisor',
+  'Administrador del sistema: administra usuarios y ve todos los módulos para revisarlos. No vota ni publica la matriz de riesgos.':'System administrator: manages users and sees every module to review it. Does not vote on or publish the risk matrix.',
+  'Solo Safety o el administrador del sistema pueden administrar usuarios.':'Only Safety or the system administrator can manage users.','Manager':'Manager','Consulta':'Read only',
   'Ningún usuario coincide con la búsqueda.':'No user matches the search.','Todavía no hay movimientos.':'No activity yet.',
   'Escribe tu usuario y tu contraseña.':'Enter your username and password.','Usuario o contraseña incorrectos.':'Incorrect username or password.',
   'Contraseña actualizada correctamente.':'Password updated successfully.','Cambios guardados.':'Changes saved.','Usuario activado.':'User activated.','Usuario desactivado.':'User deactivated.',
