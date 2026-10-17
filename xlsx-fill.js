@@ -144,6 +144,7 @@
     const s = style ? ` s="${style}"` : '';
     const f = formula || '';
     if (value === null || value === undefined || value === '') return `<c r="${ref}"${s}>${f}</c>`;
+    if (typeof value === 'object' && value.is) return `<c r="${ref}"${s} t="inlineStr">${value.is}</c>`;
     if (typeof value === 'number') return `<c r="${ref}"${s}>${f}<v>${value}</v></c>`;
     if (f) return `<c r="${ref}"${s} t="str">${f}<v>${escXml(value)}</v></c>`;
     return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${escXml(value)}</t></is></c>`;
@@ -327,12 +328,22 @@
     const replaced = new Map();
     const report = { cells: [], checkboxes: [], rowHeights: [], flattened: [] };
     const wrapIdx = pkg.byName.has('xl/styles.xml') ? wrapStyles(await pkg.text('xl/styles.xml')) : [];
+    // Texto con dos formatos (v0.4): [{t, negro}] → cada parte conserva la letra de la celda; el inglés va en negro.
+    const stylesXml = pkg.byName.has('xl/styles.xml') ? await pkg.text('xl/styles.xml') : '';
+    const fontsXml = [...((/<fonts\b[^>]*>([\s\S]*?)<\/fonts>/.exec(stylesXml) || [])[1] || '').matchAll(/<font\b[^>]*?(?:\/>|>([\s\S]*?)<\/font>)/g)].map(m => m[1] || '');
+    const xfFont = [...((/<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(stylesXml) || [])[1] || '').matchAll(/<xf\b([^>]*?)(?:\/>|>)/g)].map(m => +((/fontId="(\d+)"/.exec(m[1]) || [])[1] || 0));
+    const rico = (partes, styleIdx) => {
+      const base = (fontsXml[xfFont[styleIdx] || 0] || '').replace(/<name\b/g, '<rFont').replace(/<scheme\b[^>]*\/>/g, '');
+      const rpr = negro => '<rPr>' + (negro ? base.replace(/<color\b[^>]*\/>/g, '') + '<color theme="1"/>' : base) + '</rPr>';
+      return { is: '<is>' + partes.filter(p => p.t).map(p => `<r>${rpr(p.negro)}<t xml:space="preserve">${escXml(p.t)}</t></r>`).join('') + '</is>' };
+    };
 
     for (const sh of (spec.sheets || [])) {
       const info = sheetByName(pkg, sh.name);
       let xml = await pkg.text(info.path);
       for (const [ref, raw] of Object.entries(sh.cells || {})) {
         let value = raw;
+        if (value && typeof value === 'object' && Array.isArray(value.rico)) { xml = writeCell(xml, ref, rico(value.rico, cellStyleIndex(xml, ref))); report.cells.push(`${sh.name.trim()}!${ref}`); continue; }
         if (typeof value === 'string' && value.includes('\n') && !wrapIdx[cellStyleIndex(xml, ref)]) {
           value = value.replace(/\s*\n\s*/g, ' ');            // sin ajuste de texto los saltos de línea no se ven: se escribe en una sola línea
           report.flattened.push(`${sh.name.trim()}!${ref}`);

@@ -20,6 +20,10 @@
   }
   const attr = (s, n) => { const m = new RegExp('\\b'+n+'="([^"]*)"').exec(s); return m ? m[1] : null; };
   const bi = v => { if(!v) return ''; if(typeof v==='string') return v; const es=(v.es||'').trim(), en=(v.en||'').trim(); return en && en!==es ? es+' / '+en : es; };
+  // Bilingüe con formato: el inglés va en negro. Comunicado: renglón aparte. Alerta: « / ».
+  const biR = (v, sep) => { if(!v) return ''; if(typeof v==='string') return v; const es=(v.es||'').trim(), en=(v.en||'').trim(); if(!en || en===es) return es; return { rico:[{t:es+sep},{t:en, negro:true}] }; };
+  const biLista = (items, sep, pref) => { const r = []; items.forEach((it,i)=>{ const es=(it.es||'').trim(), en=(it.en||'').trim(), p = pref(i);
+      if(r.length) r.push({t:'\n'}); r.push({t:p+es}); if(en && en!==es) r.push(sep==='\n' ? {t:'\n'} : {t:sep}, {t:(sep==='\n'?p:'')+en, negro:true}); }); return r.length ? {rico:r} : ''; };
   const fechaMx = iso => { const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||''); return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso||''); };
 
   /* ───────── Escalas de cada formato ───────── */
@@ -132,8 +136,8 @@
   const COM_STOPSEV = { 'Sin lesión':'B33', 'Primeros auxilios':'F33', 'Tratamiento médico':'K33', 'Restricción':'P33', 'Incapacidad':'T33', 'Fatalidad':'X33' };
   async function specCOM(ev, fotosDataUrls){
     const d = ev.datos||{}, cells = { AA9:ev.turno||'', H13:ev.numero||'', H15:(fechaMx(ev.fecha)+' '+(ev.hora||'')).trim(), H17:(fechaMx(d.fechaNotificacion)+' '+(d.horaNotificacion||'')).trim(),
-      H19:bi(d.ubicacion), H21:bi(d.antiguedadPlanta), H23:bi(d.antiguedadEstacion), E27:bi(d.queOcurrio), E29:bi(d.comoOcurrio),
-      B37:(ev.stopRiesgo||'').replace(/\d/,''), G75:(d.acciones||[]).filter(a=>bi(a.accion)).map((a,i)=>`${i+1}. ${bi(a.accion)}`).join('\n'),
+      H19:biR(d.ubicacion,'\n'), H21:biR(d.antiguedadPlanta,'\n'), H23:biR(d.antiguedadEstacion,'\n'), E27:biR(d.queOcurrio,'\n'), E29:biR(d.comoOcurrio,'\n'),
+      B37:(ev.stopRiesgo||'').replace(/\d/,''), G75:biLista((d.acciones||[]).map(a=>a.accion||{}).filter(a=>(a.es||'').trim()), '\n', i=>`${i+1}. `),
       Y75:[...new Set((d.acciones||[]).map(a=>a.responsable).filter(Boolean))].join(', ') };
     Object.values(COM_CLASIF).forEach(c=>cells[c]=''); Object.values(COM_STOPSEV).forEach(c=>cells[c]='');
     if(COM_CLASIF[ev.clasificacion]) cells[COM_CLASIF[ev.clasificacion]] = 'x';
@@ -143,10 +147,11 @@
   }
   /* ───────── Alerta · KQMS-SA-FO-005 ───────── */
   async function specALE(ev, fotosDataUrls){
-    const d = ev.datos||{}, acc = d.acciones||[], cells = { D9:d.mes||'', D12:d.dia||'', I12:ev.departamento||'', O12:bi(d.problema),
-      D46:[d.regla, bi(d.noCumplimiento)].filter(Boolean).join('\n') };
+    const d = ev.datos||{}, acc = d.acciones||[], nc = biR(d.noCumplimiento,' / ');
+    const cells = { D9:d.mes||'', D12:d.dia||'', I12:ev.departamento||'', O12:biR(d.problema,' / '),
+      D46: !nc ? (d.regla||'') : typeof nc==='string' ? [d.regla,nc].filter(Boolean).join('\n') : (d.regla ? {rico:[{t:d.regla+'\n'}].concat(nc.rico)} : nc) };
     [[62,63],[67,68],[72,73]].forEach(([r,ro],i)=>{ const a = acc[i];
-      cells['D'+r] = a ? `${i+1}.- ${bi(a.accion)}` : ''; cells['O'+ro] = a ? (a.responsable||'') : '';
+      cells['D'+r] = a ? biLista([a.accion||{}], ' / ', ()=>`${i+1}.- `) : ''; cells['O'+ro] = a ? (a.responsable||'') : '';
       cells['T'+r] = a ? [fechaMx(a.inicio), fechaMx(a.cierre)].filter(Boolean).join(' - ') : ''; cells['Z'+r] = a ? ({Abierta:'Abierto / Open','En proceso':'En proceso / In progress',Cerrada:'Cerrado / Closed'}[a.estatus]||a.estatus||'') : ''; });
     const fotos = await Promise.all((fotosDataUrls||[]).slice(0,3).map(medir));
     return [{ tipo:'ALE', overlay:{}, spec:{ sheets:[{ name:HOJAS.ALE, cells }], images:[{ sheet:HOJAS.ALE, items:await colocarFotos('ALE', fotos, await maestro('ALE')) }], drawingText:[{ sheet:HOJAS.ALE, from:'#NUM#', to:String(ev.numero||'') }] } }];
@@ -208,9 +213,11 @@
       for(const c of (m[2]||'').matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)){
         const rf = attr(c[1],'r'), t = attr(c[1],'t'), s = +(attr(c[1],'s')||0), body = c[2]||'';
         let v = (/<v>([\s\S]*?)<\/v>/.exec(body)||[])[1]; if(v!==undefined) v = un(v);
-        if(t==='s') v = pkg.shared[+v]; else if(t==='inlineStr') v = [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(z=>un(z[1])).join('');
+        let runs = null;
+        if(t==='s') v = pkg.shared[+v]; else if(t==='inlineStr'){ v = [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(z=>un(z[1])).join('');
+          if(/<r>/.test(body)) runs = [...body.matchAll(/<r>([\s\S]*?)<\/r>/g)].map(z=>({ t:un((/<t\b[^>]*>([\s\S]*?)<\/t>/.exec(z[1])||[])[1]||''), c:color((/<color\b[^>]*\/>/.exec(z[1])||[''])[0], tema) })); }
         else if(v!==undefined && t!=='str' && t!=='b' && t!=='e' && !isNaN(+v)) v = (Math.round(+v*100)/100).toString();
-        celdas[rf] = { v, s };
+        celdas[rf] = { v, s, runs };
       }
     }
     const rowpx = r => { const h = rh[r] ?? defH; return Math.round(h*4/3); };
@@ -236,7 +243,8 @@
           `text-align:${xf.h==='centerContinuous'?'center':(xf.h||(v!==undefined&&!isNaN(+v)&&v!==''?'right':'left'))}`, `vertical-align:${xf.v==='center'?'middle':(xf.v||'bottom')}`,
           xf.wrap?'white-space:pre-wrap;word-break:break-word':'white-space:pre', 'overflow:hidden', 'padding:0 2px', 'line-height:1.15' ].filter(Boolean).join(';');
         const vert = xf.rot===90||xf.rot===255||xf.rot===180 ? ' writing-mode:vertical-rl;transform:rotate(180deg)' : '';
-        html += `<td${mg?` colspan="${mg[0]}" rowspan="${mg[1]}"`:''} style="${css}"><div style="max-height:${mg?ys[Math.min(r-R1+mg[1],ys.length-1)]-ys[r-R1]:rowpx(r)}px;overflow:hidden;${vert}">${escH(v??'')}</div></td>`;
+        const contenido = cel.runs && !Object.prototype.hasOwnProperty.call(opts.overlay||{}, rf) ? cel.runs.map(x=>`<span${x.c?` style="color:${x.c}"`:''}>${escH(x.t)}</span>`).join('') : escH(v??'');
+        html += `<td${mg?` colspan="${mg[0]}" rowspan="${mg[1]}"`:''} style="${css}"><div style="max-height:${mg?ys[Math.min(r-R1+mg[1],ys.length-1)]-ys[r-R1]:rowpx(r)}px;overflow:hidden;${vert}">${contenido}</div></td>`;
       }
       html += '</tr>';
     }
@@ -294,33 +302,54 @@
     }
   }
 
-  /* ───────── Figura del cuerpo (original, 24 zonas con izquierda y derecha) ───────── */
-  // Coordenadas en una figura de 120×300 (frente) y la misma de espalda desplazada 140 px. "der"/"izq" = lado de la persona.
+  /* ───────── Figura del cuerpo sobre la imagen cuerpo.jpg (1448×1086) ─────────
+     Frente: el lado derecho de la persona queda a la izquierda de quien mira. Espalda: queda a la derecha. */
+  const E_ = (cx,cy,rx,ry) => ['e',cx,cy,rx,ry], R_ = (x,y,w,h) => ['r',x,y,w,h], P_ = pts => ['p',pts];
   const ZONAS_CUERPO = [
-    ['cabeza','Cabeza',[['e',60,22,15,18]],1],['cara','Cara',[['e',60,26,10,11]],0],['ojo_der','Ojo derecho',[['e',55,22,3,2]],0],['ojo_izq','Ojo izquierdo',[['e',65,22,3,2]],0],
-    ['cuello','Cuello',[['r',53,40,14,9]],2],['hombro_der','Hombro derecho',[['e',38,55,9,7]],2],['hombro_izq','Hombro izquierdo',[['e',82,55,9,7]],2],
-    ['torax','Tórax',[['r',44,52,32,32]],0],['abdomen','Abdomen',[['r',45,84,30,28]],0],['espalda_alta','Espalda alta',[['r',44,52,32,32]],1],['espalda_baja','Espalda baja',[['r',45,84,30,28]],1],
-    ['brazo_der','Brazo derecho',[['r',27,62,11,28]],2],['brazo_izq','Brazo izquierdo',[['r',82,62,11,28]],2],['codo_der','Codo derecho',[['e',32,94,6,5]],2],['codo_izq','Codo izquierdo',[['e',88,94,6,5]],2],
-    ['antebrazo_der','Antebrazo derecho',[['r',24,99,10,26]],2],['antebrazo_izq','Antebrazo izquierdo',[['r',86,99,10,26]],2],['muneca_der','Muñeca derecha',[['r',23,125,10,5]],2],['muneca_izq','Muñeca izquierda',[['r',87,125,10,5]],2],
-    ['mano_der','Mano derecha',[['r',21,130,12,12]],2],['mano_izq','Mano izquierda',[['r',87,130,12,12]],2],['dedos_der','Dedos mano derecha',[['r',21,142,12,9]],2],['dedos_izq','Dedos mano izquierda',[['r',87,142,12,9]],2],
-    ['cadera_der','Cadera derecha',[['r',44,112,16,14]],2],['cadera_izq','Cadera izquierda',[['r',60,112,16,14]],2],['muslo_der','Muslo derecho',[['r',45,126,14,46]],2],['muslo_izq','Muslo izquierdo',[['r',61,126,14,46]],2],
-    ['rodilla_der','Rodilla derecha',[['e',52,177,7,6]],2],['rodilla_izq','Rodilla izquierda',[['e',68,177,7,6]],2],['pierna_der','Pierna derecha',[['r',46,184,12,44]],2],['pierna_izq','Pierna izquierda',[['r',62,184,12,44]],2],
-    ['tobillo_der','Tobillo derecho',[['r',46,228,12,7]],2],['tobillo_izq','Tobillo izquierdo',[['r',62,228,12,7]],2],['pie_der','Pie derecho',[['r',42,235,16,10]],2],['pie_izq','Pie izquierdo',[['r',62,235,16,10]],2]
-  ]; // vista: 0 = solo frente, 1 = solo espalda, 2 = ambas
+    ['cabeza','Cabeza',[E_(1004,72,46,58)]], ['cara','Cara',[E_(445,88,34,46)]], ['ojo_der','Ojo derecho',[E_(429,78,9,6)]], ['ojo_izq','Ojo izquierdo',[E_(461,78,9,6)]],
+    ['cuello','Cuello',[R_(413,138,64,50), R_(972,112,62,56)]],
+    ['hombro_der','Hombro derecho',[E_(326,228,30,44), E_(1124,228,30,44)]], ['hombro_izq','Hombro izquierdo',[E_(564,228,30,44), E_(882,228,30,44)]],
+    ['torax','Tórax',[P_('358,190 532,190 548,300 520,318 368,318 342,300')]], ['abdomen','Abdomen',[P_('368,318 520,318 528,438 360,438')]],
+    ['espalda_alta','Espalda alta',[P_('905,170 1100,170 1112,300 893,300')]], ['espalda_baja','Espalda baja',[P_('893,300 1112,300 1104,392 902,392')]],
+    ['cadera_der','Cadera / glúteo derecho',[P_('342,440 445,440 445,540 345,512'), P_('1003,392 1104,392 1108,545 1003,545')]], ['cadera_izq','Cadera / glúteo izquierdo',[P_('445,440 546,440 544,512 445,540'), P_('902,392 1003,392 1003,545 898,545')]],
+    ['brazo_der','Brazo derecho',[P_('300,262 345,268 338,358 292,352'), P_('1105,258 1150,262 1160,360 1115,365')]], ['brazo_izq','Brazo izquierdo',[P_('545,268 590,262 598,352 552,358'), P_('855,262 900,258 890,365 845,360')]],
+    ['codo_der','Codo derecho',[E_(312,362,24,16), E_(1140,364,24,16)]], ['codo_izq','Codo izquierdo',[E_(578,362,24,16), E_(866,364,24,16)]],
+    ['antebrazo_der','Antebrazo derecho',[P_('290,372 326,378 270,478 238,468'), P_('1128,375 1162,370 1206,475 1178,486')]], ['antebrazo_izq','Antebrazo izquierdo',[P_('564,378 600,372 652,468 620,478'), P_('842,370 876,375 826,486 798,475')]],
+    ['muneca_der','Muñeca derecha',[E_(246,484,20,13), E_(1196,488,20,13)]], ['muneca_izq','Muñeca izquierda',[E_(642,484,20,13), E_(808,488,20,13)]],
+    ['mano_der','Mano derecha',[P_('205,495 262,492 258,545 210,548'), P_('1180,500 1236,500 1238,548 1190,552')]], ['mano_izq','Mano izquierda',[P_('628,492 685,495 680,548 632,545'), P_('768,500 824,500 814,552 766,548')]],
+    ['dedos_der','Dedos mano derecha',[P_('184,525 210,548 258,545 240,600 200,598'), P_('1190,552 1238,548 1258,528 1240,600 1205,600')]], ['dedos_izq','Dedos mano izquierda',[P_('632,545 680,548 706,525 690,598 650,600'), P_('766,548 814,552 800,600 764,600 746,528')]],
+    ['muslo_der','Muslo derecho',[P_('342,515 445,542 440,680 352,680'), P_('1005,548 1106,548 1100,688 1012,688')]], ['muslo_izq','Muslo izquierdo',[P_('445,542 548,515 538,680 450,680'), P_('900,548 1000,548 994,688 906,688')]],
+    ['rodilla_der','Rodilla derecha',[E_(386,712,36,38), E_(1058,716,34,34)]], ['rodilla_izq','Rodilla izquierda',[E_(505,712,36,38), E_(946,716,34,34)]],
+    ['pierna_der','Pierna derecha',[P_('340,750 410,750 404,910 348,910'), P_('1022,750 1104,750 1094,930 1034,930')]], ['pierna_izq','Pierna izquierda',[P_('480,750 550,750 542,910 486,910'), P_('902,750 984,750 972,930 912,930')]],
+    ['tobillo_der','Tobillo derecho',[E_(374,926,28,15), E_(1068,944,30,14)]], ['tobillo_izq','Tobillo izquierdo',[E_(516,926,28,15), E_(936,944,30,14)]],
+    ['pie_der','Pie derecho',[P_('330,940 405,940 412,1018 326,1018'), P_('1040,955 1112,955 1122,1012 1048,1012')]], ['pie_izq','Pie izquierdo',[P_('485,940 560,940 564,1018 478,1018'), P_('892,955 966,955 958,1012 884,1012')]]
+  ];
   const nombreZona = id => (ZONAS_CUERPO.find(z=>z[0]===id)||[])[1] || id;
-  function cuerpoSVG(seleccion, conteos, onclick){
-    seleccion = seleccion || []; const max = Math.max(1, ...Object.values(conteos||{}));
-    const fig = dx => `<g transform="translate(${dx},0)" fill="#E2E8F0" stroke="#94A3B8" stroke-width="1"><ellipse cx="60" cy="24" rx="16" ry="19"/><rect x="53" y="40" width="14" height="10" rx="3"/><path d="M36 52 Q60 44 84 52 L94 64 L98 128 L88 150 L84 128 L82 90 L78 112 L78 126 L76 172 L74 246 L60 246 L60 128 L60 246 L46 246 L44 172 L42 126 L42 112 L38 90 L36 128 L32 150 L22 128 L26 64 Z"/></g>`;
-    let zonas = '';
-    ZONAS_CUERPO.forEach(([id,nom,formas,vistaZ])=>{ [0,1].forEach(lado=>{ if(vistaZ!==2 && vistaZ!==lado) return;
-      // en la espalda, el lado derecho de la persona queda a la derecha de quien mira
-      const dx = lado ? 140 : 0, espejo = lado ? (x,w)=>120-x-(w||0) : (x)=>x;
-      const n = (conteos||{})[id]||0, sel = seleccion.includes(id);
-      const fillc = sel ? '#DC2626' : n ? `rgba(220,38,38,${0.18+0.72*n/max})` : 'rgba(37,99,235,0.06)';
-      formas.forEach(([t,x,y,a,b])=>{ const at = `data-zona="${id}" fill="${fillc}" stroke="${sel||n?'#991B1B':'#64748B'}" stroke-width="0.8" style="cursor:${onclick?'pointer':'default'}"`;
-        zonas += t==='e' ? `<ellipse cx="${dx+(lado?120-x:x)}" cy="${y}" rx="${a}" ry="${b}" ${at}><title>${escH(nom)}${n?' · '+n:''}</title></ellipse>` : `<rect x="${dx+espejo(x,a)}" y="${y}" width="${a}" height="${b}" rx="2" ${at}><title>${escH(nom)}${n?' · '+n:''}</title></rect>`; }); }); });
-    return `<svg viewBox="0 0 260 262" style="max-width:420px;width:100%" role="img" aria-label="Figura del cuerpo">${fig(0)}${fig(140)}${zonas}<text x="60" y="259" text-anchor="middle" font-size="9" fill="#64748B">Frente</text><text x="200" y="259" text-anchor="middle" font-size="9" fill="#64748B">Espalda</text></svg>`;
+  // seleccion: zonas marcadas · conteos: {zona:n} para el mapa de calor · interactivo: se puede tocar
+  function cuerpoSVG(seleccion, conteos, interactivo){
+    seleccion = seleccion || []; conteos = conteos || {}; const max = Math.max(1, ...Object.values(conteos));
+    // las zonas pequeñas (ojos, muñecas, codos, tobillos, cara) se dibujan al final para quedar encima
+    const orden = ZONAS_CUERPO.slice().sort((a,b)=>(/cara|ojo|codo|muneca|tobillo|dedos/.test(a[0])?1:0)-(/cara|ojo|codo|muneca|tobillo|dedos/.test(b[0])?1:0));
+    const formas = orden.map(([id,nom,fs])=>{ const n = conteos[id]||0, sel = seleccion.includes(id);
+      const fill = sel ? 'rgba(220,38,38,.55)' : n ? `rgba(220,38,38,${0.18+0.6*n/max})` : 'rgba(0,0,0,0)';
+      const at = `data-zona="${id}" fill="${fill}" stroke="${sel||n?'#991B1B':'transparent'}" stroke-width="3" style="cursor:${interactivo?'pointer':'default'}" class="zc"`;
+      const tt = `<title>${escH(nom)}${n?' · '+n:''}</title>`;
+      return fs.map(f => f[0]==='e' ? `<ellipse cx="${f[1]}" cy="${f[2]}" rx="${f[3]}" ry="${f[4]}" ${at}>${tt}</ellipse>` : f[0]==='r' ? `<rect x="${f[1]}" y="${f[2]}" width="${f[3]}" height="${f[4]}" rx="8" ${at}>${tt}</rect>` : `<polygon points="${f[1]}" ${at}>${tt}</polygon>`).join(''); }).join('');
+    return `<div style="position:relative;width:100%;max-width:560px"><img src="cuerpo.jpg" alt="Figura del cuerpo, frente y espalda" style="width:100%;display:block;border-radius:10px"><svg viewBox="0 0 1448 1086" style="position:absolute;inset:0;width:100%;height:100%" role="img" aria-label="Zonas del cuerpo">${interactivo?'<style>.zc:hover{fill:rgba(37,99,235,.28);stroke:#1D4ED8}</style>':''}${formas}</svg></div>`;
   }
 
-  root.KF = { MAESTROS, HOJAS, JSA_SEV, JSA_PROB, JSA_CAT, jsaPuntaje, JRA, desdeMatriz, generar, descargar, vista, mostrar, cuerpoSVG, ZONAS_CUERPO, nombreZona, bi, fechaMx, r2, _spec:{specJSA,specJRA,specCOM,specALE}, maestro };
+  /* ───────── Layout de la planta (layout.png + layout-zonas.js) ───────── */
+  // seleccion: [ids] marcadas · conteos: {id:n} mapa de calor · interactivo: tocar una zona la marca o desmarca
+  function layoutSVG(seleccion, conteos, interactivo){
+    const L = root.KTLAYOUT; if(!L) return '<p class="help">No se cargó el layout de la planta.</p>';
+    seleccion = (seleccion||[]).map(Number); conteos = conteos || {}; const max = Math.max(1, ...Object.values(conteos)), vb = L.viewBox.split(' ').map(Number);
+    const zonas = L.zonas.map(z=>{ const n = conteos[z.id]||0, sel = seleccion.includes(z.id);
+      const fill = sel ? z.c : n ? '#DC2626' : 'transparent', op = sel ? .6 : n ? 0.2+0.6*n/max : 1;
+      return `<path d="${z.d}" data-zl="${z.id}" fill="${fill}" fill-opacity="${op}" stroke="${sel||n?'#000':'none'}" stroke-width="3" vector-effect="non-scaling-stroke" class="zl" style="cursor:${interactivo?'pointer':'default'}"><title>${escH(z.n)}${n?' · '+n:''}</title></path>`; }).join('');
+    const etiquetas = L.zonas.filter(z=>seleccion.includes(z.id)||conteos[z.id]).map(z=>`<text x="${z.lx}" y="${z.ly}" style="font:700 30px Arial,sans-serif;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:#fff;stroke-width:8px;fill:#000;pointer-events:none">${escH(z.n)}${conteos[z.id]?' ('+conteos[z.id]+')':''}</text>`).join('');
+    return `<div style="position:relative;width:100%;aspect-ratio:${vb[2]} / ${vb[3]}"><img src="${L.img}" alt="Layout de la planta" style="position:absolute;inset:0;width:100%;height:100%;user-select:none;pointer-events:none"><svg viewBox="${L.viewBox}" style="position:absolute;inset:0;width:100%;height:100%">${interactivo?'<style>.zl:hover{fill:#2563EB;fill-opacity:.25;stroke:#1D4ED8}</style>':''}${zonas}${etiquetas}</svg></div>`;
+  }
+  const nombreZonaPlanta = id => { const z = root.KTLAYOUT && root.KTLAYOUT.zonas.find(x=>x.id===Number(id)); return z ? z.n : String(id); };
+
+  root.KF = { MAESTROS, HOJAS, JSA_SEV, JSA_PROB, JSA_CAT, jsaPuntaje, JRA, desdeMatriz, generar, descargar, vista, mostrar, cuerpoSVG, ZONAS_CUERPO, nombreZona, layoutSVG, nombreZonaPlanta, bi, fechaMx, r2, _spec:{specJSA,specJRA,specCOM,specALE}, maestro };
 })(typeof window!=='undefined'?window:globalThis);

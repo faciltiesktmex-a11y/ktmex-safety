@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.3.0';
+window.FRONT_VERSION = '0.4.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -204,6 +204,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 <script src="xlsx-fill.js" charset="utf-8"></script>
 <script src="fo015-map.js" charset="utf-8"></script>
 <script src="formatos.js" charset="utf-8"></script>
+<script src="layout-zonas.js" charset="utf-8"></script>
 </head>
 <body>
 
@@ -367,6 +368,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
         <div><label class="lbl" for="u-correo">Correo (opcional)</label><input id="u-correo" class="inp" type="email" maxlength="120"></div>
       </div>
       <p class="help" id="u-ayuda-rol"></p>
+      <div><span class="lbl">Permisos</span><div id="u-permisos" style="display:grid;gap:6px"></div></div>
       <div id="u-err" class="err-box" style="display:none"></div>
     </div>
     <div class="modal-foot"><button class="btn-g" type="button" onclick="closeModal('m-usr')">Cancelar</button><button class="btn-p" id="btn-usr" type="button" onclick="guardarUsuario()">Guardar</button></div>
@@ -552,7 +554,7 @@ function roleCanView(v){
   if(v==='login'||v==='publico'||v==='curso') return true;
   if(!SESSION) return v==='editor' && !!(ED && ED.publico);
   if(v==='admin') return puedeAdministrar();
-  if(v==='contratistas'||v==='cursos') return esGestor();
+  if(v==='contratistas'||v==='cursos') return esCap() || perm('verTodo');
   return ['home','matriz','analisis','eventos','kpi','editor'].includes(v);
 }
 
@@ -560,7 +562,7 @@ function configureRoleUI(){
   const adm = puedeAdministrar();
   $('nav-admin').style.display = adm ? '' : 'none';
   $('sec-gestion').style.display = adm ? '' : 'none';
-  ['nav-contratistas','nav-cursos','sec-contr'].forEach(id=>$(id).style.display = esGestor() ? '' : 'none');
+  ['nav-contratistas','nav-cursos','sec-contr'].forEach(id=>$(id).style.display = (esCap()||perm('verTodo')) ? '' : 'none');
   if(soloIngles()){ LANG='en'; $('lang-switch').style.display='none'; }
   else $('lang-switch').style.display='flex';
   pintarUsuarioSidebar();
@@ -646,7 +648,7 @@ function pintarUsuarios(){
       <td><strong class="no-i18n">${esc(u.nombre)}</strong>${u.username.toLowerCase()===yo?' <span class="badge b-info">Tú</span>':''}</td>
       <td class="mono" style="font-size:.75rem">${esc(u.username)}</td>
       <td class="no-i18n">${esc(nombreRol(u.rol))}</td>
-      <td class="no-i18n">${esc(u.departamento||'—')}</td>
+      <td class="no-i18n">${esc(u.departamento||'—')}<div>${(u.permisos||[]).map(p=>`<span class="badge b-info" style="margin:2px 2px 0 0">${esc({revisar:'Revisor',capacitacion:'Capacitación',comunicados:'Comunicados',usuarios:'Usuarios',verTodo:'Ver todo'}[p]||p)}</span>`).join('')}</div></td>
       <td>${!u.activo?'<span class="badge b-off">Inactivo</span>':u.debeCambiarPassword?'<span class="badge b-pend">Pendiente de primer ingreso</span>':'<span class="badge b-done">Activo</span>'}</td>
       <td style="white-space:nowrap;text-align:right">
         <button class="btn-g btn-sm" type="button" onclick="abrirUsuario('${esc(u.username)}')" title="Editar" aria-label="Editar"><i class="fas fa-pen"></i></button>
@@ -677,6 +679,8 @@ function abrirUsuario(username){
   $('u-depto').value = EDITANDO ? EDITANDO.departamento : '';
   $('u-correo').value = EDITANDO ? EDITANDO.correo : '';
   $('u-err').style.display='none';
+  const actuales = EDITANDO ? (EDITANDO.permisos||[]) : [];
+  $('u-permisos').innerHTML = Object.entries(BOOT.catalogoPermisos||{}).map(([k,t])=>`<label class="help" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" data-perm="${k}" ${actuales.includes(k)?'checked':''}> <span>${esc(t)}</span></label>`).join('');
   const ayuda = ()=> $('u-ayuda-rol').textContent = uiText(AYUDA_ROL[$('u-rol').value]||'');
   $('u-rol').onchange = ayuda; ayuda();
   openModal('m-usr'); $('u-nombre').focus();
@@ -685,7 +689,7 @@ async function guardarUsuario(){
   const err=$('u-err'); err.style.display='none';
   const payload = {action:'usuarioGuardar', token:SESSION.token, nuevo:!EDITANDO,
     username:$('u-username').value.trim(), nombre:$('u-nombre').value.trim(), rol:$('u-rol').value,
-    departamento:$('u-depto').value.trim(), correo:$('u-correo').value.trim()};
+    departamento:$('u-depto').value.trim(), correo:$('u-correo').value.trim(), permisos:[...document.querySelectorAll('#u-permisos [data-perm]:checked')].map(x=>x.dataset.perm)};
   $('btn-usr').disabled=true;
   try{
     const res = await api(payload);
@@ -929,8 +933,10 @@ function i18nAuditar(){
    ═══════════════════════════════════════════════════════════════ */
 function L(es, en){ if(en && !Object.prototype.hasOwnProperty.call(TEXT_I18N, es)){ TEXT_I18N[es]=en; I18N_VALORES.add(en); } return es; }
 const tok = () => SESSION && SESSION.token;
-const esGestor = () => !!(SESSION && ['safety','admin'].includes(SESSION.user.rol));
-const esSafety = () => !!(SESSION && SESSION.user.rol==='safety');
+const perm = p => !!(BOOT && BOOT.permisos && (BOOT.permisos.lista||[]).includes(p));
+const esGestor = () => perm('comunicados');    // emite comunicados y alertas
+const esSafety = () => perm('revisar');        // revisa riesgos y actividades, aprueba JSA/JRA
+const esCap = () => perm('capacitacion');      // capacitación, contratistas y DC-3
 const hoy = () => new Date().toISOString().slice(0,10);
 function opts(list, val, ph){
   return (ph!==undefined?`<option value="">${esc(ph)}</option>`:'') + (list||[]).map(o=>{
@@ -1004,13 +1010,15 @@ async function cargarMatriz(){
 function tabMatriz(t){ MZ_TAB=t; renderMatriz(); }
 function renderMatriz(){
   const tabs=[['publicada',L('Matriz publicada','Published matrix'),'fa-table'],['propuestas',L('Propuestas','Proposals')+' ('+MZ.propuestas.length+')','fa-pen-ruler'],['criterio',L('Criterio','Criteria'),'fa-scale-balanced'],['historial',L('Historial','History'),'fa-clock-rotate-left']];
-  if(esGestor()) tabs.push(['catalogos',L('Catálogos','Catalogs'),'fa-list']);
+  tabs.splice(2,0,['actividades',L('Actividades','Activities')+' ('+(MZ.actividades||[]).filter(x=>x.estado==='PUBLICADA').length+')','fa-diagram-project']);
+  if(esSafety()) tabs.push(['catalogos',L('Catálogos','Catalogs'),'fa-list']);
   const acc = esSafety() ? `<button class="btn-p btn-sm" type="button" onclick="abrirPropuesta()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Proponer peligro nuevo','Propose new hazard'))}</button>` : '';
   let h = cabecera(L('Matriz de riesgos','Risk matrix'), L('Un solo criterio: S × P con piso por severidad; los controles solo bajan la probabilidad.','One criterion: S × P with a severity floor; controls only lower probability.'), acc)
     + `<p class="help" style="margin:-8px 0 12px">${esc(L('Versión vigente','Current version'))}: <strong>v${MZ.version}</strong></p>` + pestanas(tabs, MZ_TAB, 'tabMatriz');
   if(MZ_TAB==='publicada') h += `<section class="card"><div class="filters">${inp('mz-q','','placeholder="'+esc(L('Buscar peligro, tarea o folio','Search hazard, task or ID'))+'" oninput="filasMatriz()"')}${sel('mz-area',areas(),'',L('Todas las áreas','All areas'),'onchange="filasMatriz()"')}${sel('mz-cat',catOpts(),'',L('Todas las categorías','All categories'),'onchange="filasMatriz()"')}${sel('mz-nv',['TOLERABLE','MODERADO','IMPORTANTE','INTOLERABLE'],'',L('Todos los niveles','All levels'),'onchange="filasMatriz()"')}</div>
     <div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Área','Area'))}</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>Cat.</th><th>S</th><th>P</th><th>${esc(L('Inicial','Initial'))}</th><th>${esc(L('Control mayor','Top control'))}</th><th>${esc(L('P res.','Res. P'))}</th><th>${esc(L('Vigente','Current'))}</th><th>${esc(L('Estado','Status'))}</th><th></th></tr></thead><tbody id="mz-rows"></tbody></table></div><p class="help" id="mz-count" style="padding:10px 16px"></p></section>`;
   if(MZ_TAB==='propuestas') h += htmlPropuestas();
+  if(MZ_TAB==='actividades') h += htmlActividades();
   if(MZ_TAB==='criterio') h += htmlCriterio();
   if(MZ_TAB==='historial') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Versión','Version'))}</th><th>${esc(L('Fecha','Date'))}</th><th>Folio</th><th>${esc(L('Publicó','Published by'))}</th><th>${esc(L('Motivo','Reason'))}</th></tr></thead><tbody>${MZ.versiones.length?MZ.versiones.map(v=>`<tr class="tbl-row"><td><strong>v${esc(v.version)}</strong></td><td>${fecha(v.fecha)}</td><td class="mono">${esc(v.folio)}</td><td class="no-i18n">${esc(v.publicadoPor)}</td><td class="no-i18n">${esc(v.motivo)}</td></tr>`).join(''):vacio(5,L('Todavía no hay versiones publicadas.','No published versions yet.'))}</tbody></table></div></section>`;
   if(MZ_TAB==='catalogos') h += htmlCatalogos();
@@ -1114,6 +1122,48 @@ async function resolverPropuesta(id, decision){
   const r = await llamar({action:'propuestaResolver', token:tok(), id, decision}, pub?L('Publicado en la matriz.','Published to the matrix.'):L('Propuesta descartada.','Proposal discarded.'));
   if(r){ PUB = null; cargarMatriz(); }
 }
+/* ── Catálogo de actividades: los revisores proponen y otro revisor publica ── */
+function htmlActividades(){
+  const yo = SESSION.user.username, A = (MZ.actividades||[]).slice().sort((a,b)=>(a.estado>b.estado?-1:1)||a.nombre.localeCompare(b.nombre));
+  const riesgoNom = f => { const r = MZ.riesgos.find(x=>x.folio===f); return r ? r.peligro : f; };
+  return `<div class="box" style="margin-bottom:12px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><p class="help" style="margin:0">${esc(L('Cada actividad define sus tareas y riesgos; el JSA/JRA se llena solo con ella. Las propuestas (de revisores o de quien captura una actividad nueva) las publica un revisor distinto de quien propuso.','Each activity defines its tasks and risks; the JSA/JRA is filled from it. Proposals are published by a reviewer other than the proposer.'))}</p>${esSafety()?`<button class="btn-p btn-sm" type="button" onclick="abrirActividad()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nueva actividad','New activity'))}</button>`:''}</div>
+    <section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Actividad','Activity'))}</th><th>${esc(L('Área','Area'))}</th><th>${esc(L('Formato','Form'))}</th><th>${esc(L('Tareas','Tasks'))}</th><th>${esc(L('Estado','Status'))}</th><th>${esc(L('Propuso','Proposed by'))}</th><th></th></tr></thead><tbody>${A.length?A.map(a=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(a.nombre)}</strong>${a.nota?`<br><span class="help">${esc(a.nota)}</span>`:''}</td><td class="no-i18n">${esc(a.area)}</td><td>${esc(a.tipo==='AMBOS'?'JSA / JRA':a.tipo)}</td>
+      <td class="no-i18n" style="font-size:.76rem;max-width:340px">${(a.pasos||[]).map((p,i)=>`${i+1}. ${esc(p.tarea)} <span class="help">(${(p.riesgos||[]).concat(p.aspectos||[]).map(riesgoNom).map(esc).join(', ')})</span>`).join('<br>')}</td>
+      <td>${a.estado==='PUBLICADA'?`<span class="badge b-done">${esc(L('Publicada','Published'))} v${esc(a.version)}</span>`:`<span class="badge b-pend">${esc(a.reemplaza?L('Cambio propuesto','Proposed change'):L('Propuesta','Proposal'))}</span>`}</td><td class="no-i18n">${esc(a.propusoNombre||'')}</td>
+      <td style="white-space:nowrap">${esSafety()?`<button class="btn-g btn-sm" type="button" onclick="abrirActividad('${a.id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`:''}${esSafety()&&a.estado==='BORRADOR'&&a.propuso!==yo?` <button class="btn-ok btn-sm" type="button" onclick="resolverActividad('${a.id}','PUBLICAR')">${esc(L('Publicar','Publish'))}</button>`:''}${esSafety()&&a.estado==='BORRADOR'?` <button class="btn-g btn-sm" type="button" onclick="resolverActividad('${a.id}','DESCARTAR')" aria-label="${esc(L('Descartar','Discard'))}"><i class="fas fa-trash"></i></button>`:''}</td></tr>`).join(''):vacio(7,L('Todavía no hay actividades.','No activities yet.'))}</tbody></table></div></section>`;
+}
+let AF = null;
+function abrirActividad(id){
+  const a = id ? JSON.parse(JSON.stringify(MZ.actividades.find(x=>x.id===id))) : {nombre:'', area:'Todas las áreas', tipo:'AMBOS', contexto:{}, permisos:[], pasos:[{tarea:'', riesgos:[], aspectos:[], f:1}], nota:''};
+  AF = {id:id||'', a}; pintarActividadForm();
+}
+function leerActividadForm(){
+  const a = AF.a; a.nombre = val('af-nombre'); a.area = val('af-area'); a.tipo = val('af-tipo'); a.nota = val('af-nota');
+  a.contexto = {}; document.querySelectorAll('[data-afq]').forEach(x=>{ if(x.checked) a.contexto[x.dataset.afq] = true; });
+  a.permisos = [...document.querySelectorAll('[data-afp]:checked')].map(x=>x.dataset.afp);
+  a.pasos = a.pasos.map((p,i)=>({ tarea:val('af-t-'+i), f:Number(val('af-f-'+i))||1, riesgos:[...$('af-r-'+i).selectedOptions].map(o=>o.value), aspectos:[...$('af-a-'+i).selectedOptions].map(o=>o.value) }));
+}
+function pintarActividadForm(){
+  const a = AF.a, seg = MZ.riesgos.filter(r=>r.tipo!=='AMBIENTAL'), amb = MZ.riesgos.filter(r=>r.tipo==='AMBIENTAL');
+  const multi = (id, lista, sel) => `<select id="${id}" class="inp" multiple size="6" style="min-height:120px">${lista.map(r=>`<option value="${esc(r.folio)}" ${sel.includes(r.folio)?'selected':''}>${esc(r.folio+' · '+r.peligro)}</option>`).join('')}</select>`;
+  modal(1, AF.id?L('Editar actividad','Edit activity'):L('Nueva actividad','New activity'), `
+    <div class="grid-3">${fld(L('Nombre de la actividad','Activity name'), inp('af-nombre',a.nombre))}${fld(L('Área','Area'), sel('af-area',['Todas las áreas'].concat(areas()),a.area))}${fld(L('Formato','Form'), sel('af-tipo',[{v:'AMBOS',t:'JSA y JRA'},{v:'JSA',t:'JSA'},{v:'JRA',t:'JRA'}],a.tipo))}</div>
+    <div class="sec-title">${esc(L('Condiciones que normalmente aplican (respuesta «Sí» por defecto)','Conditions that usually apply (default «Yes»)'))}</div>
+    <div class="grid-3">${((MZ.preguntas)||[]).map(q=>`<label class="help" style="display:flex;gap:6px;align-items:flex-start"><input type="checkbox" data-afq="${q.id}" ${a.contexto[q.id]?'checked':''}> <span class="no-i18n">${esc(q.t)}</span></label>`).join('')}</div>
+    <div class="sec-title">${esc(L('Permisos de trabajo que siempre requiere','Work permits always required'))}</div>
+    <div class="grid-2">${((MZ.permisosTrabajo)||[]).map(p=>`<label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-afp="${p.id}" ${(a.permisos||[]).includes(p.id)?'checked':''}> <span class="no-i18n">${esc(p.codigo+' · '+p.nombre)}</span></label>`).join('')}</div>
+    <div class="sec-title">${esc(L('Tareas en orden (Ctrl o Cmd para elegir varios riesgos)','Tasks in order (Ctrl or Cmd to pick several risks)'))}</div>
+    ${a.pasos.map((p,i)=>`<div class="box"><div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1">${fld(`Tarea ${i+1}`, inp('af-t-'+i,p.tarea))}</div><div style="width:200px">${fld(L('F del JRA','JRA F'), sel('af-f-'+i,window.KTMEX_FO015.LISTS.f.map(([v,t])=>({v,t:v+' · '+t})),p.f||1))}</div><button class="btn-g btn-sm" type="button" onclick="leerActividadForm();AF.a.pasos.splice(${i},1);pintarActividadForm()" aria-label="${esc(L('Quitar tarea','Remove task'))}"><i class="fas fa-trash"></i></button></div>
+      <div class="grid-2" style="margin-top:6px">${fld(L('Riesgos de seguridad (matriz)','Safety risks (matrix)'), multi('af-r-'+i, seg, p.riesgos||[]))}${fld(L('Aspectos ambientales','Environmental aspects'), multi('af-a-'+i, amb, p.aspectos||[]))}</div></div>`).join('')}
+    <button class="btn-g btn-sm" type="button" onclick="leerActividadForm();AF.a.pasos.push({tarea:'',riesgos:[],aspectos:[],f:1});pintarActividadForm()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tarea','Add task'))}</button>
+    ${fld(L('Nota para los revisores','Note for reviewers'), inp('af-nota',a.nota))}`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" onclick="guardarActividad()">${esc(L('Guardar como propuesta','Save as proposal'))}</button>`, 'xl');
+}
+async function guardarActividad(){ leerActividadForm(); const r = await llamar({action:'actividadGuardar', token:tok(), id:AF.id, datos:AF.a}, L('Actividad guardada como propuesta: otro revisor debe publicarla.','Activity saved as a proposal: another reviewer must publish it.')); if(r){ closeModal('m-gen'); MZ_TAB='actividades'; cargarMatriz(); } }
+async function resolverActividad(id, decision){
+  if(!confirm(uiText(decision==='PUBLICAR'?L('¿Publicar esta actividad en el catálogo?','Publish this activity to the catalog?'):L('¿Descartar esta propuesta?','Discard this proposal?')))) return;
+  const r = await llamar({action:'actividadResolver', token:tok(), id, decision}, decision==='PUBLICAR'?L('Actividad publicada.','Activity published.'):L('Propuesta descartada.','Proposal discarded.')); if(r){ PUB = null; cargarMatriz(); }
+}
 function htmlCriterio(){
   const C = CRITC, t = (cab, filas) => `<div class="tbl-wrap"><table><thead><tr>${cab.map(x=>`<th>${esc(x)}</th>`).join('')}</tr></thead><tbody>${filas.map(f=>`<tr class="tbl-row">${f.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
   let heat = '<table class="heat"><tr><td></td>'+[1,2,3,4,5].map(p=>`<td class="help">P${p}</td>`).join('')+'</tr>';
@@ -1185,8 +1235,8 @@ const JSA_VACIO = () => ({riesgos:[], sev:'', prob:'', medidas:[], sevD:'', prob
 async function nuevoAnalisis(tipo, publico){
   PUB = null; await cargarPublicos();
   const g = {fechaTrabajo:hoy(), capturoNombre: publico?'':(SESSION?SESSION.user.nombre:'')};
-  ED = tipo==='JSA' ? {id:'', tipo, publico, datos:{general:g, tareas:[{texto:'', seg:JSA_VACIO(), amb:JSA_VACIO()}], personal:[]}}
-                    : {id:'', tipo, publico, datos:{general:Object.assign(g,{tipoActividad:'routine'}), tareas:[{texto:'', riesgos:[]}], otrosRiesgos:[], sinQuimicos:true, quimicos:[]}};
+  ED = tipo==='JSA' ? {id:'', tipo, publico, datos:{general:g, actividadId:'', respuestas:{}, nueva:null, tareas:[], personal:[]}}
+                    : {id:'', tipo, publico, datos:{general:Object.assign(g,{tipoActividad:'routine'}), actividadId:'', respuestas:{}, nueva:null, tareas:[], otrosRiesgos:[], sinQuimicos:true, quimicos:[]}};
   showView('editor'); renderEditor();
 }
 async function editarAnalisis(id){
@@ -1196,60 +1246,86 @@ async function editarAnalisis(id){
   const d = ED.datos; d.general = d.general||{}; d.tareas = d.tareas||[]; d.personal = d.personal||[];
   if(a.tipo==='JSA') d.tareas.forEach(t=>{ t.seg = Object.assign(JSA_VACIO(), t.seg||{}); t.amb = Object.assign(JSA_VACIO(), t.amb||{}); });
   else { d.tareas.forEach(t=>t.riesgos=t.riesgos||[]); d.otrosRiesgos = d.otrosRiesgos||[]; d.quimicos = d.quimicos||[]; }
-  showView('editor'); renderEditor();
+  d.respuestas = d.respuestas||{};
+  showView('editor'); renderEditor(); if(d.actividadId || d.nueva) regenerar();
 }
 const gIn = (k, label, extra, cls) => fld(label, inp('g-'+k, ED.datos.general[k], `data-g="${k}" ${extra||''}`), cls);
 const gSel = (k, label, list, ph) => fld(label, sel('g-'+k, list, ED.datos.general[k], ph===undefined?'—':ph, `data-g="${k}"`));
+const NUEVA = '__nueva__';
+function actividadesDisponibles(){
+  const area = ED.datos.general.area || '';
+  return ((PUB && PUB.actividades) || []).filter(a => (a.tipo==='AMBOS' || a.tipo===ED.tipo) && (!area || a.area===area || a.area==='Todas las áreas'));
+}
 function renderEditor(){
   const d = ED.datos, jsa = ED.tipo==='JSA', M = window.KTMEX_FO015;
   let gen;
-  if(jsa) gen = `<div class="grid-3">${gIn('compania',L('Compañía','Company'))}${gIn('actividad',L('Actividad','Activity'))}${gSel('area',L('Área donde se realiza','Area'),areas())}</div>
-    <div class="grid-4">${gIn('periodo',L('Periodo','Period'),'placeholder="08-08-2026 AL 22-08-2026"')}${gIn('horario',L('Horario','Schedule'),'placeholder="16:00 A 04:00"')}${gIn('capturoNombre',L('Nombre de quien captura','Name of person entering'))}${gIn('telefono',L('Teléfono (opcional)','Phone (optional)'))}</div>`;
-  else gen = `<div class="grid-4">${gIn('fechaTrabajo',L('Fecha','Date'),'type="date"')}${gIn('consecutivo',L('No. consecutivo','Consecutive no.'),'placeholder="FAC-0019"')}${gIn('capturoNombre',L('Evaluador (nombre)','Evaluator (name)'))}${gSel('departamento',L('Departamento','Department'),CATS.departamento||[])}</div>
-    <div class="grid-4">${gIn('lineaMaquina',L('Líneas / máquina','Lines / machine'))}${gIn('proceso',L('Proceso','Process'))}${gIn('actividad',L('Actividad','Activity'))}${gSel('area',L('Área','Area'),areas())}</div>
-    <div class="grid-4">${gSel('categoriaTrabajo',L('Categoría de trabajo','Work category'),Object.entries(M.WORK_CATEGORY_LABEL).map(([v,t])=>({v,t})))}${gSel('tipoActividad',L('Tipo de actividad','Activity type'),[{v:'routine',t:L('Rutinaria','Routine')},{v:'nonRoutine',t:L('No rutinaria','Non-routine')}],undefined)}${gSel('moe',L('¿Cuenta con MOE?','Has MOE?'),[{v:'SI',t:L('Sí','Yes')},{v:'NO',t:'No'}])}${gIn('moeCodigo',L('Código de MOE (solo para el sistema)','MOE code (system only)'))}</div>
+  if(jsa) gen = `<div class="grid-3">${gIn('compania',L('Compañía','Company'))}${gSel('area',L('Área donde se realiza','Area'),areas())}${gIn('capturoNombre',L('Nombre de quien captura','Name of person entering'))}</div>
+    <div class="grid-3">${gIn('periodo',L('Periodo','Period'),'placeholder="08-08-2026 AL 22-08-2026"')}${gIn('horario',L('Horario','Schedule'),'placeholder="16:00 A 04:00"')}${gIn('telefono',L('Teléfono (opcional)','Phone (optional)'))}</div>`;
+  else gen = `<div class="grid-4">${gIn('fechaTrabajo',L('Fecha','Date'),'type="date"')}${gIn('consecutivo',L('No. consecutivo','Consecutive no.'),'placeholder="FAC-0019"')}${gIn('capturoNombre',L('Evaluador (nombre)','Evaluator (name)'))}${gSel('area',L('Área','Area'),areas())}</div>
+    <div class="grid-4">${gSel('departamento',L('Departamento','Department'),CATS.departamento||[])}${gIn('lineaMaquina',L('Líneas / máquina','Lines / machine'))}${gIn('proceso',L('Proceso','Process'))}${gSel('moe',L('¿Cuenta con MOE?','Has MOE?'),[{v:'SI',t:L('Sí','Yes')},{v:'NO',t:'No'}])}</div>
+    <div class="grid-3">${gSel('categoriaTrabajo',L('Categoría de trabajo','Work category'),Object.entries(M.WORK_CATEGORY_LABEL).map(([v,t])=>({v,t})))}${gSel('tipoActividad',L('Tipo de actividad','Activity type'),[{v:'routine',t:L('Rutinaria','Routine')},{v:'nonRoutine',t:L('No rutinaria','Non-routine')}],undefined)}${gIn('moeCodigo',L('Código de MOE (solo para el sistema)','MOE code (system only)'))}</div>
     ${ED.publico?`<div class="grid-3">${gIn('compania',L('Compañía o departamento','Company or department'))}</div>`:''}
     <div class="sec-title" style="margin-top:8px">${esc(L('Otros riesgos potenciales (marca todos los que apliquen)','Other potential hazards (check all that apply)'))}</div>
     <div class="grid-3">${M.OTHER_HAZARDS.map((h,i)=>`<label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-otro="${i}" ${(d.otrosRiesgos||[]).includes(h)?'checked':''}> <span class="no-i18n">${esc(h)}</span></label>`).join('')}</div>
     <div class="sec-title" style="margin-top:8px">${esc(L('Higiene industrial y sustancias químicas (anexo FO-016)','Industrial hygiene and chemicals (annex FO-016)'))}</div>
     <label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="g-sinq" ${d.sinQuimicos?'checked':''} onchange="ED.datos.sinQuimicos=this.checked;renderEditor()"> ${esc(L('No hay sustancias químicas en el área (no se llena el anexo)','No chemicals in the area (annex not filled)'))}</label>
     ${d.sinQuimicos?'':htmlQuimicos()}`;
-  const tareas = d.tareas.map((t,i)=> jsa ? htmlTareaJSA(t,i) : htmlTareaJRA(t,i)).join('');
+  const lista = actividadesDisponibles(), valAct = d.nueva ? NUEVA : (d.actividadId||'');
+  const selector = `<div class="grid-2">${fld(L('Actividad','Activity'), `<select id="ed-act" class="inp" onchange="elegirActividad(this.value)"><option value="">${esc(L('— Elige la actividad —','— Choose the activity —'))}</option>${lista.map(a=>`<option value="${a.id}" ${a.id===valAct?'selected':''}>${esc(a.nombre)}${a.area==='Todas las áreas'?'':' · '+esc(a.area)}</option>`).join('')}<option value="${NUEVA}" ${valAct===NUEVA?'selected':''}>${esc(L('➕ Mi actividad no está en el catálogo','➕ My activity is not in the catalog'))}</option></select>`)}<div class="help" style="display:flex;align-items:flex-end">${esc(ED.datos.general.area?L('Se muestran las actividades del área elegida.','Activities for the selected area are shown.'):L('Elige primero el área para ver sus actividades.','Choose the area first to see its activities.'))}</div></div>`;
   const personal = jsa ? `<section class="card" style="padding:18px;margin-top:14px"><div class="sec-title">${esc(L('Personal que realizará el trabajo (un nombre por renglón)','Workers who will do the job (one name per line)'))}</div>${ta('ed-personal',(d.personal||[]).map(p=>p.nombre).join('\n'),'rows="4" data-personal="1"')}<p class="help">${esc(L('Caben 6 por hoja; si son más, el sistema agrega otra hoja del formato.','6 fit per sheet; if more, the system adds another sheet.'))}</p></section>` : '';
   $('editor-body').innerHTML = cabecera(jsa?L('JSA · F-SGA-8.1-7 · trabajo especial o no rutinario','JSA · F-SGA-8.1-7 · special or non-routine work'):L('JRA · KQMS-SA-FO-015 · trabajo rutinario','JRA · KQMS-SA-FO-015 · routine work'),
-      ED.publico?L('No necesitas cuenta. Al enviar recibirás un folio y un código para consultar la respuesta de Safety.','No account needed. When you submit you will get an ID and a code to check Safety\'s response.'):L('Los riesgos de la matriz se convierten a la escala de este formato; ajústalos a las condiciones reales.','Matrix risks are converted to this form\'s scale; adjust them to real conditions.'),
+      L('Elige la actividad y contesta las preguntas: el sistema coloca las tareas, riesgos, evaluación y contramedidas aprobadas por Safety.','Choose the activity and answer the questions: the system fills the tasks, risks, assessment and countermeasures approved by Safety.'),
       `<button class="btn-g btn-sm" type="button" onclick="${ED.publico?"showView('publico')":"showView('analisis')"}">${esc(L('Salir sin guardar','Leave without saving'))}</button>`)
     + `<section class="card" style="padding:18px"><div class="sec-title">${esc(L('Datos generales','General information'))}</div>${gen}</section>
-       <div class="sec-title" style="margin:18px 0 8px">${esc(jsa?L('Tareas (10 por hoja)','Tasks (10 per sheet)'):L('Tareas y riesgos (30 renglones por hoja: uno por riesgo)','Tasks and risks (30 rows per sheet: one per risk)'))}</div><div id="ed-tareas">${tareas}</div>
-       <button class="btn-g" type="button" onclick="agregarTarea()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tarea','Add task'))}</button>
+       <section class="card" style="padding:18px;margin-top:14px"><div class="sec-title">${esc(L('Actividad y condiciones del trabajo','Activity and work conditions'))}</div>${selector}<div id="ed-cond"></div></section>
+       <section class="card" style="padding:18px;margin-top:14px"><div class="sec-title">${esc(L('Tareas, riesgos y contramedidas (los coloca el sistema)','Tasks, risks and countermeasures (filled by the system)'))}</div><div id="ed-contenido"><p class="help">${esc(L('Elige una actividad.','Choose an activity.'))}</p></div></section>
        ${personal}
        <section class="card" style="padding:18px;margin-top:14px"><div id="ed-resumen"></div><div class="toolbar" style="margin-top:12px;justify-content:flex-end">
          ${ED.publico?'':`<button class="btn-g" type="button" onclick="guardarEditor(false)">${esc(L('Guardar borrador','Save draft'))}</button>`}
          <button class="btn-p" type="button" id="btn-enviar-an" onclick="vistaPreviaEditor()"><i class="fas fa-eye" style="margin-right:6px"></i>${esc(L('Vista previa y enviar a Safety','Preview and send to Safety'))}</button></div></section>`;
+  pintarCondiciones(); pintarContenido();
+}
+function elegirActividad(v){
+  const d = ED.datos;
+  if(v===NUEVA){ d.actividadId=''; d.nueva = d.nueva || {nombre:'', pasos:[{tarea:'', condiciones:[]}]}; d.respuestas = {}; }
+  else { d.nueva = null; d.actividadId = v; const a = ((PUB&&PUB.actividades)||[]).find(x=>x.id===v); d.respuestas = a ? Object.assign({}, a.contexto) : {}; }
+  d.tareas = []; pintarCondiciones(); regenerar();
+}
+const preguntasCat = () => (PUB && PUB.preguntas) || [];
+function pintarCondiciones(){
+  const d = ED.datos, el = $('ed-cond'); if(!el) return;
+  if(d.nueva){
+    el.innerHTML = `<div class="box" style="margin-top:10px">${fld(L('Nombre de la actividad nueva','New activity name'), inp('nv-nombre', d.nueva.nombre, 'oninput="ED.datos.nueva.nombre=this.value"'))}
+      <p class="help" style="margin-top:8px">${esc(L('Escribe cada tarea y marca lo que implica. El sistema agrega los riesgos y contramedidas; la actividad queda propuesta para que los revisores de Safety la integren al catálogo.','Write each task and check what it involves. The system adds the risks and countermeasures; the activity is proposed for the Safety reviewers to add to the catalog.'))}</p>
+      ${d.nueva.pasos.map((p,i)=>`<div class="task" style="margin-top:10px"><div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1">${fld(`Tarea ${i+1}`, inp('nv-t-'+i, p.tarea, `oninput="ED.datos.nueva.pasos[${i}].tarea=this.value;regenerarLuego()"`))}</div><button class="btn-g btn-sm" type="button" onclick="ED.datos.nueva.pasos.splice(${i},1);if(!ED.datos.nueva.pasos.length)ED.datos.nueva.pasos.push({tarea:'',condiciones:[]});pintarCondiciones();regenerar()" aria-label="${esc(L('Quitar tarea','Remove task'))}"><i class="fas fa-trash"></i></button></div>
+        <div class="grid-2" style="margin-top:6px">${preguntasCat().map(q=>`<label class="help" style="display:flex;gap:6px;align-items:flex-start"><input type="checkbox" ${p.condiciones.includes(q.id)?'checked':''} onchange="condNueva(${i},'${q.id}',this.checked)"> <span class="no-i18n">${esc(q.t)}</span></label>`).join('')}</div></div>`).join('')}
+      <button class="btn-g btn-sm" type="button" style="margin-top:10px" onclick="ED.datos.nueva.pasos.push({tarea:'',condiciones:[]});pintarCondiciones()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tarea','Add task'))}</button></div>`;
+    return;
+  }
+  if(!d.actividadId){ el.innerHTML = ''; return; }
+  el.innerHTML = `<p class="help" style="margin-top:10px">${esc(L('Contesta según las condiciones reales del trabajo. Cada respuesta agrega o quita riesgos.','Answer according to the real work conditions. Each answer adds or removes risks.'))}</p>
+    <div class="grid-2">${preguntasCat().map(q=>`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--border);border-radius:10px;padding:8px 10px"><span class="no-i18n" style="font-size:.82rem">${esc(q.t)}</span>
+      <span style="display:flex;gap:4px;flex:none"><button type="button" class="btn-sm ${d.respuestas[q.id]?'btn-p':'btn-g'}" onclick="responder('${q.id}',true)">${esc(L('Sí','Yes'))}</button><button type="button" class="btn-sm ${d.respuestas[q.id]===false||!d.respuestas[q.id]?'btn-g':'btn-g'}" style="${d.respuestas[q.id]?'':'background:#0F2A4A;color:#fff'}" onclick="responder('${q.id}',false)">No</button></span></div>`).join('')}</div>`;
+}
+function responder(q, v){ ED.datos.respuestas[q] = v; pintarCondiciones(); regenerar(); }
+function condNueva(i, q, on){ const c = ED.datos.nueva.pasos[i].condiciones; ED.datos.nueva.pasos[i].condiciones = on ? c.concat([q]) : c.filter(x=>x!==q); regenerar(); }
+let REGEN_T = null; function regenerarLuego(){ clearTimeout(REGEN_T); REGEN_T = setTimeout(regenerar, 600); }
+async function regenerar(){
+  const d = ED.datos; if(!d.actividadId && !(d.nueva && d.nueva.pasos.some(p=>p.tarea.trim() && p.condiciones.length))){ d.tareas = []; pintarContenido(); return; }
+  const datos = d.nueva ? {nueva:{nombre:d.nueva.nombre, pasos:d.nueva.pasos.filter(p=>p.tarea.trim() && p.condiciones.length)}} : {actividadId:d.actividadId, respuestas:d.respuestas};
+  const r = await api({action:'analisisGenerar', tipo:ED.tipo, datos});
+  if(!r.success){ $('ed-contenido').innerHTML = `<div class="err-box">${esc(uiText(r.error))}</div>`; d.tareas = []; return; }
+  d.tareas = r.tareas; pintarContenido();
+}
+function pintarContenido(){
+  const el = $('ed-contenido'), d = ED.datos; if(!el) return;
+  if(!d.tareas || !d.tareas.length){ el.innerHTML = `<p class="help">${esc(d.actividadId||d.nueva?L('Sin riesgos todavía: revisa las respuestas o las tareas.','No risks yet: check the answers or tasks.'):L('Elige una actividad.','Choose an activity.'))}</p>`; resumenEditor(); return; }
+  const lis = a => `<ul style="margin:4px 0 0;padding-left:18px">${(a||[]).map(x=>`<li class="no-i18n">${esc(x)}</li>`).join('')}</ul>`;
+  if(ED.tipo==='JSA') el.innerHTML = d.tareas.map((t,i)=>`<div class="task"><strong style="font-size:.88rem">${i+1}.- <span class="no-i18n">${esc(t.texto)}</span></strong>
+    ${['seg','amb'].map(k=>{ const x=t[k]||{}; if(!(x.riesgos||[]).length) return ''; return `<div class="risk"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><strong style="font-size:.8rem">${esc(k==='seg'?L('Seguridad','Safety'):L('Ambiental','Environmental'))}</strong><span><span class="help">${esc(L('Antes','Before'))}</span> ${catJSA(x.sev,x.prob)} <span class="help">${esc(L('Después','After'))}</span> ${catJSA(x.sevD,x.probD)}</span></div>
+      <div class="grid-2"><div><span class="help">${esc(L('Riesgos','Risks'))} · ${esc(x.sev)} / ${esc(x.prob)}</span>${lis(x.riesgos)}</div><div><span class="help">${esc(L('Medidas preventivas y controles','Preventive measures and controls'))}</span>${lis(x.medidas)}</div></div>${(x.documentos||[]).length?`<div><span class="help">${esc(L('Documentación requerida','Required documents'))}</span>${lis(x.documentos)}</div>`:''}</div>`; }).join('')}</div>`).join('');
+  else el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Riesgo','Risk'))}</th><th>H</th><th>S</th><th>F</th><th>P</th><th>C</th><th>UC</th><th>CT</th><th>${esc(L('Medidas de control','Control measures'))}</th></tr></thead><tbody>${d.tareas.map((t,i)=>t.riesgos.map((r,j)=>{ const uc=KF.r2(r.s*r.f*r.p), ct=KF.r2(uc*r.c); return `<tr class="tbl-row">${j===0?`<td rowspan="${t.riesgos.length}">${i+1}</td><td rowspan="${t.riesgos.length}" class="no-i18n">${esc(t.texto)}</td>`:''}<td class="no-i18n">${esc(r.texto)}</td><td>${esc(r.categoria)}</td><td>${r.s}</td><td>${r.f}</td><td>${r.p}</td><td>${r.c}</td><td><span class="nv nv-${uc>20?4:1}">${uc}</span></td><td><span class="nv nv-${ct>20?4:1}">${ct}</span></td><td class="no-i18n" style="font-size:.75rem">${esc((r.medidas||[]).join(' · '))}</td></tr>`; }).join('')).join('')}</tbody></table></div>`;
   resumenEditor();
-}
-function htmlBloqueJSA(i, k, x){
-  const titulo = k==='seg' ? L('Seguridad','Safety') : L('Ambiental','Environmental');
-  const s = (c, list, v) => sel(`j-${c}-${i}-${k}`, list, v, '—', `data-j="${i}" data-jb="${k}" data-jk="${c}"`);
-  return `<div class="risk"><div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:.84rem">${esc(titulo)}</strong><span id="j-ev-${i}-${k}"></span></div>
-    <div class="grid-2" style="margin-top:6px">${fld(L('Riesgos potenciales / aspectos ambientales (uno por renglón)','Potential risks / environmental aspects (one per line)'), ta(`j-riesgos-${i}-${k}`, (x.riesgos||[]).join('\n'), `rows="3" data-j="${i}" data-jb="${k}" data-jk="riesgos"`))}${fld(L('Medidas preventivas y controles operacionales (una por renglón)','Preventive measures and operational controls (one per line)'), ta(`j-medidas-${i}-${k}`, (x.medidas||[]).join('\n'), `rows="3" data-j="${i}" data-jb="${k}" data-jk="medidas"`))}</div>
-    <div class="grid-4">${fld(L('Severidad (antes)','Severity (before)'), s('sev', KF.JSA_SEV, x.sev))}${fld(L('Probabilidad (antes)','Probability (before)'), s('prob', KF.JSA_PROB, x.prob))}${fld(L('Severidad (después)','Severity (after)'), s('sevD', KF.JSA_SEV, x.sevD))}${fld(L('Probabilidad (después)','Probability (after)'), s('probD', KF.JSA_PROB, x.probD))}</div>
-    ${fld(L('Documentación requerida (permisos, hojas de inspección, DC-3…; una por renglón)','Required documents (permits, inspection sheets, DC-3…; one per line)'), ta(`j-documentos-${i}-${k}`, (x.documentos||[]).join('\n'), `rows="2" data-j="${i}" data-jb="${k}" data-jk="documentos"`))}</div>`;
-}
-function htmlTareaJSA(t, i){
-  return `<div class="task"><div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1">${fld(`Tarea ${i+1}`, inp('t-'+i,t.texto,`data-t="${i}" placeholder="${esc(L('Descripción de la tarea a realizar','Description of the task'))}"`))}</div><button class="btn-g btn-sm" type="button" onclick="quitarTarea(${i})" aria-label="${esc(L('Quitar tarea','Remove task'))}"><i class="fas fa-trash"></i></button></div>
-    ${htmlBloqueJSA(i,'seg',t.seg)}${htmlBloqueJSA(i,'amb',t.amb)}
-    <div class="toolbar" style="margin-top:10px"><button class="btn-g btn-sm" type="button" onclick="elegirDeMatriz(${i})"><i class="fas fa-table-cells" style="margin-right:6px"></i>${esc(L('Agregar riesgo de la matriz','Add risk from matrix'))}</button></div></div>`;
-}
-function htmlTareaJRA(t, i){
-  const M = window.KTMEX_FO015, op = l => l.map(([v,tx])=>({v, t:v+' · '+tx}));
-  return `<div class="task"><div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1">${fld(`Tarea ${i+1}`, inp('t-'+i,t.texto,`data-t="${i}" placeholder="${esc(L('Descripción de la tarea','Task description'))}"`))}</div><button class="btn-g btn-sm" type="button" onclick="quitarTarea(${i})" aria-label="${esc(L('Quitar tarea','Remove task'))}"><i class="fas fa-trash"></i></button></div>
-    ${t.riesgos.map((r,j)=>{ const k=`${i}-${j}`, s=(c,l)=>sel(`q-${c}-${k}`, op(l), r[c], '—', `data-q="${k}" data-qk="${c}"`);
-      return `<div class="risk"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:6px"><span class="help">${r.folio?`<span class="mono">${esc(r.folio)}</span> · `+esc(L('de la matriz','from the matrix')):esc(L('Renglón del formato','Form row'))}</span><span id="q-ev-${k}"></span><button class="btn-g btn-sm" type="button" onclick="ED.datos.tareas[${i}].riesgos.splice(${j},1);renderEditor()" aria-label="${esc(L('Quitar riesgo','Remove risk'))}"><i class="fas fa-xmark"></i></button></div>
-        <div class="grid-2">${fld(L('Riesgo potencial identificado','Identified potential risk'), inp('q-texto-'+k, r.texto, `data-q="${k}" data-qk="texto"`))}${fld(L('Categoría de riesgo (H)','Risk category (H)'), sel('q-categoria-'+k, M.CATEGORIES.map(([v,tx])=>({v,t:v+') '+tx})), r.categoria, '—', `data-q="${k}" data-qk="categoria"`))}</div>
-        <div class="grid-4">${fld(L('Severidad (S)','Severity (S)'), s('s',M.LISTS.s))}${fld(L('Frecuencia (F)','Frequency (F)'), s('f',M.LISTS.f))}${fld(L('Probabilidad (P)','Probability (P)'), s('p',M.LISTS.p))}${fld(L('Control (C)','Control (C)'), s('c',M.LISTS.c))}</div>
-        ${fld(L('Notas: medidas de control (una por renglón)','Notes: control measures (one per line)'), ta('q-medidas-'+k, (r.medidas||[]).join('\n'), `rows="2" data-q="${k}" data-qk="medidas"`))}</div>`; }).join('')}
-    <div class="toolbar" style="margin-top:10px"><button class="btn-g btn-sm" type="button" onclick="elegirDeMatriz(${i})"><i class="fas fa-table-cells" style="margin-right:6px"></i>${esc(L('Agregar riesgo de la matriz','Add risk from matrix'))}</button><button class="btn-g btn-sm" type="button" onclick="ED.datos.tareas[${i}].riesgos.push({texto:'',categoria:'',s:'',f:'',p:'',c:'',medidas:[]});renderEditor()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar renglón de riesgo','Add risk row'))}</button></div></div>`;
 }
 function htmlQuimicos(){
   const M = window.KTMEX_FO015, q = ED.datos.quimicos, op = l => l.map(([v,t])=>({v,t:v+' · '+t}));
@@ -1257,64 +1333,28 @@ function htmlQuimicos(){
     return `<tr class="tbl-row"><td>${i+1}</td><td>${inp('qm-nombre-'+i,c.nombre,`data-qm="${i}" data-qmk="nombre"`)}</td><td>${inp('qm-id-'+i,c.id,`data-qm="${i}" data-qmk="id"`)}</td><td>${s('frecuencia',M.LISTS.ihFrequency)}</td><td>${s('duracion',M.LISTS.ihDuration)}</td><td>${s('aire',M.LISTS.ihAir)}</td><td>${s('dermico',M.LISTS.ihDermal)}</td><td>${s('control',M.LISTS.ihControl)}</td><td>${sel('qm-epp-'+i,['SI','No'],c.epp,'—',`data-qm="${i}" data-qmk="epp"`)}</td><td><button class="btn-g btn-sm" type="button" onclick="ED.datos.quimicos.splice(${i},1);renderEditor()" aria-label="${esc(L('Quitar','Remove'))}"><i class="fas fa-xmark"></i></button></td></tr>`; }).join('')}</tbody></table></div>
     <button class="btn-g btn-sm" type="button" style="margin-top:8px" onclick="ED.datos.quimicos.push({nombre:'',id:'',frecuencia:'',duracion:'',aire:'',dermico:'',control:'',epp:''});renderEditor()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar sustancia','Add substance'))}</button>`;
 }
-function agregarTarea(){ ED.datos.tareas.push(ED.tipo==='JSA' ? {texto:'', seg:JSA_VACIO(), amb:JSA_VACIO()} : {texto:'', riesgos:[]}); renderEditor(); }
-function quitarTarea(i){ if(ED.datos.tareas.length>1 || confirm(uiText(L('¿Quitar la única tarea?','Remove the only task?')))){ ED.datos.tareas.splice(i,1); if(!ED.datos.tareas.length) agregarTarea(); else renderEditor(); } }
 function resumenEditor(){
-  const d = ED.datos; let txt = '';
-  if(ED.tipo==='JSA'){
-    let peor = '';
-    d.tareas.forEach((t,i)=>['seg','amb'].forEach(k=>{ const x=t[k]||{}, el=$(`j-ev-${i}-${k}`); if(el) el.innerHTML = `<span class="help">${esc(L('Antes','Before'))}</span> ${catJSA(x.sev,x.prob)} <span class="help">${esc(L('Después','After'))}</span> ${catJSA(x.sevD,x.probD)}`;
-      const p = KF.jsaPuntaje(x.sevD,x.probD); if(p){ const c = KF.JSA_CAT(p)[1]; if(!peor || c<peor) peor = c; } }));
-    txt = `<span class="help">${esc(L('Categoría más alta después de controles','Highest category after controls'))}:</span> <strong>${esc(peor||'—')}</strong>` + ((peor==='A'||peor==='B')?`<p style="color:#B91C1C;font-weight:700;font-size:.84rem;margin:8px 0 0">${esc(L('Queda un riesgo en categoría A o B después de controles: Safety no podrá aprobarlo. Agrega controles.','A risk remains in category A or B after controls: Safety will not be able to approve it. Add controls.'))}</p>`:'');
-  } else {
-    let ct = 0, n = 0;
-    d.tareas.forEach((t,i)=>t.riesgos.forEach((r,j)=>{ n++; const uc = KF.r2((+r.s||0)*(+r.f||0)*(+r.p||0)), c = KF.r2(uc*(+r.c||0)); if(c>ct) ct=c;
-      const el = $(`q-ev-${i}-${j}`); if(el) el.innerHTML = `<span class="nv nv-${uc>20?4:1}">UC ${uc}</span> <span class="nv nv-${c>20?4:1}">CT ${c}</span>`; }));
-    txt = `<span class="help">${esc(L('Renglones','Rows'))}:</span> <strong>${n}</strong> · <span class="help">CT máx.:</span> <strong>${ct}</strong>` + (ct>20?`<p style="color:#B91C1C;font-weight:700;font-size:.84rem;margin:8px 0 0">${esc(L('Hay un CT mayor a 20 (el formato lo marca en rojo): Safety no podrá aprobarlo.','There is a CT above 20 (the form marks it red): Safety will not be able to approve it.'))}</p>`:'');
-  }
-  $('ed-resumen').innerHTML = txt;
+  const d = ED.datos, el = $('ed-resumen'); if(!el) return; let txt = '';
+  if(ED.tipo==='JSA'){ let peor = '';
+    (d.tareas||[]).forEach(t=>['seg','amb'].forEach(k=>{ const x=t[k]||{}, p = KF.jsaPuntaje(x.sevD,x.probD); if(p){ const c = KF.JSA_CAT(p)[1]; if(!peor || c<peor) peor = c; } }));
+    txt = `<span class="help">${esc(L('Categoría más alta después de controles','Highest category after controls'))}:</span> <strong>${esc(peor||'—')}</strong>` + ((peor==='A'||peor==='B')?`<p style="color:#B91C1C;font-weight:700;font-size:.84rem;margin:8px 0 0">${esc(L('Queda un riesgo en categoría A o B después de controles: Safety podría regresarlo.','A risk remains in category A or B after controls: Safety may return it.'))}</p>`:'');
+  } else { let ct = 0, n = 0; (d.tareas||[]).forEach(t=>t.riesgos.forEach(r=>{ n++; const c = KF.r2(r.s*r.f*r.p*r.c); if(c>ct) ct=c; }));
+    txt = `<span class="help">${esc(L('Renglones','Rows'))}:</span> <strong>${n}</strong> · <span class="help">CT máx.:</span> <strong>${ct}</strong>` + (ct>20?`<p style="color:#B91C1C;font-weight:700;font-size:.84rem;margin:8px 0 0">${esc(L('Hay un CT mayor a 20: Safety podría regresarlo.','There is a CT above 20: Safety may return it.'))}</p>`:''); }
+  el.innerHTML = txt;
 }
 document.addEventListener('input', edCambio); document.addEventListener('change', edCambio);
 function edCambio(e){
   const el = e.target; if(!ED || !el.closest || !el.closest('#editor-body')) return;
   const v = el.type==='checkbox' ? el.checked : el.value, d = ED.datos;
-  if(el.dataset.g){ d.general[el.dataset.g] = v; return; }
-  if(el.dataset.t!==undefined){ d.tareas[+el.dataset.t].texto = v; return; }
+  if(el.dataset.g){ d.general[el.dataset.g] = v; if(el.dataset.g==='area' && e.type==='change'){ renderEditor(); } return; }
   if(el.dataset.personal){ d.personal = lineasDe(v).map(n=>({nombre:n})); return; }
   if(el.dataset.otro!==undefined){ const h = window.KTMEX_FO015.OTHER_HAZARDS[+el.dataset.otro]; d.otrosRiesgos = (d.otrosRiesgos||[]).filter(x=>x!==h).concat(v?[h]:[]); return; }
-  if(el.dataset.qm!==undefined){ d.quimicos[+el.dataset.qm][el.dataset.qmk] = /^(frecuencia|duracion|aire|dermico|control)$/.test(el.dataset.qmk) && v!=='' ? Number(v) : v; return; }
-  if(el.dataset.j!==undefined){ const x = d.tareas[+el.dataset.j][el.dataset.jb], k = el.dataset.jk; x[k] = ['riesgos','medidas','documentos'].includes(k) ? lineasDe(v) : v; resumenEditor(); return; }
-  if(el.dataset.q){ const [i,j] = el.dataset.q.split('-').map(Number), r = d.tareas[i].riesgos[j], k = el.dataset.qk;
-    r[k] = k==='medidas' ? lineasDe(v) : ['s','f','p','c'].includes(k) ? (v===''?'':Number(v)) : v; resumenEditor(); }
-}
-function elegirDeMatriz(i){
-  const area = ED.datos.general.area || '';
-  modal(2, L('Riesgos de la matriz publicada','Risks from the published matrix'),
-    `<p class="help">${esc(L('Los valores se convierten a la escala de este formato con la tabla aprobada por Safety. Puedes ajustarlos después.','Values are converted to this form\'s scale with the table approved by Safety. You can adjust them afterwards.'))}</p><div class="toolbar">${inp('pk-q','','placeholder="'+esc(L('Buscar peligro o tarea','Search hazard or task'))+'" oninput="filasPicker('+i+')" style="max-width:280px"')}${sel('pk-area',areas(),area,L('Todas las áreas','All areas'),'onchange="filasPicker('+i+')" style="max-width:220px"')}</div><div class="tbl-wrap"><table><thead><tr><th>Folio</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Peligro','Hazard'))}</th><th>${esc(L('Matriz','Matrix'))}</th><th></th></tr></thead><tbody id="pk-rows"></tbody></table></div>`,
-    `<button class="btn-g" type="button" onclick="closeModal('m-gen2')">${esc(L('Cerrar','Close'))}</button>`);
-  filasPicker(i);
-}
-function filasPicker(i){
-  const q=val('pk-q').toLowerCase(), a=val('pk-area'), lista=(PUB&&PUB.riesgos)||[];
-  const rows = lista.filter(r=>(!a||r.area===a)&&(!q||[r.tarea,r.peligro,r.causa,r.folio].join(' ').toLowerCase().includes(q)));
-  $('pk-rows').innerHTML = rows.length ? rows.map(r=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(r.folio)}</td><td class="no-i18n">${esc(r.tarea)}</td><td class="no-i18n"><strong>${esc(r.peligro)}</strong><br><span class="help">${esc(r.causa||'')}</span></td><td>${nvB(nivelJS(r.s,r.p,false))}</td><td><button class="btn-p btn-sm" type="button" onclick="tomarDeMatriz(${i},'${r.id}')">${esc(L('Agregar','Add'))}</button></td></tr>`).join('')
-    : vacio(5, lista.length?L('Ningún riesgo coincide.','No risk matches.'):L('La matriz todavía no tiene riesgos publicados. Captura el riesgo manualmente.','The matrix has no published risks yet. Enter the risk manually.'));
-}
-function tomarDeMatriz(i, id){
-  const r = PUB.riesgos.find(x=>x.id===id), C = KF.desdeMatriz, t = ED.datos.tareas[i];
-  const epp = ['eppCabeza','eppOjos','eppResp','eppAud','eppManos','eppPies','eppCuerpo'].map(k=>r[k]).filter(x=>x&&x!=='N/A');
-  const medidas = [r.ctlElim, r.ctlIng, r.ctlAdm].filter(Boolean).concat(epp.length?['EPP: '+epp.join(', ')]:[]);
-  const peligro = r.peligro + (r.causa ? ' ('+r.causa+')' : '');
-  if(ED.tipo==='JSA'){
-    const x = t.seg, max = (lista, a, b) => lista.indexOf(a) >= lista.indexOf(b) ? a : b;
-    x.riesgos.push(peligro); x.medidas = x.medidas.concat(medidas);
-    x.sev = max(KF.JSA_SEV, x.sev, C.jsaSev(r.s)); x.prob = max(KF.JSA_PROB, x.prob, C.jsaProb(r.p));
-    x.sevD = max(KF.JSA_SEV, x.sevD, C.jsaSev(r.s)); x.probD = max(KF.JSA_PROB, x.probD, C.jsaProb(r.pRes||r.p));
-    if(r.programa && r.programa!=='Ninguno' && !x.documentos.includes(r.programa)) x.documentos.push(r.programa);
-  } else t.riesgos.push({folio:r.folio, riesgoId:r.id, texto:peligro, categoria:r.categoria||'', s:C.jraS(r.s), f:'', p:C.jraP(r.p), c:C.jraC(r.ctlMayor), medidas});
-  closeModal('m-gen2'); renderEditor(); toast(ED.tipo==='JRA'?L('Riesgo agregado. Elige la frecuencia (F).','Risk added. Choose the frequency (F).'):L('Riesgo agregado.','Risk added.'));
+  if(el.dataset.qm!==undefined){ d.quimicos[+el.dataset.qm][el.dataset.qmk] = /^(frecuencia|duracion|aire|dermico|control)$/.test(el.dataset.qmk) && v!=='' ? Number(v) : v; }
 }
 async function vistaPreviaEditor(){
+  if(!ED.datos.actividadId && !ED.datos.nueva){ toast(L('Elige una actividad del catálogo o registra la actividad nueva.','Choose an activity from the catalog or register the new activity.'),'err'); return; }
+  await regenerar(); if(!ED.datos.tareas.length){ toast(L('Todavía no hay riesgos: revisa la actividad y las respuestas.','No risks yet: check the activity and the answers.'),'err'); return; }
+  if(!ED.datos.general.actividad) ED.datos.general.actividad = ED.datos.nueva ? ED.datos.nueva.nombre : ((PUB.actividades||[]).find(a=>a.id===ED.datos.actividadId)||{}).nombre || '';
   const doc = {tipo:ED.tipo, folio:ED.id?'':'', datos:ED.datos};
   modal(1, L('Vista previa del formato','Form preview'), `<p class="help">${esc(L('Así quedará el formato. Revisa y confirma para enviarlo a Safety.','This is how the form will look. Review and confirm to send it to Safety.'))}</p><div id="prev-hojas" style="width:100%"><p class="help">${esc(L('Preparando el formato…','Preparing the form…'))}</p></div>`,
     `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Corregir','Correct'))}</button><button class="btn-g" type="button" onclick="descargarAnalisis(null, {tipo:ED.tipo, datos:ED.datos})"><i class="fas fa-file-excel" style="margin-right:6px"></i>${esc(L('Descargar Excel','Download Excel'))}</button><button class="btn-p" type="button" id="btn-confirmar" onclick="guardarEditor(true)">${esc(L('Confirmar y enviar a Safety','Confirm and send to Safety'))}</button>`, 'xl');
@@ -1375,7 +1415,7 @@ const biV = id => ({es:val(id+'-es'), en:val(id+'-en')});
 function abrirEvento(id, clase){
   const e = id ? JSON.parse(JSON.stringify(EV.find(x=>x.id===id))) : {clase, fecha:hoy(), datos:{acciones:[]}, privado:{}, fotos:[], estatus:'Abierto', partesCuerpo:[]};
   const com = e.clase==='COMUNICADO', d = e.datos||{}, pv = e.privado||{};
-  EVF = {id:id||'', clase:e.clase, existentes:(e.fotos||[]).map((f,i)=>({id:f, rol:((d.fotosRol||[])[i])||'Evento'})), nuevas:[], acciones:(d.acciones||[]).map(a=>Object.assign({accion:{es:'',en:''}},a)), planoX:e.planoX, planoY:e.planoY, partes:(e.partesCuerpo||[]).slice()};
+  EVF = {id:id||'', clase:e.clase, existentes:(e.fotos||[]).map((f,i)=>({id:f, rol:((d.fotosRol||[])[i])||'Evento'})), nuevas:[], acciones:(d.acciones||[]).map(a=>Object.assign({accion:{es:'',en:''}},a)), zonas:(e.zonas||[]).map(Number), partes:(e.partesCuerpo||[]).slice()};
   const cuerpo = com ? `
     <div class="grid-4">${fld(L('Incidente # (consecutivo)','Incident #'), inp('ev-numero',e.numero))}${fld(L('Clasificación','Classification'), sel('ev-clasificacion',CLASIF,e.clasificacion,'—','onchange="$(\'ev-tipo-txt\').textContent=TIPO_DE[this.value]||\'—\'"'))}${fld(L('Tipo para indicadores','Type for indicators'), `<div class="inp" id="ev-tipo-txt" style="display:flex;align-items:center;background:#F1F5F9">${esc(TIPO_DE[e.clasificacion]||'—')}</div>`)}${fld(L('Turno / cuadrilla','Shift / crew'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}</div>
     <div class="grid-4">${fld(L('Fecha del evento','Event date'), inp('ev-fecha',e.fecha,'type="date"'))}${fld(L('Hora del evento','Event time'), inp('ev-hora',e.hora,'type="time"'))}${fld(L('Fecha de notificación a Safety','Date notified to Safety'), inp('ev-fechaNotificacion',d.fechaNotificacion,'type="date"'))}${fld(L('Hora de notificación','Notification time'), inp('ev-horaNotificacion',d.horaNotificacion,'type="time"'))}</div>
@@ -1397,7 +1437,7 @@ function abrirEvento(id, clase){
     <div class="sec-title">${esc(L('Fotos (máx. 3)','Photos (max. 3)'))}</div>
     <p class="help">${esc(L('Antes de guardar cada foto podrás tapar las caras. La foto original no se guarda.','Before saving each photo you can cover faces. The original photo is not stored.'))}</p>
     <div id="ev-thumbs"></div><input type="file" id="ev-foto" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="fotoEvento(this)">
-    <div class="sec-title">${esc(L('Ubicación en el plano (opcional)','Location on the plant layout (optional)'))}</div><div id="ev-plano"></div>`,
+    <div class="sec-title">${esc(L('Zona del layout donde ocurrió','Layout zone where it happened'))}</div><div id="ev-plano"></div>`,
     `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-g" type="button" onclick="traducirEvento(true)"><i class="fas fa-language" style="margin-right:6px"></i>${esc(L('Traducir al inglés','Translate to English'))}</button><button class="btn-p" type="button" id="btn-ev" onclick="vistaPreviaEvento()"><i class="fas fa-eye" style="margin-right:6px"></i>${esc(L('Vista previa','Preview'))}</button>`, 'xl');
   pintarAcciones(); pintarThumbs(); pintarPlanoEvento(); if(com) pintarCuerpoEvento();
 }
@@ -1422,11 +1462,16 @@ function pintarThumbs(){
   EVF.existentes.forEach(async (f,i)=>{ const u = await archivo(f.id); const el=$('th-x-'+i); if(u && el) el.insertAdjacentHTML('afterbegin', `<img src="${u}" alt="">`); });
 }
 async function planoUrl(){ const id = BOOT && BOOT.plano; if(!id) return null; if(!PLANO_URL) PLANO_URL = await archivo(id); return PLANO_URL; }
-async function pintarPlanoEvento(){
-  const u = await planoUrl(), el = $('ev-plano'); if(!el) return;
-  if(!u){ el.innerHTML = `<p class="help">${esc(L('Todavía no hay plano. Safety puede subirlo en Indicadores.','No plant layout yet. Safety can upload it in Indicators.'))}</p>`; return; }
-  el.innerHTML = `<p class="help">${esc(L('Toca el plano donde ocurrió.','Tap the layout where it happened.'))}</p><div class="plano" id="ev-plano-img" style="cursor:crosshair"><img src="${u}" alt="Plano">${EVF.planoX!==''&&EVF.planoX!=null?`<span class="dot" style="left:${EVF.planoX}%;top:${EVF.planoY}%;background:#DC2626"></span>`:''}</div>`;
-  $('ev-plano-img').onclick = ev => { const r = ev.currentTarget.getBoundingClientRect(); EVF.planoX = Math.round((ev.clientX-r.left)/r.width*1000)/10; EVF.planoY = Math.round((ev.clientY-r.top)/r.height*1000)/10; pintarPlanoEvento(); };
+function pintarPlanoEvento(){
+  const el = $('ev-plano'); if(!el || !window.KTLAYOUT) return;
+  const Z = window.KTLAYOUT.zonas.slice().sort((a,b)=>a.n.localeCompare(b.n,'es',{numeric:true}));
+  el.innerHTML = `<div class="toolbar" style="margin-bottom:8px"><input id="lz-q" class="inp" list="lz-lista" placeholder="${esc(L('Buscar zona y presionar Enter','Search zone and press Enter'))}" style="max-width:320px"><datalist id="lz-lista">${Z.map(z=>`<option value="${esc(z.n)}">`).join('')}</datalist>
+    <span id="lz-chips" style="display:flex;gap:6px;flex-wrap:wrap">${EVF.zonas.map(id=>{ const z = Z.find(x=>x.id===id); return z?`<span class="badge b-info" style="cursor:pointer" data-quitar="${id}"><i style="width:10px;height:10px;border-radius:2px;background:${z.c};display:inline-block"></i> ${esc(z.n)} ✕</span>`:''; }).join('') || `<span class="help">${esc(L('Toca el layout o busca la zona.','Tap the layout or search the zone.'))}</span>`}</span></div>
+    <div id="lz-mapa">${KF.layoutSVG(EVF.zonas, {}, true)}</div>`;
+  const toggle = id => { EVF.zonas = EVF.zonas.includes(id) ? EVF.zonas.filter(x=>x!==id) : EVF.zonas.concat([id]); pintarPlanoEvento(); };
+  el.querySelectorAll('[data-zl]').forEach(p=>p.addEventListener('click', ()=>toggle(+p.dataset.zl)));
+  el.querySelectorAll('[data-quitar]').forEach(b=>b.addEventListener('click', ()=>toggle(+b.dataset.quitar)));
+  $('lz-q').addEventListener('keydown', e=>{ if(e.key!=='Enter') return; e.preventDefault(); const t = e.target.value.trim().toLowerCase(); const z = Z.find(x=>x.n.toLowerCase()===t) || Z.filter(x=>x.n.toLowerCase().includes(t))[0]; if(z && t) toggle(z.id); });
 }
 async function fotoEvento(input){
   const f = input.files && input.files[0]; input.value=''; if(!f) return;
@@ -1479,7 +1524,7 @@ function leerEvento(){
                     : {mes:g('mes'), dia:g('dia'), problema:biV('ev-problema'), regla:g('regla'), noCumplimiento:biV('ev-noCumplimiento'), acciones:EVF.acciones};
   return { numero:g('numero'), clasificacion:g('clasificacion'), tipo:com?(TIPO_DE[g('clasificacion')]||''):'Acto inseguro', fecha:g('fecha'), hora:g('hora'), turno:g('turno'), area:g('area'), departamento:g('departamento'),
     stopRiesgo:g('stopRiesgo'), stopSeveridad:g('stopSeveridad'), diasPerdidos:g('diasPerdidos'), costo:g('costo'), tipoPersona:g('tipoPersona'), estatus:g('estatus'), tipoLesion:g('tipoLesion'),
-    planoX:EVF.planoX??'', planoY:EVF.planoY??'', partesCuerpo:EVF.partes, datos:Object.assign(datos,{fotosRol:orden.map(f=>f.rol||'Evento')}),
+    planoX:'', planoY:'', zonas:EVF.zonas, partesCuerpo:EVF.partes, datos:Object.assign(datos,{fotosRol:orden.map(f=>f.rol||'Evento')}),
     privado: com ? {nombre:g('p-nombre'), numeroEmpleado:g('p-numeroEmpleado')} : {}, _orden:orden };
 }
 async function fotosComoDataUrl(orden){ return (await Promise.all(orden.map(f=>f.dataUrl ? f.dataUrl : archivo(f.id)))).filter(Boolean); }
@@ -1561,10 +1606,10 @@ async function renderKPI(){
     <section class="card chart-card"><h3>${esc(L('Eventos por área','Events by area'))}</h3><canvas id="ch-area"></canvas></section><section class="card chart-card"><h3>${esc(L('Clasificación STOP 6','STOP 6 classification'))}</h3><canvas id="ch-stop"></canvas></section>
     <section class="card chart-card"><h3>${esc(L('Matriz: riesgos por nivel vigente','Matrix: risks by current level'))}</h3><canvas id="ch-mz"></canvas></section><section class="card chart-card"><h3>${esc(L('JSA y JRA por estatus','JSA and JRA by status'))}</h3><canvas id="ch-an"></canvas><p class="help" id="kp-an"></p></section></div>
     <div class="grid-2" style="margin-top:14px"><section class="card chart-card"><h3>${esc(L('Lesiones por parte del cuerpo','Injuries by body part'))}</h3><div id="kp-cuerpo"></div><div id="kp-cuerpo-lista" class="help"></div></section><section class="card chart-card"><h3>${esc(L('Eventos por turno o cuadrilla','Events by shift or crew'))}</h3><canvas id="ch-turno"></canvas></section></div>
-    <section class="card" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 10px;font-size:.9rem;color:var(--navy)">${esc(L('Plano: dónde ocurren los eventos','Layout: where events happen'))}</h3><div id="kp-plano"></div></section>
+    <section class="card" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 10px;font-size:.9rem;color:var(--navy)">${esc(L('Layout: dónde ocurren los eventos','Layout: where events happen'))}</h3><div id="kp-plano"></div><p class="help" id="kp-plano-txt"></p></section>
     ${esGestor()?`<section class="card" style="padding:16px;margin-top:14px"><div class="sec-title">${esc(L('Horas-hombre por mes','Man-hours per month'))} · ${esc(KP_ANIO)}</div><div class="grid-4" style="margin-top:8px">${Array.from({length:12},(_,i)=>{const m=KP_ANIO+'-'+String(i+1).padStart(2,'0'), h=KP.horas.find(x=>String(x.mes)===m); return fld(m, inp('hh-'+m,h?h.horas:'','type="number" min="0"'));}).join('')}</div>
       <div class="toolbar" style="margin-top:10px">${sel('hh-base',[{v:200000,t:L('Base 200,000 horas','Base 200,000 hours')},{v:1000000,t:L('Base 1,000,000 horas','Base 1,000,000 hours')}],base,undefined,'style="width:auto"')}<button class="btn-p btn-sm" type="button" onclick="guardarHoras()">${esc(L('Guardar horas-hombre','Save man-hours'))}</button>
-      <label class="btn-g btn-sm" style="cursor:pointer"><i class="fas fa-map" style="margin-right:6px"></i>${esc(L('Subir plano de la planta','Upload plant layout'))}<input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="subirPlano(this)"></label></div></section>`:''}`;
+      </div></section>`:''}`;
   const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const porMes = t => meses.map((_,i)=>ev.filter(e=>(t==='ALERTA'?e.clase==='ALERTA':e.tipo===t)&&Number(String(e.fecha).slice(5,7))===i+1).length);
   const colores = {Accidente:'#DC2626',Incidente:'#F59E0B','Casi accidente':'#3B82F6','Daño a la propiedad':'#8B5CF6',ALERTA:'#10B981'};
@@ -1590,12 +1635,12 @@ async function renderKPI(){
   $('kp-cuerpo-lista').textContent = top.length ? top.map(([z,n])=>KF.nombreZona(z)+': '+n).join(' · ') : L('Sin lesiones registradas en el año.','No injuries recorded this year.');
   pintarPlanoKPI(ev, colores);
 }
-async function pintarPlanoKPI(ev, colores){
-  const u = await planoUrl(), el = $('kp-plano'); if(!el) return;
-  if(!u){ el.innerHTML = `<p class="help">${esc(esGestor()?L('Sube el plano de la planta con el botón de abajo para ver dónde ocurren los eventos.','Upload the plant layout with the button below to see where events happen.'):L('Safety todavía no ha subido el plano de la planta.','Safety has not uploaded the plant layout yet.'))}</p>`; return; }
-  const pts = ev.filter(e=>e.planoX!==''&&e.planoX!=null);
-  el.innerHTML = `<div class="plano"><img src="${u}" alt="Plano">${pts.map(e=>`<span class="dot" title="${esc(e.folio+' · '+(e.tipo||'Alerta')+' · '+e.area)}" style="left:${e.planoX}%;top:${e.planoY}%;background:${colores[e.clase==='ALERTA'?'ALERTA':e.tipo]||'#64748B'}"></span>`).join('')}</div>
-    <div class="toolbar" style="margin-top:8px">${Object.entries(colores).map(([t,c])=>`<span class="help" style="display:flex;align-items:center;gap:5px"><span class="dot" style="position:static;transform:none;background:${c}"></span>${esc(t==='ALERTA'?L('Alerta','Alert'):t)}</span>`).join('')}<span class="help">· ${pts.length} de ${ev.length} eventos con ubicación</span></div>`;
+function pintarPlanoKPI(ev){
+  const el = $('kp-plano'); if(!el) return;
+  const conteo = {}; ev.forEach(e=>(e.zonas||[]).forEach(z=>conteo[z]=(conteo[z]||0)+1));
+  el.innerHTML = KF.layoutSVG([], conteo, false);
+  const top = Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  $('kp-plano-txt').textContent = top.length ? top.map(([z,n])=>KF.nombreZonaPlanta(z)+': '+n).join(' · ') : L('Sin eventos con zona registrada en el año.','No events with a zone this year.');
 }
 async function guardarHoras(){
   const meses = Array.from({length:12},(_,i)=>KP_ANIO+'-'+String(i+1).padStart(2,'0')).filter(m=>val('hh-'+m)!=='');
@@ -1627,15 +1672,15 @@ function renderContratistas(){
   const tabs = [['empresas',L('Empresas','Companies'),'fa-building'],['trabajadores',L('Trabajadores','Workers'),'fa-users'],['dc3','DC-3','fa-file-certificate'],['aptitud',L('Aptitud por permiso','Fitness by permit'),'fa-check-double']];
   const btn = {empresas:['Empresas',L('Nueva empresa','New company')], trabajadores:['Trabajadores',L('Nuevo trabajador','New worker')], dc3:['DC3',L('Nueva DC-3','New DC-3')]}[CT_TAB];
   const porVencer = CT.dc3.filter(x=>vigenciaDC3(x)[2]<=1).length;
-  let h = cabecera(L('Contratistas y DC-3','Contractors and DC-3'), L('Empresas, trabajadores y constancias DC-3 con vigencia, verificación de Safety y aptitud para cada permiso de trabajo.','Companies, workers and DC-3 certificates with expiry, Safety verification and fitness for each work permit.'), btn?`<button class="btn-p btn-sm" type="button" onclick="abrirContr('${btn[0]}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(btn[1])}</button>`:'')
+  let h = cabecera(L('Contratistas y DC-3','Contractors and DC-3'), L('Empresas, trabajadores y constancias DC-3 con vigencia, verificación de Safety y aptitud para cada permiso de trabajo.','Companies, workers and DC-3 certificates with expiry, Safety verification and fitness for each work permit.'), btn && esCap()?`<button class="btn-p btn-sm" type="button" onclick="abrirContr('${btn[0]}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(btn[1])}</button>`:'')
     + (porVencer?`<div class="box" style="border-color:#FCD34D;background:#FFFBEB;margin-bottom:12px"><strong style="font-size:.86rem">${esc(`${porVencer} constancias DC-3 vencidas o por vencer en 30 días.`)}</strong></div>`:'') + pestanas(tabs, CT_TAB, 'tabContr');
   const tabla = (cab, filas, n) => `<section class="card"><div class="tbl-wrap"><table><thead><tr>${cab.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas||vacio(n, L('Todavía no hay registros.','No records yet.'))}</tbody></table></div></section>`;
-  const edit = (t,id) => `<button class="btn-g btn-sm" type="button" onclick="abrirContr('${t}','${id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`;
+  const edit = (t,id) => !esCap() ? '' : `<button class="btn-g btn-sm" type="button" onclick="abrirContr('${t}','${id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`;
   const activo = a => String(a).toUpperCase()==='FALSE' ? `<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>` : `<span class="badge b-done">${esc(L('Activo','Active'))}</span>`;
   if(CT_TAB==='empresas') h += tabla([L('Empresa','Company'),'RFC',L('Contacto','Contact'),L('Teléfono','Phone'),L('Trabajadores','Workers'),L('Estatus','Status'),''], CT.empresas.map(e=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(e.nombre)}</strong></td><td class="mono">${esc(e.rfc||'')}</td><td class="no-i18n">${esc(e.contacto||'')}<br><span class="help">${esc(e.correo||'')}</span></td><td>${esc(e.telefono||'')}</td><td>${CT.trabajadores.filter(t=>t.empresaId===e.id).length}</td><td>${activo(e.activo)}</td><td>${edit('Empresas',e.id)}</td></tr>`).join(''), 7);
   if(CT_TAB==='trabajadores') h += tabla([L('Nombre','Name'),L('Empresa','Company'),L('Puesto','Position'),'CURP','DC-3',L('Estatus','Status'),''], CT.trabajadores.map(t=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(t.nombre)}</strong></td><td class="no-i18n">${esc(empNombre(t.empresaId))}</td><td class="no-i18n">${esc(t.puesto||'')}</td><td class="mono" id="curp-${t.id}">${esc(t.curp||'—')}${t.curp?` <button class="btn-g btn-sm" type="button" onclick="verCurp('${t.id}')" title="${esc(L('Ver CURP completa (queda registrado)','Show full CURP (logged)'))}" aria-label="${esc(L('Ver CURP completa (queda registrado)','Show full CURP (logged)'))}"><i class="fas fa-eye"></i></button>`:''}</td><td>${CT.dc3.filter(x=>x.trabajadorId===t.id).length}</td><td>${activo(t.activo)}</td><td>${edit('Trabajadores',t.id)}</td></tr>`).join(''), 7);
   if(CT_TAB==='dc3') h += tabla([L('Trabajador','Worker'),L('Empresa','Company'),L('Tema','Topic'),L('Permiso que habilita','Permit enabled'),L('Emisión','Issued'),L('Vigencia','Valid until'),L('Verificada','Verified'),L('Archivo','File'),''], CT.dc3.map(x=>{ const v=vigenciaDC3(x), t=trabajador(x.trabajadorId); return `<tr class="tbl-row"><td class="no-i18n"><strong>${esc(t.nombre||'—')}</strong></td><td class="no-i18n">${esc(empNombre(t.empresaId))}</td><td class="no-i18n">${esc(x.tema)}</td><td>${esc(x.permiso||'—')}</td><td>${esc(x.fechaEmision||'')}</td><td>${esc(x.vigencia)}<br><span class="badge ${v[0]}">${esc(v[1])}</span></td>
-      <td>${String(x.verificada).toUpperCase()==='TRUE'?`<span class="badge b-done">${esc(L('Sí','Yes'))}</span><br><span class="help no-i18n">${esc(x.verificadaPor||'')}</span>`:`<span class="badge b-pend">${esc(L('Por verificar','To verify'))}</span>`}${esSafety()?`<br><button class="btn-g btn-sm" type="button" style="margin-top:4px" onclick="verificarDC3('${x.id}',${String(x.verificada).toUpperCase()!=='TRUE'})">${esc(String(x.verificada).toUpperCase()==='TRUE'?L('Quitar verificación','Unverify'):L('Verificar','Verify'))}</button>`:''}</td>
+      <td>${String(x.verificada).toUpperCase()==='TRUE'?`<span class="badge b-done">${esc(L('Sí','Yes'))}</span><br><span class="help no-i18n">${esc(x.verificadaPor||'')}</span>`:`<span class="badge b-pend">${esc(L('Por verificar','To verify'))}</span>`}${esCap()?`<br><button class="btn-g btn-sm" type="button" style="margin-top:4px" onclick="verificarDC3('${x.id}',${String(x.verificada).toUpperCase()!=='TRUE'})">${esc(String(x.verificada).toUpperCase()==='TRUE'?L('Quitar verificación','Unverify'):L('Verificar','Verify'))}</button>`:''}</td>
       <td>${x.archivo?`<button class="btn-g btn-sm" type="button" onclick="verArchivo('${x.archivo}')">${esc(L('Ver','View'))}</button>`:'—'}</td><td>${edit('DC3',x.id)}</td></tr>`; }).join(''), 9);
   if(CT_TAB==='aptitud'){
     const activos = CT.trabajadores.filter(t=>String(t.activo).toUpperCase()!=='FALSE');
@@ -1682,9 +1727,9 @@ async function cargarCursos(){
 }
 function tabCursos(t){ CU_TAB=t; renderCursos(); }
 function renderCursos(){
-  let h = cabecera(L('Capacitación de contratistas','Contractor training'), L('Safety publica el curso y el banco de preguntas. El examen se califica en el servidor; el contratista nunca ve las respuestas.','Safety publishes the course and question bank. The exam is graded on the server; the contractor never sees the answers.'), CU_TAB==='cursos'?`<button class="btn-p btn-sm" type="button" onclick="abrirCurso()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo curso','New course'))}</button>`:'')
+  let h = cabecera(L('Capacitación de contratistas','Contractor training'), L('Safety publica el curso y el banco de preguntas. El examen se califica en el servidor; el contratista nunca ve las respuestas.','Safety publishes the course and question bank. The exam is graded on the server; the contractor never sees the answers.'), CU_TAB==='cursos'&&esCap()?`<button class="btn-p btn-sm" type="button" onclick="abrirCurso()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo curso','New course'))}</button>`:'')
     + pestanas([['cursos',L('Cursos','Courses'),'fa-book'],['resultados',L('Resultados','Results'),'fa-square-poll-vertical']], CU_TAB, 'tabCursos');
-  if(CU_TAB==='cursos') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Temas','Topics'))}</th><th>${esc(L('Preguntas','Questions'))}</th><th>${esc(L('Mínimo','Pass mark'))}</th><th>${esc(L('Intentos','Attempts'))}</th><th>${esc(L('Segundos por pregunta','Seconds per question'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${CU.cursos.length?CU.cursos.map(c=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(c.titulo)}</strong><br><span class="help">${esc(c.descripcion||'')}</span></td><td>${(c.temas||[]).length}</td><td>${(c.preguntas||[]).length}</td><td>${esc(c.minimo)}%</td><td>${esc(c.intentos)}</td><td>${esc(c.segundos)}</td><td>${String(c.activo).toUpperCase()==='FALSE'?`<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>`:`<span class="badge b-done">${esc(L('Publicado','Published'))}</span>`}</td><td><button class="btn-g btn-sm" type="button" onclick="abrirCurso('${c.id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button></td></tr>`).join(''):vacio(8,L('Todavía no hay cursos.','No courses yet.'))}</tbody></table></div></section>
+  if(CU_TAB==='cursos') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Temas','Topics'))}</th><th>${esc(L('Preguntas','Questions'))}</th><th>${esc(L('Mínimo','Pass mark'))}</th><th>${esc(L('Intentos','Attempts'))}</th><th>${esc(L('Segundos por pregunta','Seconds per question'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${CU.cursos.length?CU.cursos.map(c=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(c.titulo)}</strong><br><span class="help">${esc(c.descripcion||'')}</span></td><td>${(c.temas||[]).length}</td><td>${(c.preguntas||[]).length}</td><td>${esc(c.minimo)}%</td><td>${esc(c.intentos)}</td><td>${esc(c.segundos)}</td><td>${String(c.activo).toUpperCase()==='FALSE'?`<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>`:`<span class="badge b-done">${esc(L('Publicado','Published'))}</span>`}</td><td>${esCap()?'':'<!--'}<button class="btn-g btn-sm" type="button" onclick="abrirCurso('${c.id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>${esCap()?'':'-->'}</td></tr>`).join(''):vacio(8,L('Todavía no hay cursos.','No courses yet.'))}</tbody></table></div></section>
     <p class="help" style="margin-top:10px">${esc(L('Los contratistas entran desde la página inicial, en «Capacitación para contratistas», sin cuenta.','Contractors enter from the start page, under «Contractor training», without an account.'))}</p>`;
   if(CU_TAB==='resultados') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Fecha','Date'))}</th><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Participante','Participant'))}</th><th>${esc(L('Compañía','Company'))}</th><th>${esc(L('Identificador','ID'))}</th><th>${esc(L('Calificación','Score'))}</th><th>${esc(L('Resultado','Result'))}</th></tr></thead><tbody>${CU.intentos.length?CU.intentos.map(i=>`<tr class="tbl-row"><td style="white-space:nowrap">${i.inicio?fecha(new Date(Number(i.inicio)).toISOString()):'—'}</td><td class="no-i18n">${esc(i.cursoTitulo)}</td><td class="no-i18n">${esc(i.nombre)}</td><td class="no-i18n">${esc(i.empresa)}</td><td class="mono">${esc(i.identificador)}</td><td>${i.fin?esc(i.calificacion)+'%':'—'}</td><td>${!i.fin?`<span class="badge b-off">${esc(L('Sin terminar','Not finished'))}</span>`:String(i.aprobado).toUpperCase()==='TRUE'?`<span class="badge b-done">${esc(L('Aprobado','Passed'))}</span>`:`<span class="badge b-red">${esc(L('No aprobado','Failed'))}</span>`}</td></tr>`).join(''):vacio(7,L('Todavía no hay intentos.','No attempts yet.'))}</tbody></table></div></section>`;
   $('cursos-body').innerHTML = h;
