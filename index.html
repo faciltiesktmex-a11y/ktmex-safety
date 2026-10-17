@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.6.0';
+window.FRONT_VERSION = '0.7.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -175,6 +175,8 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}.thumb{width:110px;height:84px;border-radius:9px;overflow:hidden;position:relative;background:#E2E8F0;border:1px solid var(--border)}
 .thumb img{width:100%;height:100%;object-fit:cover}.thumb button{position:absolute;top:3px;right:3px;background:rgba(15,23,42,.75);color:#fff;border:0;border-radius:6px;font-size:.7rem;cursor:pointer;padding:2px 6px}
 #face-canvas{max-width:100%;cursor:crosshair;border-radius:10px;touch-action:none;display:block;margin:0 auto}
+.aviso-version{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:130;background:#0B1730;color:#fff;border-radius:14px;padding:12px 16px;display:flex;gap:12px;align-items:center;box-shadow:0 14px 34px rgba(8,18,36,.35);font-size:.86rem;max-width:calc(100vw - 24px)}
+.aviso-version .btn-p{padding:8px 14px}
 .xv-marco{border:1px solid var(--border);border-radius:10px;margin-bottom:12px;background:#fff}
 .heat{border-collapse:separate;border-spacing:3px}.heat td{width:46px;height:34px;text-align:center;font-weight:800;font-size:.78rem;border-radius:6px}
 .q-opt{display:flex;gap:10px;align-items:center;padding:11px 13px;border:1.5px solid var(--border);border-radius:11px;margin-bottom:8px;cursor:pointer;font-size:.88rem}
@@ -201,10 +203,10 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.6.0" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.6.0" charset="utf-8"></script>
-<script src="formatos.js?v=0.6.0" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.6.0" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.7.0" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.7.0" charset="utf-8"></script>
+<script src="formatos.js?v=0.7.0" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.7.0" charset="utf-8"></script>
 </head>
 <body>
 
@@ -1036,7 +1038,9 @@ function generarLocal(tipo, datos){
       b.medidas = unicos(b.medidas); b.documentos = unicos(b.documentos.concat(conDocs||[])); return b; };
     return {texto:p.tarea, seg:bloque(rs.filter(r=>r.tipo!=='AMBIENTAL'), docs), amb:bloque(rs.filter(r=>r.tipo==='AMBIENTAL'))};
   }).filter(t=>tipo==='JRA' ? t.riesgos.length : (t.seg.riesgos.length || t.amb.riesgos.length));
-  return {tareas, documentos:docs};
+  // partes del cuerpo expuestas (solo para la pantalla): cuántos riesgos de seguridad tocan cada zona
+  const cuerpo = {}; pasos.forEach(p=>p.folios.map(f=>R[f]).filter(r=>r && r.tipo!=='AMBIENTAL').forEach(r=>KF.zonasDeRiesgo(r).forEach(z=>cuerpo[z]=(cuerpo[z]||0)+1)));
+  return {tareas, documentos:docs, cuerpo};
 }
 
 /* ═══════════════ MATRIZ DE RIESGOS ═══════════════ */
@@ -1360,17 +1364,19 @@ let REGEN_T = null; function regenerarLuego(){ clearTimeout(REGEN_T); REGEN_T = 
 async function regenerar(){
   const d = ED.datos; if(!d.actividadId && !(d.nueva && d.nueva.pasos.some(p=>p.tarea.trim() && p.condiciones.length))){ d.tareas = []; pintarContenido(); return; }
   const datos = d.nueva ? {nueva:{nombre:d.nueva.nombre, pasos:d.nueva.pasos.filter(p=>p.tarea.trim() && p.condiciones.length)}} : {actividadId:d.actividadId, respuestas:d.respuestas};
-  try{ await cargarPublicos(); d.tareas = generarLocal(ED.tipo, datos).tareas; pintarContenido(); }
+  try{ await cargarPublicos(); const g = generarLocal(ED.tipo, datos); d.tareas = g.tareas; ED._cuerpo = g.cuerpo; pintarContenido(); }
   catch(e){ const el = $('ed-contenido'); if(el) el.innerHTML = `<div class="err-box">${esc(uiText(e.message))}</div>`; d.tareas = []; }
 }
 function pintarContenido(){
   const el = $('ed-contenido'), d = ED.datos; if(!el) return;
   if(!d.tareas || !d.tareas.length){ el.innerHTML = `<p class="help">${esc(d.actividadId||d.nueva?L('Sin riesgos todavía: revisa las respuestas o las tareas.','No risks yet: check the answers or tasks.'):L('Elige una actividad.','Choose an activity.'))}</p>`; resumenEditor(); return; }
   const lis = a => `<ul style="margin:4px 0 0;padding-left:18px">${(a||[]).map(x=>`<li class="no-i18n">${esc(x)}</li>`).join('')}</ul>`;
-  if(ED.tipo==='JSA') el.innerHTML = d.tareas.map((t,i)=>`<div class="task"><strong style="font-size:.88rem">${i+1}.- <span class="no-i18n">${esc(t.texto)}</span></strong>
+  const cz = ED._cuerpo || {}, top = Object.entries(cz).sort((a,b)=>b[1]-a[1]);
+  const cuerpoHtml = top.length ? `<div class="box" style="margin-bottom:12px"><div class="sec-title">${esc(L('Partes del cuerpo expuestas en esta actividad','Body parts exposed in this activity'))}</div><div class="grid-2" style="align-items:center"><div>${KF.cuerpoSVG([], cz, false)}</div><div><p class="help">${esc(L('Se marcan según los riesgos de la actividad; entre más intenso el color, más riesgos tocan esa zona. Úsalo para revisar el EPP antes de empezar.','Marked from the activity risks; the stronger the color, the more risks touch that area. Use it to check PPE before starting.'))}</p><ul style="margin:6px 0 0;padding-left:18px">${top.slice(0,10).map(([z,n])=>`<li style="font-size:.82rem">${esc(KF.nombreZona(z))}: ${n} ${esc(n===1?L('riesgo','risk'):L('riesgos','risks'))}</li>`).join('')}</ul></div></div></div>` : '';
+  if(ED.tipo==='JSA') el.innerHTML = cuerpoHtml + d.tareas.map((t,i)=>`<div class="task"><strong style="font-size:.88rem">${i+1}.- <span class="no-i18n">${esc(t.texto)}</span></strong>
     ${['seg','amb'].map(k=>{ const x=t[k]||{}; if(!(x.riesgos||[]).length) return ''; return `<div class="risk"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><strong style="font-size:.8rem">${esc(k==='seg'?L('Seguridad','Safety'):L('Ambiental','Environmental'))}</strong><span><span class="help">${esc(L('Antes','Before'))}</span> ${catJSA(x.sev,x.prob)} <span class="help">${esc(L('Después','After'))}</span> ${catJSA(x.sevD,x.probD)}</span></div>
       <div class="grid-2"><div><span class="help">${esc(L('Riesgos','Risks'))} · ${esc(x.sev)} / ${esc(x.prob)}</span>${lis(x.riesgos)}</div><div><span class="help">${esc(L('Medidas preventivas y controles','Preventive measures and controls'))}</span>${lis(x.medidas)}</div></div>${(x.documentos||[]).length?`<div><span class="help">${esc(L('Documentación requerida','Required documents'))}</span>${lis(x.documentos)}</div>`:''}</div>`; }).join('')}</div>`).join('');
-  else el.innerHTML = `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Riesgo','Risk'))}</th><th>H</th><th>S</th><th>F</th><th>P</th><th>C</th><th>UC</th><th>CT</th><th>${esc(L('Medidas de control','Control measures'))}</th></tr></thead><tbody>${d.tareas.map((t,i)=>t.riesgos.map((r,j)=>{ const uc=KF.r2(r.s*r.f*r.p), ct=KF.r2(uc*r.c); return `<tr class="tbl-row">${j===0?`<td rowspan="${t.riesgos.length}">${i+1}</td><td rowspan="${t.riesgos.length}" class="no-i18n">${esc(t.texto)}</td>`:''}<td class="no-i18n">${esc(r.texto)}</td><td>${esc(r.categoria)}</td><td>${r.s}</td><td>${r.f}</td><td>${r.p}</td><td>${r.c}</td><td><span class="nv nv-${uc>20?4:1}">${uc}</span></td><td><span class="nv nv-${ct>20?4:1}">${ct}</span></td><td class="no-i18n" style="font-size:.75rem">${esc((r.medidas||[]).join(' · '))}</td></tr>`; }).join('')).join('')}</tbody></table></div>`;
+  else el.innerHTML = cuerpoHtml + `<div class="tbl-wrap"><table><thead><tr><th>#</th><th>${esc(L('Tarea','Task'))}</th><th>${esc(L('Riesgo','Risk'))}</th><th>H</th><th>S</th><th>F</th><th>P</th><th>C</th><th>UC</th><th>CT</th><th>${esc(L('Medidas de control','Control measures'))}</th></tr></thead><tbody>${d.tareas.map((t,i)=>t.riesgos.map((r,j)=>{ const uc=KF.r2(r.s*r.f*r.p), ct=KF.r2(uc*r.c); return `<tr class="tbl-row">${j===0?`<td rowspan="${t.riesgos.length}">${i+1}</td><td rowspan="${t.riesgos.length}" class="no-i18n">${esc(t.texto)}</td>`:''}<td class="no-i18n">${esc(r.texto)}</td><td>${esc(r.categoria)}</td><td>${r.s}</td><td>${r.f}</td><td>${r.p}</td><td>${r.c}</td><td><span class="nv nv-${uc>20?4:1}">${uc}</span></td><td><span class="nv nv-${ct>20?4:1}">${ct}</span></td><td class="no-i18n" style="font-size:.75rem">${esc((r.medidas||[]).join(' · '))}</td></tr>`; }).join('')).join('')}</tbody></table></div>`;
   resumenEditor();
 }
 function htmlQuimicos(){
@@ -1656,12 +1662,14 @@ async function renderKPI(){
   $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Se calculan solos a partir de los comunicados, alertas, análisis y la matriz.','Calculated automatically from communications, alerts, analyses and the matrix.'), sel('kp-anio',anios,KP_ANIO,undefined,'onchange="KP_ANIO=this.value;renderKPI()" style="width:auto"'))
     + `<div class="grid-4" style="margin-bottom:12px">${k(diasSin===null?'—':diasSin, L('Días sin accidentes','Days without accidents'),'#15803D')}${k(cuenta('Accidente'),L('Accidentes','Accidents'),'#B91C1C')}${k(cuenta('Incidente'),L('Incidentes','Incidents'))}${k(cuenta('Casi accidente'),L('Casi accidentes','Near misses'))}${k(cuenta('Daño a la propiedad'),L('Daños a la propiedad','Property damage'))}${k(ale.length,L('Alertas de actos inseguros','Unsafe-act alerts'),'#B45309')}${k(dias,L('Días perdidos','Lost days'))}${k(TF+' / '+TG, L('Tasa de frecuencia / gravedad','Frequency / severity rate'))}</div>
     <p class="help" style="margin:-4px 0 14px">${esc(`Tasa de frecuencia = accidentes × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Tasa de gravedad = días perdidos × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Horas-hombre del año: ${horas.toLocaleString('es-MX')}.`)}</p>
-    <div class="grid-2"><section class="card chart-card"><h3>${esc(L('Eventos por mes','Events by month'))}</h3><canvas id="ch-mes"></canvas></section><section class="card chart-card"><h3>${esc(L('Pirámide de eventos','Event pyramid'))}</h3><canvas id="ch-pir"></canvas></section>
-    <section class="card chart-card"><h3>${esc(L('Eventos por área','Events by area'))}</h3><canvas id="ch-area"></canvas></section><section class="card chart-card"><h3>${esc(L('Clasificación STOP 6','STOP 6 classification'))}</h3><canvas id="ch-stop"></canvas></section>
+    <div class="grid-2"><section class="card chart-card"><h3>${esc(L('Eventos por mes','Events by month'))}</h3><canvas id="ch-mes"></canvas></section><section class="card chart-card"><h3>${esc(L('Pareto de eventos por tipo','Pareto of events by type'))}</h3><canvas id="ch-pir"></canvas><p class="help">${esc(L('Barras de mayor a menor y porcentaje acumulado: los primeros tipos hasta la línea de 80 % son tu problema mayor.','Bars from highest to lowest and cumulative percentage: the first types up to the 80% line are your main problem.'))}</p></section>
+    <section class="card chart-card"><h3>${esc(L('Pareto de eventos por área','Pareto of events by area'))}</h3><canvas id="ch-area"></canvas></section><section class="card chart-card"><h3>${esc(L('Clasificación STOP 6','STOP 6 classification'))}</h3><canvas id="ch-stop"></canvas></section>
     <section class="card chart-card"><h3>${esc(L('Matriz: riesgos por nivel vigente','Matrix: risks by current level'))}</h3><canvas id="ch-mz"></canvas></section><section class="card chart-card"><h3>${esc(L('JSA y JRA por estatus','JSA and JRA by status'))}</h3><canvas id="ch-an"></canvas><p class="help" id="kp-an"></p></section></div>
     <div class="grid-2" style="margin-top:14px"><section class="card chart-card"><h3>${esc(L('Lesiones por parte del cuerpo','Injuries by body part'))}</h3><div id="kp-cuerpo"></div><div id="kp-cuerpo-lista" class="help"></div></section><section class="card chart-card"><h3>${esc(L('Eventos por turno o cuadrilla','Events by shift or crew'))}</h3><canvas id="ch-turno"></canvas></section></div>
     <section class="card" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 10px;font-size:.9rem;color:var(--navy)">${esc(L('Layout: dónde ocurren los eventos','Layout: where events happen'))}</h3><div id="kp-plano"></div><p class="help" id="kp-plano-txt"></p></section>
-    ${esGestor()?`<section class="card" style="padding:16px;margin-top:14px"><div class="sec-title">${esc(L('Horas-hombre por mes','Man-hours per month'))} · ${esc(KP_ANIO)}</div><div class="grid-4" style="margin-top:8px">${Array.from({length:12},(_,i)=>{const m=KP_ANIO+'-'+String(i+1).padStart(2,'0'), h=KP.horas.find(x=>String(x.mes)===m); return fld(m, inp('hh-'+m,h?h.horas:'','type="number" min="0"'));}).join('')}</div>
+    ${esGestor()?`<section class="card" style="padding:16px;margin-top:14px"><div class="sec-title">${esc(L('Horas-hombre trabajadas por mes','Man-hours worked per month'))} · ${esc(KP_ANIO)}</div>
+      <p class="help" style="margin:6px 0 10px">${esc(L('Cada casilla es el total de horas que trabajó todo el personal en ese mes (sin contar descansos). Con estas horas se calculan las tasas de frecuencia y gravedad. Escribe el total que te dé Recursos Humanos o usa «Calcular» con el horario de la planta.','Each box is the total hours worked by all staff that month (breaks excluded). They are used to compute the frequency and severity rates. Type the total from HR or use «Calculate» with the plant schedule.'))}</p>
+      <div class="grid-4" style="margin-top:8px">${Array.from({length:12},(_,i)=>{const m=KP_ANIO+'-'+String(i+1).padStart(2,'0'), h=KP.horas.find(x=>String(x.mes)===m); return `<div><label class="lbl">${esc(MESES_N[i])}</label><div style="display:flex;gap:6px">${inp('hh-'+m,h?h.horas:'','type="number" min="0" placeholder="'+esc(L('Horas','Hours'))+'"')}<button class="btn-g btn-sm" type="button" onclick="calcularHoras('${m}')" title="${esc(L('Calcular con el horario','Calculate with the schedule'))}" aria-label="${esc(L('Calcular con el horario','Calculate with the schedule'))}"><i class="fas fa-calculator"></i></button></div></div>`;}).join('')}</div>
       <div class="toolbar" style="margin-top:10px">${sel('hh-base',[{v:200000,t:L('Base 200,000 horas','Base 200,000 hours')},{v:1000000,t:L('Base 1,000,000 horas','Base 1,000,000 hours')}],base,undefined,'style="width:auto"')}<button class="btn-p btn-sm" type="button" onclick="guardarHoras()">${esc(L('Guardar horas-hombre','Save man-hours'))}</button>
       </div></section>`:''}`;
   const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -1671,9 +1679,21 @@ async function renderKPI(){
   const grafica = (id, cfg) => { if(typeof Chart==='undefined'){ const c=$(id); if(c) c.outerHTML=`<p class="help">${esc(L('No se pudo cargar la librería de gráficas (revisa la conexión).','The chart library could not be loaded (check the connection).'))}</p>`; return; } CHARTS.push(new Chart($(id), cfg)); };
   const opt = {responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}}};
   grafica('ch-mes', {type:'bar', data:{labels:meses, datasets:TIPOS_EV.concat(['ALERTA']).map(t=>({label:t==='ALERTA'?'Alerta':t, data:porMes(t), backgroundColor:colores[t]}))}, options:Object.assign({}, opt, {scales:{x:{stacked:true}, y:{stacked:true, beginAtZero:true, ticks:{precision:0}}}})});
-  grafica('ch-pir', {type:'bar', data:{labels:['Accidente','Daño a la propiedad','Incidente','Casi accidente','Alertas (actos inseguros)'], datasets:[{label:KP_ANIO, data:[cuenta('Accidente'),cuenta('Daño a la propiedad'),cuenta('Incidente'),cuenta('Casi accidente'),ale.length], backgroundColor:['#DC2626','#8B5CF6','#F59E0B','#3B82F6','#10B981']}]}, options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
+  // Pareto: barras de mayor a menor, línea de % acumulado y referencia de 80 %
+  const pareto = (id, etiquetas, series, colores) => {
+    const tot = etiquetas.map((_,k)=>series.reduce((a,sr)=>a+sr.data[k],0)), orden = tot.map((t,k)=>[t,k]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]);
+    if(!orden.length){ const c=$(id); if(c) c.outerHTML = `<p class="help">${esc(L('Sin eventos en el año.','No events this year.'))}</p>`; return; }
+    const suma = orden.reduce((a,x)=>a+x[0],0); let acc = 0; const acum = orden.map(x=>Math.round((acc+=x[0])*1000/suma)/10);
+    grafica(id, {type:'bar', data:{labels:orden.map((x,n)=>(n+1)+'. '+etiquetas[x[1]]), datasets:series.map((sr,m)=>({type:'bar', label:sr.label, data:orden.map(x=>sr.data[x[1]]), backgroundColor:Array.isArray(colores[m]) ? orden.map(x=>colores[m][x[1]]) : (colores[m]||'#2563EB'), stack:'p', yAxisID:'y', order:2}))
+      .concat([{type:'line', label:L('% acumulado','Cumulative %'), data:acum, borderColor:'#0F2A4A', backgroundColor:'#0F2A4A', yAxisID:'y1', tension:.3, order:1, pointRadius:4},
+               {type:'line', label:'80 %', data:orden.map(()=>80), borderColor:'#DC2626', borderDash:[6,4], pointRadius:0, yAxisID:'y1', order:0}])},
+      options:{responsive:true, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y1'?`${c.dataset.label}: ${c.raw}%`:`${c.dataset.label}: ${c.raw}`}}},
+        scales:{x:{stacked:true}, y:{stacked:true, beginAtZero:true, ticks:{precision:0}}, y1:{position:'right', min:0, max:100, grid:{drawOnChartArea:false}, ticks:{callback:v=>v+'%'}}}}});
+  };
+  const tiposP = ['Accidente','Daño a la propiedad','Incidente','Casi accidente','Alerta (acto inseguro)'];
+  pareto('ch-pir', tiposP, [{label:L('Eventos','Events'), data:[cuenta('Accidente'),cuenta('Daño a la propiedad'),cuenta('Incidente'),cuenta('Casi accidente'),ale.length]}], [['#DC2626','#8B5CF6','#F59E0B','#3B82F6','#10B981']]);
   const areasEv = [...new Set(ev.map(e=>e.area).filter(Boolean))];
-  grafica('ch-area', {type:'bar', data:{labels:areasEv, datasets:[{label:L('Comunicados','Communications'), data:areasEv.map(a=>com.filter(e=>e.area===a).length), backgroundColor:'#2563EB'},{label:L('Alertas','Alerts'), data:areasEv.map(a=>ale.filter(e=>e.area===a).length), backgroundColor:'#10B981'}]}, options:opt});
+  pareto('ch-area', areasEv, [{label:L('Comunicados','Communications'), data:areasEv.map(a=>com.filter(e=>e.area===a).length)},{label:L('Alertas','Alerts'), data:areasEv.map(a=>ale.filter(e=>e.area===a).length)}], ['#2563EB','#10B981']);
   grafica('ch-stop', {type:'bar', data:{labels:STOP_R.filter(x=>x[0]!=='NA').map(x=>x[0].replace(/\d/,'')+' '+x[1].replace('α · ','').slice(0,22)), datasets:[{label:KP_ANIO, data:STOP_R.filter(x=>x[0]!=='NA').map(x=>com.filter(e=>e.stopRiesgo===x[0]).length), backgroundColor:'#0F2A4A'}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
   const nvs = ['INTOLERABLE','IMPORTANTE','MODERADO','TOLERABLE','SIN EVALUAR'];
   grafica('ch-mz', {type:'bar', data:{labels:nvs, datasets:[{label:L('Riesgos','Risks'), data:nvs.map(n=>KP.riesgos.filter(r=>r.vigente===n).length), backgroundColor:['#DC2626','#F97316','#EAB308','#16A34A','#94A3B8']}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
@@ -1685,6 +1705,16 @@ async function renderKPI(){
   grafica('ch-turno', {type:'bar', data:{labels:turnos, datasets:[{label:L('Comunicados','Communications'), data:turnos.map(t=>com.filter(e=>e.turno===t).length), backgroundColor:'#2563EB'},{label:L('Alertas','Alerts'), data:turnos.map(t=>ale.filter(e=>e.turno===t).length), backgroundColor:'#10B981'}]}, options:opt});
   const conteo = {}; com.forEach(e=>(e.partesCuerpo||[]).forEach(z=>conteo[z]=(conteo[z]||0)+1));
   $('kp-cuerpo').innerHTML = KF.cuerpoSVG([], conteo, false);
+  // recuadro al pasar el cursor (o tocar): mes actual, trimestre, año seleccionado e histórico
+  const hoyD = new Date(), mesAct = hoyD.toISOString().slice(0,7), trim = Math.floor(hoyD.getMonth()/3), anioAct = String(hoyD.getFullYear());
+  const lesiones = KP.eventos.filter(e=>e.clase==='COMUNICADO');
+  const porZona = (z, f) => lesiones.filter(e=>(e.partesCuerpo||[]).includes(z) && f(String(e.fecha||''))).length;
+  const tip = $('kp-tip') || Object.assign(document.body.appendChild(document.createElement('div')), {id:'kp-tip'});
+  tip.style.cssText = 'position:fixed;z-index:120;display:none;background:#0B1730;color:#fff;border-radius:10px;padding:10px 12px;font-size:.78rem;line-height:1.5;box-shadow:0 10px 26px rgba(0,0,0,.25);pointer-events:none;min-width:180px';
+  const mostrarTip = (ev, z) => { tip.innerHTML = `<strong style="font-size:.86rem">${esc(KF.nombreZona(z))}</strong><br>${esc(L('Mes actual','Current month'))}: <b>${porZona(z,f=>f.startsWith(mesAct))}</b><br>${esc(L('Trimestre','Quarter'))}: <b>${porZona(z,f=>f.startsWith(anioAct) && Math.floor((Number(f.slice(5,7))-1)/3)===trim)}</b><br>${esc(L('Año','Year'))} ${esc(KP_ANIO)}: <b>${porZona(z,f=>f.startsWith(KP_ANIO))}</b><br>${esc(L('Histórico','All time'))}: <b>${porZona(z,()=>true)}</b>`;
+    tip.style.display = 'block'; tip.style.left = Math.min(window.innerWidth-200, ev.clientX+14)+'px'; tip.style.top = (ev.clientY+14)+'px'; };
+  $('kp-cuerpo').querySelectorAll('[data-zona]').forEach(el=>{ const z = el.dataset.zona; el.querySelectorAll('title').forEach(t=>t.remove()); el.style.cursor = 'pointer';
+    el.addEventListener('mousemove', ev=>mostrarTip(ev, z)); el.addEventListener('mouseleave', ()=>tip.style.display='none'); el.addEventListener('click', ev=>mostrarTip(ev, z)); });
   const top = Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,6);
   $('kp-cuerpo-lista').textContent = top.length ? top.map(([z,n])=>KF.nombreZona(z)+': '+n).join(' · ') : L('Sin lesiones registradas en el año.','No injuries recorded this year.');
   pintarPlanoKPI(ev, colores);
@@ -1696,9 +1726,44 @@ function pintarPlanoKPI(ev){
   const top = Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,8);
   $('kp-plano-txt').textContent = top.length ? top.map(([z,n])=>KF.nombreZonaPlanta(z)+': '+n).join(' · ') : L('Sin eventos con zona registrada en el año.','No events with a zone this year.');
 }
+const MESES_N = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const HH_DETALLE = {};
+const diasDe = (m, dias) => { const [y,mm] = m.split('-').map(Number), n = new Date(y,mm,0).getDate(); let c = 0; for(let d=1; d<=n; d++){ if(dias.includes(new Date(y,mm-1,d).getDay())) c++; } return c; };
+/* Calculadora de horas-hombre con el horario de la planta. Horas trabajadas = sin el descanso de 1 h:
+   1er turno 10 h → 9 h; 2do turno 9 h → 8 h; tiempo extra entre semana 1 h (1er) y 2 h (2do) para quien se queda;
+   mantenimiento (troqueles, welding, prensas, BL) hasta 4 h; fines de semana solo 1er turno. */
+function calcularHoras(m){
+  const prev = HH_DETALLE[m] || (KP.horas.find(x=>String(x.mes)===m)||{}).detalle || KP.horas.filter(x=>x.detalle && String(x.mes)<m).sort((a,b)=>String(b.mes).localeCompare(String(a.mes))).map(x=>x.detalle)[0] || {};
+  const d = Object.assign({p1:'',p2:'',te1:'',te2:'',mP:'',mD:'',mH:2,fP:'',fD:diasDe(m,[6]),fH:9,festivos:0}, prev, {habiles:diasDe(m,[1,2,3,4,5])});
+  const n = (id, v, extra) => inp('hc-'+id, v, 'type="number" min="0" oninput="horasCalc()" '+(extra||''));
+  modal(1, L('Calcular horas-hombre','Calculate man-hours')+' · '+MESES_N[Number(m.slice(5))-1]+' '+m.slice(0,4), `
+    <p class="help">${esc(L('Cuenta solo horas trabajadas (sin el descanso de 1 hora). Los datos se guardan para el mes siguiente.','Counts only worked hours (excluding the 1-hour break). Data is kept for the next month.'))}</p>
+    <div class="grid-3">${fld(L('Días hábiles (lun–vie)','Working days (Mon–Fri)'), n('habiles', d.habiles))}${fld(L('Días festivos o sin trabajo','Holidays or days off'), n('festivos', d.festivos))}<div></div></div>
+    <div class="sec-title">${esc(L('Turnos (lunes a viernes)','Shifts (Monday to Friday)'))}</div>
+    <div class="grid-4">${fld(L('Personas 1er turno (9 h)','1st shift people (9 h)'), n('p1', d.p1))}${fld(L('De ellas, con tiempo extra (+1 h)','Of them, with overtime (+1 h)'), n('te1', d.te1))}${fld(L('Personas 2do turno (8 h)','2nd shift people (8 h)'), n('p2', d.p2))}${fld(L('De ellas, con tiempo extra (+2 h)','Of them, with overtime (+2 h)'), n('te2', d.te2))}</div>
+    <div class="sec-title">${esc(L('Mantenimiento: troqueles, welding, prensas y BL (tiempo extra hasta 4 h)','Maintenance: dies, welding, presses and BL (overtime up to 4 h)'))}</div>
+    <div class="grid-3">${fld(L('Personas','People'), n('mP', d.mP))}${fld(L('Días en el mes','Days in the month'), n('mD', d.mD))}${fld(L('Horas adicionales a su tiempo extra normal','Hours beyond their normal overtime'), n('mH', d.mH, 'max="4"'))}</div>
+    <div class="sec-title">${esc(L('Fines de semana (solo 1er turno)','Weekends (1st shift only)'))}</div>
+    <div class="grid-3">${fld(L('Personas que asisten','People who attend'), n('fP', d.fP))}${fld(L('Días de fin de semana trabajados','Weekend days worked'), n('fD', d.fD))}${fld(L('Horas trabajadas por día','Hours worked per day'), n('fH', d.fH))}</div>
+    <div class="box" id="hc-res"></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" onclick="usarHoras('${m}')">${esc(L('Usar este total','Use this total'))}</button>`, '');
+  horasCalc();
+}
+function horasCalc(){
+  const g = k => Number(val('hc-'+k))||0, dias = Math.max(0, g('habiles')-g('festivos'));
+  const turnos = dias*(g('p1')*9 + g('p2')*8), extra = dias*(g('te1')*1 + g('te2')*2), mtto = g('mP')*g('mD')*Math.min(4,g('mH')), fin = g('fP')*g('fD')*g('fH');
+  const total = Math.round(turnos+extra+mtto+fin), f = x => Math.round(x).toLocaleString('es-MX');
+  $('hc-res').innerHTML = `<div class="grid-4"><div><span class="help">${esc(L('Turnos','Shifts'))}</span><div>${f(turnos)}</div></div><div><span class="help">${esc(L('Tiempo extra','Overtime'))}</span><div>${f(extra)}</div></div><div><span class="help">${esc(L('Mantenimiento','Maintenance'))}</span><div>${f(mtto)}</div></div><div><span class="help">${esc(L('Fines de semana','Weekends'))}</span><div>${f(fin)}</div></div></div><div style="margin-top:8px"><span class="help">${esc(L('Total del mes','Month total'))}</span><div class="kpi" style="padding:0"><div class="v">${f(total)} h</div></div></div>`;
+  return total;
+}
+function usarHoras(m){
+  const t = horasCalc(); $('hh-'+m).value = t;
+  HH_DETALLE[m] = Object.fromEntries(['habiles','festivos','p1','te1','p2','te2','mP','mD','mH','fP','fD','fH'].map(k=>[k, Number(val('hc-'+k))||0]));
+  closeModal('m-gen'); toast(L('Total colocado. Presiona «Guardar horas-hombre».','Total filled in. Press «Save man-hours».'),'info');
+}
 async function guardarHoras(){
   const meses = Array.from({length:12},(_,i)=>KP_ANIO+'-'+String(i+1).padStart(2,'0')).filter(m=>val('hh-'+m)!=='');
-  for(const m of meses){ const r = await llamar({action:'horasGuardar', token:tok(), mes:m, horas:val('hh-'+m), base:val('hh-base')}); if(!r) return; }
+  for(const m of meses){ const r = await llamar({action:'horasGuardar', token:tok(), mes:m, horas:val('hh-'+m), base:val('hh-base'), detalle:HH_DETALLE[m]||null}); if(!r) return; }
   toast(L('Horas-hombre guardadas.','Man-hours saved.')); cargarKPI();
 }
 async function subirPlano(input){
@@ -1871,6 +1936,47 @@ function renderPublico(){
 }
 
 document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName==='INPUT' && /^(date|time|month)$/.test(el.type) && typeof el.showPicker==='function'){ try{ el.showPicker(); }catch(_){} } });
+/* ═══ Aviso de nueva versión ═══
+   Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
+   Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
+const NOVEDADES = {
+  '0.7.0': [
+    L('JSA y JRA: figura del cuerpo con las partes expuestas según los riesgos de la actividad.','JSA and JRA: body figure with the parts exposed by the activity risks.'),
+    L('Indicadores: Pareto de eventos por tipo y por área, con porcentaje acumulado y línea de 80 %.','Indicators: Pareto of events by type and by area, with cumulative percentage and 80% line.'),
+    L('Indicadores: al pasar el cursor por una zona del cuerpo se ven las lesiones del mes, trimestre, año e histórico.','Indicators: hovering a body area shows injuries for the month, quarter, year and all time.'),
+    L('Horas-hombre: meses con nombre, explicación y calculadora con el horario de la planta.','Man-hours: month names, explanation and a calculator with the plant schedule.'),
+    L('Este aviso: el sistema avisa cuando hay una versión nueva.','This notice: the system tells you when there is a new version.')
+  ]
+};
+let AVISO_MOSTRADO = '';
+async function revisarVersion(){
+  try{
+    const r = await fetch('index.html?vcheck=' + Date.now(), {cache:'no-store'}); if(!r.ok) return;
+    const m = /window\.FRONT_VERSION = '([^']+)'/.exec(await r.text());
+    if(m && m[1] !== window.FRONT_VERSION && AVISO_MOSTRADO !== m[1]){ AVISO_MOSTRADO = m[1]; mostrarAvisoVersion(m[1]); }
+  }catch(e){}
+}
+function mostrarAvisoVersion(v){
+  const d = document.createElement('div'); d.className = 'aviso-version'; d.setAttribute('role','alert');
+  d.innerHTML = `<i class="fas fa-circle-arrow-up" style="color:#4ADE80"></i><span>${esc(uiText(L('Hay una nueva actualización del sistema','A new system update is available')))} (v${esc(v)}).</span><button class="btn-p" type="button">${esc(uiText(L('Actualizar','Update')))}</button><button class="x-btn" type="button" aria-label="${esc(uiText(L('Más tarde','Later')))}" style="color:#94A3B8">✕</button>`;
+  d.querySelector('.btn-p').onclick = async ()=>{
+    if(ED && !confirm(uiText(L('Tienes un análisis abierto. Si actualizas ahora se perderá lo que no hayas guardado. ¿Actualizar?','You have an analysis open. Unsaved changes will be lost. Update?')))) return;
+    try{ const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); if(reg){ await reg.update(); if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'}); } }catch(e){}
+    location.reload();
+  };
+  d.querySelector('.x-btn').onclick = ()=>d.remove();
+  document.body.appendChild(d);
+}
+function mostrarNovedades(){
+  let visto = ''; try{ visto = localStorage.getItem('ktmex_safety_version_vista') || ''; localStorage.setItem('ktmex_safety_version_vista', window.FRONT_VERSION); }catch(e){ return; }
+  const lista = NOVEDADES[window.FRONT_VERSION];
+  if(!visto || visto === window.FRONT_VERSION || !lista) return;   // primera vez en este equipo o ya vista
+  modal(1, L('Novedades de la versión','What is new in version')+' '+window.FRONT_VERSION, `<p class="help">${esc(L('El sistema se actualizó. Esto es lo nuevo:','The system was updated. This is new:'))}</p><ul style="margin:0;padding-left:20px;font-size:.88rem;line-height:1.6">${lista.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`,
+    `<button class="btn-p" type="button" onclick="closeModal('m-gen')">${esc(L('Entendido','Got it'))}</button>`, '');
+}
+setTimeout(revisarVersion, 8000); setInterval(revisarVersion, 15*60*1000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') revisarVersion(); });
+setTimeout(mostrarNovedades, 1500);
 /* ═══ Arranque ═══ */
 (async function init(){
   try{ if(localStorage.getItem(KEY_SIDEBAR)==='1') document.body.classList.add('sb-mini'); }catch(e){}

@@ -342,6 +342,30 @@
     ['pie_der','Pie derecho',[P_('330,940 405,940 412,1018 326,1018'), P_('1040,955 1112,955 1122,1012 1048,1012')]], ['pie_izq','Pie izquierdo',[P_('485,940 560,940 564,1018 478,1018'), P_('892,955 966,955 958,1012 884,1012')]]
   ];
   const nombreZona = id => (ZONAS_CUERPO.find(z=>z[0]===id)||[])[1] || id;
+  // Partes del cuerpo expuestas por un riesgo: por palabras del peligro y, si no hay, por su categoría (A–G).
+  const AMBOS = (...b) => b.flatMap(x=>[x+'_der', x+'_izq']);
+  const REGLAS_CUERPO = [
+    [/atrap|aplast|pellizc|engran|rodillo|prensa|troquel/, AMBOS('mano','dedos','antebrazo')],
+    [/mano|corte|cortad|filos|lámina|lamina|rebaba|navaja|cuchill/, AMBOS('mano','dedos')],
+    [/ojo|proyecci|partícul|particul|esquirla|salpic|soldad|arco|radiaci|polvo|chispa|esmeril/, ['ojo_der','ojo_izq','cara']],
+    [/químic|quimic|solvente|ácido|acido|corrosiv|pintura|aceite/, AMBOS('mano').concat(['ojo_der','ojo_izq','cara'])],
+    [/ruido|auditiv|hipoacusia/, ['cabeza']],
+    [/caída|caida|altura|resbal|tropiez|mismo nivel|distinto nivel|escalera/, ['cabeza'].concat(AMBOS('muneca','rodilla','tobillo'),['espalda_baja'])],
+    [/golpe|objeto|suspendid|izaje|desprend|herramienta|cae /, ['cabeza'].concat(AMBOS('hombro','pie'))],
+    [/lumbar|ergon|carga manual|levant|postura|espalda|sobreesfuerzo|trastorno|repetitiv|tendin|túnel|tunel/, ['espalda_baja','espalda_alta'].concat(AMBOS('hombro','muneca'))],
+    [/eléctric|electric|descarga|electrocu|energizad|energía|energia/, AMBOS('mano').concat(['torax'])],
+    [/quemad|térmic|termic|caliente|incendio|fuego|flama|explosi|fundid/, AMBOS('mano','antebrazo').concat(['cara'])],
+    [/vehícul|vehicul|montacarga|atropell|grúa|grua|tránsito|transito/, AMBOS('pierna','cadera').concat(['torax'])],
+    [/asfixia|gas|vapor|humo|atmósfera|atmosfera|confinad|intoxic|oxígeno|oxigeno/, ['cara','torax']],
+    [/pie|calzado|piso/, AMBOS('pie')]
+  ];
+  const CUERPO_CAT = { A:AMBOS('mano','dedos'), B:AMBOS('mano','pie').concat(['cabeza']), C:AMBOS('pierna','cadera'), D:['cabeza'].concat(AMBOS('rodilla','tobillo')), E:AMBOS('mano').concat(['torax']), F:AMBOS('mano').concat(['cara']) };
+  function zonasDeRiesgo(r){
+    const t = ((r.peligro||'')+' '+(r.causa||'')).toLowerCase(), z = new Set();
+    REGLAS_CUERPO.forEach(([re, zs])=>{ if(re.test(t)) zs.forEach(x=>z.add(x)); });
+    if(!z.size) (CUERPO_CAT[r.categoria]||[]).forEach(x=>z.add(x));
+    return [...z];
+  }
   // seleccion: zonas marcadas · conteos: {zona:n} para el mapa de calor · interactivo: se puede tocar
   function cuerpoSVG(seleccion, conteos, interactivo){
     seleccion = seleccion || []; conteos = conteos || {}; const max = Math.max(1, ...Object.values(conteos));
@@ -368,5 +392,5 @@
   }
   const nombreZonaPlanta = id => { const z = root.KTLAYOUT && root.KTLAYOUT.zonas.find(x=>x.id===Number(id)); return z ? z.n : String(id); };
 
-  root.KF = { MAESTROS, HOJAS, JSA_SEV, JSA_PROB, JSA_CAT, jsaPuntaje, JRA, desdeMatriz, generar, descargar, vista, mostrar, cuerpoSVG, ZONAS_CUERPO, nombreZona, layoutSVG, nombreZonaPlanta, bi, fechaMx, r2, _spec:{specJSA,specJRA,specCOM,specALE}, maestro };
+  root.KF = { MAESTROS, HOJAS, JSA_SEV, JSA_PROB, JSA_CAT, jsaPuntaje, JRA, desdeMatriz, generar, descargar, vista, mostrar, cuerpoSVG, ZONAS_CUERPO, nombreZona, zonasDeRiesgo, layoutSVG, nombreZonaPlanta, bi, fechaMx, r2, _spec:{specJSA,specJRA,specCOM,specALE}, maestro };
 })(typeof window!=='undefined'?window:globalThis);

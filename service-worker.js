@@ -1,6 +1,6 @@
 /* ============================================================
    KTMEX Safety — Service Worker
-   Versión de interfaz: 0.6.0
+   Versión de interfaz: 0.7.0
 
    - Navegación: red primero; la copia guardada solo sirve sin conexión.
    - Archivos de la app: se responde desde caché y se actualiza en segundo plano.
@@ -11,7 +11,7 @@
    Cada versión nueva de index.html debe subir el número de CACHE.
    ============================================================ */
 const PREFIJO = 'ktmex-safety-';
-const CACHE = PREFIJO + 'v7-0.6.0-20261017';
+const CACHE = PREFIJO + 'v8-0.7.0-20261017';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './xlsx-fill.js', './fo015-map.js', './formatos.js', './layout-zonas.js', './layout.png', './cuerpo.jpg',
   './forms/F-SGA-8.1-7.xlsx', './forms/FO-015.xlsx', './forms/FO-014.xlsx', './forms/FO-005.xlsx'];
 
@@ -41,6 +41,9 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.hostname.indexOf('script.google.com') >= 0 || url.hostname.indexOf('googleusercontent.com') >= 0) return;
   if (url.origin !== self.location.origin) return;
+
+  // consulta de versión: siempre a la red y sin guardar copia
+  if (url.searchParams.has('vcheck')) { event.respondWith(fetch(req, { cache: 'no-store' })); return; }
 
   if (req.mode === 'navigate') {
     event.respondWith(
