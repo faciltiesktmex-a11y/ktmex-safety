@@ -14,7 +14,7 @@
   const cache = {};
   async function maestro(tipo){
     if(cache[tipo]) return cache[tipo];
-    const r = await fetch(MAESTROS[tipo], {cache:'no-cache'});
+    const r = await fetch(MAESTROS[tipo] + '?v=0.6.0', {cache:'no-cache'});
     if(!r.ok) throw new Error('No se encontró el formato ' + MAESTROS[tipo] + '. Revisa que la carpeta forms esté en el repositorio.');
     return (cache[tipo] = new Uint8Array(await r.arrayBuffer()));
   }
@@ -139,7 +139,7 @@
     const turno = { Verde:['Y9','G'], Azul:['AA9','B'], Mixto:['Y9','M'] }[ev.turno];
     const d = ev.datos||{}, cells = { Y9:'', AA9:'', H13:ev.numero||'', H15:(fechaMx(ev.fecha)+' '+(ev.hora||'')).trim(), H17:(fechaMx(d.fechaNotificacion)+' '+(d.horaNotificacion||'')).trim(),
       H19:biR(d.ubicacion,'\n'), H21:biR(d.antiguedadPlanta,'\n'), H23:biR(d.antiguedadEstacion,'\n'), E27:biR(d.queOcurrio,'\n'), E29:biR(d.comoOcurrio,'\n'),
-      B37:(ev.stopRiesgo||'').replace(/\d/,''), G75:biLista((d.acciones||[]).map(a=>a.accion||{}).filter(a=>(a.es||'').trim()), '\n', i=>`${i+1}. `),
+      B37:(!ev.stopRiesgo || ev.stopRiesgo==='NA') ? 'NA' : ev.stopRiesgo.replace(/\d/,''),   // sin riesgo STOP 6 → «NA», como en los formatos de Safety G75:biLista((d.acciones||[]).map(a=>a.accion||{}).filter(a=>(a.es||'').trim()), '\n', i=>`${i+1}. `),
       Y75:[...new Set((d.acciones||[]).map(a=>a.responsable).filter(Boolean))].join(', ') };
     Object.values(COM_CLASIF).forEach(c=>cells[c]=''); Object.values(COM_STOPSEV).forEach(c=>cells[c]='');
     if(turno) cells[turno[0]] = turno[1];
@@ -211,6 +211,9 @@
     const fmt = /<sheetFormatPr\b[^>]*>/.exec(xml); const defW = +(attr(fmt?fmt[0]:'','defaultColWidth')||((+(attr(fmt?fmt[0]:'','baseColWidth')||8))+0.71)), defH = +(attr(fmt?fmt[0]:'','defaultRowHeight')||15);
     const cw = {}; for(const m of xml.matchAll(/<col\b[^>]*>/g)){ const a=m[0]; for(let c=+attr(a,'min'); c<=+attr(a,'max'); c++) cw[c] = attr(a,'hidden')==='1' ? 0 : +(attr(a,'width')||defW); }
     const colpx = c => { const w = cw[c] ?? defW; return w ? Math.floor(w*7+5) : 0; };
+    // textos compartidos con formato mixto (p. ej. español normal + inglés en negrita en las etiquetas del formato)
+    const siRuns = {}; if(pkg.byName.has('xl/sharedStrings.xml')){ [...(await pkg.text('xl/sharedStrings.xml')).matchAll(/<si>([\s\S]*?)<\/si>/g)].forEach((m,i)=>{ if(!/<r>/.test(m[1])) return;
+      siRuns[i] = [...m[1].matchAll(/<r>([\s\S]*?)<\/r>/g)].map(z=>({ t:un((/<t\b[^>]*>([\s\S]*?)<\/t>/.exec(z[1])||[])[1]||''), c:color((/<color\b[^>]*\/>/.exec(z[1])||[''])[0], tema), b:/<b\/>|<b val="1"\/>/.test(z[1]) })); }); }
     const rh = {}, celdas = {};
     for(const m of xml.matchAll(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)){
       const r = +attr(m[1],'r'); if(attr(m[1],'hidden')==='1') rh[r]=0; else if(attr(m[1],'ht')) rh[r]=+attr(m[1],'ht');
@@ -218,7 +221,7 @@
         const rf = attr(c[1],'r'), t = attr(c[1],'t'), s = +(attr(c[1],'s')||0), body = c[2]||'';
         let v = (/<v>([\s\S]*?)<\/v>/.exec(body)||[])[1]; if(v!==undefined) v = un(v);
         let runs = null;
-        if(t==='s') v = pkg.shared[+v]; else if(t==='inlineStr'){ v = [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(z=>un(z[1])).join('');
+        if(t==='s'){ const k = +v; v = pkg.shared[k]; const si = siRuns[k]; if(si) runs = si; } else if(t==='inlineStr'){ v = [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(z=>un(z[1])).join('');
           if(/<r>/.test(body)) runs = [...body.matchAll(/<r>([\s\S]*?)<\/r>/g)].map(z=>({ t:un((/<t\b[^>]*>([\s\S]*?)<\/t>/.exec(z[1])||[])[1]||''), c:color((/<color\b[^>]*\/>/.exec(z[1])||[''])[0], tema), b:/<b\/>|<b val="1"\/>/.test(z[1]) })); }
         else if(v!==undefined && t!=='str' && t!=='b' && t!=='e' && !isNaN(+v)) v = (Math.round(+v*100)/100).toString();
         celdas[rf] = { v, s, runs };

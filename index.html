@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.5.0';
+window.FRONT_VERSION = '0.6.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -201,10 +201,10 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js" charset="utf-8"></script>
-<script src="fo015-map.js" charset="utf-8"></script>
-<script src="formatos.js" charset="utf-8"></script>
-<script src="layout-zonas.js" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.6.0" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.6.0" charset="utf-8"></script>
+<script src="formatos.js?v=0.6.0" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.6.0" charset="utf-8"></script>
 </head>
 <body>
 
@@ -1441,7 +1441,7 @@ const CLASIF = ['Lesión','Tratamiento médico','Primer auxilio','Daño a la pro
 const TIPO_DE = {'Lesión':'Accidente','Tratamiento médico':'Accidente','Primer auxilio':'Incidente','Daño a la propiedad':'Daño a la propiedad','Casi accidente':'Casi accidente'};
 const TIPOS_EV = ['Accidente','Incidente','Casi accidente','Daño a la propiedad'];
 const STOP_SEV = ['Sin lesión','Primeros auxilios','Tratamiento médico','Restricción','Incapacidad','Fatalidad'];
-const STOP_R = [['A','Atrapado / pellizcado / otro por equipo energizado'],['B','Contacto con / atrapado con objetos pesados'],['C','Contacto con vehículos'],['D','Caída de altura'],['E','Descarga eléctrica'],['F','Contacto con objetos calientes'],['α1','α · Cortadura'],['α2','α · Caída (al caminar)']];
+const STOP_R = [['NA','N/A · No aplica'],['A','Atrapado / pellizcado / otro por equipo energizado'],['B','Contacto con / atrapado con objetos pesados'],['C','Contacto con vehículos'],['D','Caída de altura'],['E','Descarga eléctrica'],['F','Contacto con objetos calientes'],['α1','α · Cortadura'],['α2','α · Caída (al caminar)']];
 const MESES = ['Enero / January','Febrero / February','Marzo / March','Abril / April','Mayo / May','Junio / June','Julio / July','Agosto / August','Septiembre / September','Octubre / October','Noviembre / November','Diciembre / December'];
 async function cargarEventos(){
   $('eventos-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
@@ -1473,7 +1473,7 @@ function abrirEvento(id, clase){
     <div class="grid-3">${fld(L('Área','Area'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Departamento','Department'), sel('ev-departamento',CATS.departamento||[],e.departamento,'—'))}${fld(L('Persona involucrada','Person involved'), sel('ev-tipoPersona',[{v:'Empleado',t:L('Empleado','Employee')},{v:'Contratista',t:L('Contratista','Contractor')},{v:'Visitante',t:L('Visitante','Visitor')}],e.tipoPersona,'—'))}</div>
     ${biF('ev-ubicacion', d.ubicacion, L('Ubicación','Location'))}${biF('ev-antiguedadPlanta', d.antiguedadPlanta, L('Antigüedad en planta','Plant seniority'))}${biF('ev-antiguedadEstacion', d.antiguedadEstacion, L('Antigüedad en estación / operación','Station / operation seniority'))}
     ${biF('ev-queOcurrio', d.queOcurrio, L('¿Qué ocurrió?','What happened?'), true)}${biF('ev-comoOcurrio', d.comoOcurrio, L('¿Cómo ocurrió?','How did it happen?'), true)}
-    <div class="grid-4">${fld(L('STOP 6 · clasificación','STOP 6 · classification'), sel('ev-stopSeveridad',STOP_SEV,e.stopSeveridad,'—'))}${fld(L('STOP 6 · riesgo','STOP 6 · risk'), sel('ev-stopRiesgo',STOP_R.map(x=>({v:x[0],t:x[0].replace(/\d/,'')+' – '+x[1].replace('α · ','')})),e.stopRiesgo,'—'))}${fld(L('Días perdidos','Lost days'), inp('ev-diasPerdidos',e.diasPerdidos||0,'type="number" min="0"'))}${fld(L('Costo estimado del daño (MXN)','Estimated damage cost (MXN)'), inp('ev-costo',e.costo||0,'type="number" min="0"'))}</div>
+    <div class="grid-4">${fld(L('STOP 6 · clasificación','STOP 6 · classification'), sel('ev-stopSeveridad',STOP_SEV,e.stopSeveridad,'—'))}${fld(L('STOP 6 · riesgo','STOP 6 · risk'), sel('ev-stopRiesgo',STOP_R.map(x=>({v:x[0],t:x[0]==='NA'?x[1]:x[0].replace(/\d/,'')+' – '+x[1].replace('α · ','')})),e.stopRiesgo||'NA'))}${fld(L('Días perdidos','Lost days'), inp('ev-diasPerdidos',e.diasPerdidos||0,'type="number" min="0"'))}${fld(L('Costo estimado del daño (MXN)','Estimated damage cost (MXN)'), inp('ev-costo',e.costo||0,'type="number" min="0"'))}</div>
     <div class="sec-title">${esc(L('Parte del cuerpo afectada (solo para el sistema e indicadores)','Body part affected (system and indicators only)'))}</div>
     <div class="grid-2"><div id="ev-cuerpo"></div><div>${fld(L('Tipo de lesión','Injury type'), inp('ev-tipoLesion',e.tipoLesion,'placeholder="'+esc(L('Ej. corte, golpe, quemadura','e.g. cut, bruise, burn'))+'"'))}<p class="help" id="ev-partes-txt" style="margin-top:8px"></p></div></div>
     <div class="box" style="border-color:#FCD34D;background:#FFFBEB"><div class="sec-title">${esc(L('Datos confidenciales (nunca se imprimen)','Confidential data (never printed)'))}</div><div class="grid-2">${fld(L('Nombre del lesionado','Injured person'), inp('ev-p-nombre',pv.nombre))}${fld(L('Número de empleado','Employee number'), inp('ev-p-numeroEmpleado',pv.numeroEmpleado))}</div></div>
@@ -1674,7 +1674,7 @@ async function renderKPI(){
   grafica('ch-pir', {type:'bar', data:{labels:['Accidente','Daño a la propiedad','Incidente','Casi accidente','Alertas (actos inseguros)'], datasets:[{label:KP_ANIO, data:[cuenta('Accidente'),cuenta('Daño a la propiedad'),cuenta('Incidente'),cuenta('Casi accidente'),ale.length], backgroundColor:['#DC2626','#8B5CF6','#F59E0B','#3B82F6','#10B981']}]}, options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}}}}});
   const areasEv = [...new Set(ev.map(e=>e.area).filter(Boolean))];
   grafica('ch-area', {type:'bar', data:{labels:areasEv, datasets:[{label:L('Comunicados','Communications'), data:areasEv.map(a=>com.filter(e=>e.area===a).length), backgroundColor:'#2563EB'},{label:L('Alertas','Alerts'), data:areasEv.map(a=>ale.filter(e=>e.area===a).length), backgroundColor:'#10B981'}]}, options:opt});
-  grafica('ch-stop', {type:'bar', data:{labels:STOP_R.map(x=>x[0].replace(/\d/,'')+' '+x[1].replace('α · ','').slice(0,22)), datasets:[{label:KP_ANIO, data:STOP_R.map(x=>com.filter(e=>e.stopRiesgo===x[0]).length), backgroundColor:'#0F2A4A'}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
+  grafica('ch-stop', {type:'bar', data:{labels:STOP_R.filter(x=>x[0]!=='NA').map(x=>x[0].replace(/\d/,'')+' '+x[1].replace('α · ','').slice(0,22)), datasets:[{label:KP_ANIO, data:STOP_R.filter(x=>x[0]!=='NA').map(x=>com.filter(e=>e.stopRiesgo===x[0]).length), backgroundColor:'#0F2A4A'}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
   const nvs = ['INTOLERABLE','IMPORTANTE','MODERADO','TOLERABLE','SIN EVALUAR'];
   grafica('ch-mz', {type:'bar', data:{labels:nvs, datasets:[{label:L('Riesgos','Risks'), data:nvs.map(n=>KP.riesgos.filter(r=>r.vigente===n).length), backgroundColor:['#DC2626','#F97316','#EAB308','#16A34A','#94A3B8']}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
   const anA = KP.analisis.filter(a=>String(a.creado).startsWith(KP_ANIO)), est = Object.keys(ESTATUS_AN);

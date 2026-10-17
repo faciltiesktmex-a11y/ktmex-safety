@@ -1,6 +1,6 @@
 /* ============================================================
    KTMEX Safety — Service Worker
-   Versión de interfaz: 0.5.0
+   Versión de interfaz: 0.6.0
 
    - Navegación: red primero; la copia guardada solo sirve sin conexión.
    - Archivos de la app: se responde desde caché y se actualiza en segundo plano.
@@ -11,14 +11,14 @@
    Cada versión nueva de index.html debe subir el número de CACHE.
    ============================================================ */
 const PREFIJO = 'ktmex-safety-';
-const CACHE = PREFIJO + 'v6-0.5.0-20261016';
+const CACHE = PREFIJO + 'v7-0.6.0-20261017';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './xlsx-fill.js', './fo015-map.js', './formatos.js', './layout-zonas.js', './layout.png', './cuerpo.jpg',
   './forms/F-SGA-8.1-7.xlsx', './forms/FO-015.xlsx', './forms/FO-014.xlsx', './forms/FO-005.xlsx'];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE)
-      .then(c => Promise.all(APP_SHELL.map(u => c.add(u).catch(() => null))))
+      .then(c => Promise.all(APP_SHELL.map(u => fetch(new Request(u, { cache: 'reload' })).then(r => r.ok ? c.put(u, r) : null).catch(() => null))))
       .then(() => self.skipWaiting())
   );
 });
@@ -51,13 +51,12 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // v0.6: los archivos de la app van primero a la red (sin la memoria del navegador) y la copia
+  // guardada solo se usa sin conexión. Así una versión nueva nunca queda mezclada con archivos viejos.
   event.respondWith(
-    caches.match(req).then(cached => {
-      const network = fetch(req).then(r => {
-        if (r && r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
-        return r;
-      }).catch(() => cached);
-      return cached || network;
-    })
+    fetch(req, { cache: 'no-cache' }).then(r => {
+      if (r && r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+      return r;
+    }).catch(() => caches.match(req, { ignoreSearch: true }))
   );
 });
