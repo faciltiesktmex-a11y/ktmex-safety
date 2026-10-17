@@ -334,7 +334,8 @@
     const xfFont = [...((/<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(stylesXml) || [])[1] || '').matchAll(/<xf\b([^>]*?)(?:\/>|>)/g)].map(m => +((/fontId="(\d+)"/.exec(m[1]) || [])[1] || 0));
     const rico = (partes, styleIdx) => {
       const base = (fontsXml[xfFont[styleIdx] || 0] || '').replace(/<name\b/g, '<rFont').replace(/<scheme\b[^>]*\/>/g, '');
-      const rpr = negro => '<rPr>' + (negro ? base.replace(/<color\b[^>]*\/>/g, '') + '<color theme="1"/>' : base) + '</rPr>';
+      // el inglés va en negro y en negrita, como en los formatos llenos de Safety
+      const rpr = negro => '<rPr>' + (negro ? '<b/>' + base.replace(/<color\b[^>]*\/>/g, '').replace(/<b\b[^>]*\/>/g, '') + '<color theme="1"/>' : base) + '</rPr>';
       return { is: '<is>' + partes.filter(p => p.t).map(p => `<r>${rpr(p.negro)}<t xml:space="preserve">${escXml(p.t)}</t></r>`).join('') + '</is>' };
     };
 

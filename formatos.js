@@ -135,12 +135,16 @@
   const COM_CLASIF = { 'Lesión':'B9', 'Tratamiento médico':'F9', 'Primer auxilio':'K9', 'Daño a la propiedad':'O9', 'Casi accidente':'T9' };
   const COM_STOPSEV = { 'Sin lesión':'B33', 'Primeros auxilios':'F33', 'Tratamiento médico':'K33', 'Restricción':'P33', 'Incapacidad':'T33', 'Fatalidad':'X33' };
   async function specCOM(ev, fotosDataUrls){
-    const d = ev.datos||{}, cells = { AA9:ev.turno||'', H13:ev.numero||'', H15:(fechaMx(ev.fecha)+' '+(ev.hora||'')).trim(), H17:(fechaMx(d.fechaNotificacion)+' '+(d.horaNotificacion||'')).trim(),
+    // Turno: el formato tiene dos casillas que se pintan solas: «G» verde (Y9) y «B» azul (AA9). Mixto no tiene casilla: se escribe «M».
+    const turno = { Verde:['Y9','G'], Azul:['AA9','B'], Mixto:['Y9','M'] }[ev.turno];
+    const d = ev.datos||{}, cells = { Y9:'', AA9:'', H13:ev.numero||'', H15:(fechaMx(ev.fecha)+' '+(ev.hora||'')).trim(), H17:(fechaMx(d.fechaNotificacion)+' '+(d.horaNotificacion||'')).trim(),
       H19:biR(d.ubicacion,'\n'), H21:biR(d.antiguedadPlanta,'\n'), H23:biR(d.antiguedadEstacion,'\n'), E27:biR(d.queOcurrio,'\n'), E29:biR(d.comoOcurrio,'\n'),
       B37:(ev.stopRiesgo||'').replace(/\d/,''), G75:biLista((d.acciones||[]).map(a=>a.accion||{}).filter(a=>(a.es||'').trim()), '\n', i=>`${i+1}. `),
       Y75:[...new Set((d.acciones||[]).map(a=>a.responsable).filter(Boolean))].join(', ') };
     Object.values(COM_CLASIF).forEach(c=>cells[c]=''); Object.values(COM_STOPSEV).forEach(c=>cells[c]='');
-    if(COM_CLASIF[ev.clasificacion]) cells[COM_CLASIF[ev.clasificacion]] = 'x';
+    if(turno) cells[turno[0]] = turno[1];
+    // la casilla de Lesión se colorea con «X» mayúscula; las demás con «x», igual que las reglas del formato
+    if(COM_CLASIF[ev.clasificacion]) cells[COM_CLASIF[ev.clasificacion]] = ev.clasificacion==='Lesión' ? 'X' : 'x';
     if(COM_STOPSEV[ev.stopSeveridad]) cells[COM_STOPSEV[ev.stopSeveridad]] = 'X';
     const fotos = await Promise.all((fotosDataUrls||[]).slice(0,3).map(medir));
     return [{ tipo:'COM', overlay:{}, spec:{ sheets:[{ name:HOJAS.COM, cells }], images:[{ sheet:HOJAS.COM, items:await colocarFotos('COM', fotos, await maestro('COM')) }] } }];
@@ -215,12 +219,21 @@
         let v = (/<v>([\s\S]*?)<\/v>/.exec(body)||[])[1]; if(v!==undefined) v = un(v);
         let runs = null;
         if(t==='s') v = pkg.shared[+v]; else if(t==='inlineStr'){ v = [...body.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(z=>un(z[1])).join('');
-          if(/<r>/.test(body)) runs = [...body.matchAll(/<r>([\s\S]*?)<\/r>/g)].map(z=>({ t:un((/<t\b[^>]*>([\s\S]*?)<\/t>/.exec(z[1])||[])[1]||''), c:color((/<color\b[^>]*\/>/.exec(z[1])||[''])[0], tema) })); }
+          if(/<r>/.test(body)) runs = [...body.matchAll(/<r>([\s\S]*?)<\/r>/g)].map(z=>({ t:un((/<t\b[^>]*>([\s\S]*?)<\/t>/.exec(z[1])||[])[1]||''), c:color((/<color\b[^>]*\/>/.exec(z[1])||[''])[0], tema), b:/<b\/>|<b val="1"\/>/.test(z[1]) })); }
         else if(v!==undefined && t!=='str' && t!=='b' && t!=='e' && !isNaN(+v)) v = (Math.round(+v*100)/100).toString();
         celdas[rf] = { v, s, runs };
       }
     }
     const rowpx = r => { const h = rh[r] ?? defH; return Math.round(h*4/3); };
+    // Formato condicional (igual a / contiene texto): colores que Excel aplica solo, p. ej. las casillas del comunicado
+    const dxfs = [...((/<dxfs\b[^>]*>([\s\S]*?)<\/dxfs>/.exec(await pkg.text('xl/styles.xml'))||[])[1]||'').matchAll(/<dxf>([\s\S]*?)<\/dxf>/g)].map(m=>({ fill:color((/<bgColor\b[^>]*\/>/.exec(m[1])||[''])[0],tema), font:color((/<font>[\s\S]*?(<color\b[^>]*\/>)/.exec(m[1])||['',''])[1],tema) }));
+    const reglasCF = {};
+    for(const m of xml.matchAll(/<conditionalFormatting sqref="([^"]+)">([\s\S]*?)<\/conditionalFormatting>/g)){
+      const reglas = [...m[2].matchAll(/<cfRule\b([^>]*)>([\s\S]*?)<\/cfRule>/g)].map(r=>({ tipo:attr(r[1],'type'), op:attr(r[1],'operator'), texto:attr(r[1],'text'), dxf:+attr(r[1],'dxfId'), prio:+attr(r[1],'priority'), valor:(/<formula>"([^"]*)"<\/formula>/.exec(r[2])||[])[1] })).sort((a,b)=>a.prio-b.prio);
+      m[1].split(' ').forEach(rf=>{ if(/^[A-Z]+\d+$/.test(rf)) reglasCF[rf] = (reglasCF[rf]||[]).concat(reglas); });
+    }
+    const cf = (rf, v) => { const rs = reglasCF[rf]; if(!rs || v===undefined || v==='') return null; const t = String(v).toLowerCase();
+      for(const r of rs){ if((r.tipo==='cellIs' && r.op==='equal' && r.valor!==undefined && t===r.valor.toLowerCase()) || (r.tipo==='containsText' && r.texto && t.includes(r.texto.toLowerCase()))) return dxfs[r.dxf]||null; } return null; };
     const merges = {}, cubiertas = new Set();
     for(const m of xml.matchAll(/<mergeCell ref="([A-Z]+\d+):([A-Z]+\d+)"/g)){ const [a,b]=[ref2(m[1]),ref2(m[2])]; merges[m[1]] = [b[0]-a[0]+1, b[1]-a[1]+1];
       for(let r=a[1]; r<=b[1]; r++) for(let c=a[0]; c<=b[0]; c++) if(r!==a[1]||c!==a[0]) cubiertas.add(r+':'+c); }
@@ -238,12 +251,13 @@
         if(v===0 && (opts.overlay||{})[rf]===0) v = '0';
         // los bordes de una celda combinada se toman de su esquina inferior derecha si la superior no los tiene
         let bd2 = bd; if(mg){ const fin = celdas[colL(c+mg[0]-1)+(r+mg[1]-1)]; const xf2 = fin && st.xfs[fin.s]; const b2 = xf2 && st.borders[xf2.border]; if(b2) bd2 = Object.assign({}, b2, bd); }
-        const css = [ fill?`background:${fill}`:'', bd2.left?`border-left:${bordeCss(bd2.left)}`:'', bd2.right?`border-right:${bordeCss(bd2.right)}`:'', bd2.top?`border-top:${bordeCss(bd2.top)}`:'', bd2.bottom?`border-bottom:${bordeCss(bd2.bottom)}`:'',
-          `font:${f.i?'italic ':''}${f.b?'700 ':''}${(f.sz||11)*4/3}px '${f.name||'Calibri'}',Arial,sans-serif`, f.color?`color:${f.color}`:'', f.u?'text-decoration:underline':'',
+        const cfx = cf(rf, v);
+        const css = [ (cfx&&cfx.fill)?`background:${cfx.fill}`:fill?`background:${fill}`:'', bd2.left?`border-left:${bordeCss(bd2.left)}`:'', bd2.right?`border-right:${bordeCss(bd2.right)}`:'', bd2.top?`border-top:${bordeCss(bd2.top)}`:'', bd2.bottom?`border-bottom:${bordeCss(bd2.bottom)}`:'',
+          `font:${f.i?'italic ':''}${f.b?'700 ':''}${(f.sz||11)*4/3}px '${f.name||'Calibri'}',Arial,sans-serif`, (cfx&&cfx.font)?`color:${cfx.font}`:f.color?`color:${f.color}`:'', f.u?'text-decoration:underline':'',
           `text-align:${xf.h==='centerContinuous'?'center':(xf.h||(v!==undefined&&!isNaN(+v)&&v!==''?'right':'left'))}`, `vertical-align:${xf.v==='center'?'middle':(xf.v||'bottom')}`,
           xf.wrap?'white-space:pre-wrap;word-break:break-word':'white-space:pre', 'overflow:hidden', 'padding:0 2px', 'line-height:1.15' ].filter(Boolean).join(';');
         const vert = xf.rot===90||xf.rot===255||xf.rot===180 ? ' writing-mode:vertical-rl;transform:rotate(180deg)' : '';
-        const contenido = cel.runs && !Object.prototype.hasOwnProperty.call(opts.overlay||{}, rf) ? cel.runs.map(x=>`<span${x.c?` style="color:${x.c}"`:''}>${escH(x.t)}</span>`).join('') : escH(v??'');
+        const contenido = cel.runs && !Object.prototype.hasOwnProperty.call(opts.overlay||{}, rf) ? cel.runs.map(x=>`<span style="${x.c?`color:${x.c};`:''}${x.b?'font-weight:700':''}">${escH(x.t)}</span>`).join('') : escH(v??'');
         html += `<td${mg?` colspan="${mg[0]}" rowspan="${mg[1]}"`:''} style="${css}"><div style="max-height:${mg?ys[Math.min(r-R1+mg[1],ys.length-1)]-ys[r-R1]:rowpx(r)}px;overflow:hidden;${vert}">${contenido}</div></td>`;
       }
       html += '</tr>';
@@ -335,7 +349,7 @@
       const at = `data-zona="${id}" fill="${fill}" stroke="${sel||n?'#991B1B':'transparent'}" stroke-width="3" style="cursor:${interactivo?'pointer':'default'}" class="zc"`;
       const tt = `<title>${escH(nom)}${n?' · '+n:''}</title>`;
       return fs.map(f => f[0]==='e' ? `<ellipse cx="${f[1]}" cy="${f[2]}" rx="${f[3]}" ry="${f[4]}" ${at}>${tt}</ellipse>` : f[0]==='r' ? `<rect x="${f[1]}" y="${f[2]}" width="${f[3]}" height="${f[4]}" rx="8" ${at}>${tt}</rect>` : `<polygon points="${f[1]}" ${at}>${tt}</polygon>`).join(''); }).join('');
-    return `<div style="position:relative;width:100%;max-width:560px"><img src="cuerpo.jpg" alt="Figura del cuerpo, frente y espalda" style="width:100%;display:block;border-radius:10px"><svg viewBox="0 0 1448 1086" style="position:absolute;inset:0;width:100%;height:100%" role="img" aria-label="Zonas del cuerpo">${interactivo?'<style>.zc:hover{fill:rgba(37,99,235,.28);stroke:#1D4ED8}</style>':''}${formas}</svg></div>`;
+    return `<div style="position:relative;width:100%;max-width:560px"><img src="cuerpo.jpg" alt="Figura del cuerpo, frente y espalda" style="width:100%;display:block;border-radius:10px;min-height:120px;background:#F8FAFC" onerror="this.outerHTML='<div class=&quot;err-box&quot;>No se encontró el archivo cuerpo.jpg en el repositorio. Súbelo junto con index.html.</div>'"><svg viewBox="0 0 1448 1086" style="position:absolute;inset:0;width:100%;height:100%" role="img" aria-label="Zonas del cuerpo">${interactivo?'<style>.zc:hover{fill:rgba(37,99,235,.28);stroke:#1D4ED8}</style>':''}${formas}</svg></div>`;
   }
 
   /* ───────── Layout de la planta (layout.png + layout-zonas.js) ───────── */

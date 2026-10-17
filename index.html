@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.4.0';
+window.FRONT_VERSION = '0.5.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -998,7 +998,46 @@ const cOpts = () => (CRITC?CRITC.controles:[]).map(x=>({v:x.n,t:L(x.n,{Ninguno:'
 const catOpts = () => (CRITC?CRITC.categorias:[]).map(c=>({v:c[0],t:c[0]+' – '+c[1]}));
 const pResOpts = (p,c) => { if(!p) return []; const a=[]; for(let k=pMinDe(p,c);k<=Number(p);k++) a.push(k); return a; };
 const areas = () => (CATS.area||[]).map(a=>typeof a==='object'?a.valor:a);
-async function cargarPublicos(){ if(PUB) return PUB; const r=await api({action:'datosPublicos'}); if(r.success){ PUB=r; CRITC=r.criterio; CATS=r.catalogos; } return PUB; }
+let PUB_T = 0;
+async function cargarPublicos(){ if(PUB && Date.now()-PUB_T < 300000) return PUB; const r=await api({action:'datosPublicos'}); if(r.success){ PUB=r; PUB_T=Date.now(); CRITC=r.criterio; CATS=r.catalogos; } return PUB; }
+/* Arma tareas, riesgos, evaluación y contramedidas en el navegador para la vista previa inmediata.
+   Es la misma lógica que generarContenido_ del servidor, que vuelve a armarlo al guardar. */
+function generarLocal(tipo, datos){
+  const P = PUB, R = {}; (P.riesgos||[]).forEach(r=>R[r.folio]=r);
+  const reglas = P.reglas||{}, resp = datos.respuestas||{}, permisos = [], pil = x=>'PIL-'+x;
+  const JSA_SEV = KF.JSA_SEV, JSA_PROB = KF.JSA_PROB;
+  const cv = { jsaSev:s=>({1:'MENOR',2:'MENOR',3:'MODERADA',4:'CRITICA',5:'FATAL'})[Number(s)]||'', jsaProb:p=>JSA_PROB[Number(p)-1]||'', jraS:s=>({1:2,2:2,3:3,4:20,5:40})[Number(s)]||2,
+    jraP:p=>Number(p)<=2?0.5:1, jraC:c=>({'Ninguno':1,'EPP':0.9,'Administrativo':0.5,'Ingeniería':0.1,'Sustitución':0.1,'Eliminación':0.1})[c]||1 };
+  const unicos = a=>{ const v={}; return a.filter(x=>{ x=String(x||'').trim(); if(!x||v[x.toLowerCase()]) return false; v[x.toLowerCase()]=1; return true; }); };
+  const de = q => (reglas[q].riesgos||[]).concat(reglas[q].aspectos||[]).map(pil);
+  let pasos;
+  if(datos.actividadId){
+    const a = (P.actividades||[]).find(x=>x.id===datos.actividadId); if(!a) throw new Error(L('La actividad ya no está publicada en el catálogo.','The activity is no longer published.'));
+    (a.permisos||[]).forEach(x=>permisos.push(x));
+    const porSi = {}; Object.keys(reglas).forEach(q=>{ if(resp[q]) de(q).forEach(x=>porSi[x]=1); });
+    const quitar = {}; Object.keys(reglas).forEach(q=>{ if(resp[q]===false && (a.contexto||{})[q]) de(q).forEach(x=>{ if(!porSi[x]) quitar[x]=1; }); });
+    pasos = (a.pasos||[]).map(p=>({tarea:p.tarea, f:p.f||1, folios:(p.riesgos||[]).concat(p.aspectos||[]).filter(x=>!quitar[x])}));
+    const ya = {}; pasos.forEach(p=>p.folios.forEach(x=>ya[x]=1)); const extra = [], etiquetas = [];
+    Object.keys(reglas).forEach(q=>{ if(!resp[q]) return; (reglas[q].permisos||[]).forEach(x=>permisos.push(x));
+      const nuevos = de(q).filter(x=>!ya[x]); if(nuevos.length){ const pr = (P.preguntas||[]).find(z=>z.id===q); etiquetas.push(pr ? pr.t.replace(/^¿|\?$/g,'') : q); nuevos.forEach(x=>{ ya[x]=1; extra.push(x); }); } });
+    if(extra.length) pasos.push({tarea:'Condiciones adicionales del trabajo: '+etiquetas.join('; '), f:1, folios:extra});
+  } else {
+    pasos = ((datos.nueva||{}).pasos||[]).map((p,i)=>{ const c = (p.condiciones||[]).filter(q=>reglas[q]); c.forEach(q=>(reglas[q].permisos||[]).forEach(x=>permisos.push(x)));
+      return {tarea:p.tarea, f:1, folios:unicos([].concat(...c.map(de)))}; });
+  }
+  const docs = unicos(permisos).map(id=>{ const p = (P.permisosTrabajo||[]).find(x=>x.id===id); return p ? p.codigo+' '+p.nombre : id; });
+  const medidas = r => [r.ctlElim, r.ctlIng, r.ctlAdm].concat(r.eppCuerpo?['EPP: '+r.eppCuerpo]:[]).filter(x=>String(x||'').trim());
+  const peor = (l,a,b) => l.indexOf(a) >= l.indexOf(b) ? a : b;
+  const tareas = pasos.map(p=>{ const rs = p.folios.map(f=>R[f]).filter(Boolean);
+    if(tipo==='JRA') return {texto:p.tarea, riesgos:rs.filter(r=>r.tipo!=='AMBIENTAL').map(r=>({folio:r.folio, texto:r.peligro+(r.causa?' ('+r.causa+')':''), categoria:r.categoria||'G', s:cv.jraS(r.s), f:Number(p.f)||1, p:cv.jraP(r.p), c:cv.jraC(r.ctlMayor), medidas:medidas(r)}))};
+    const bloque = (l, conDocs) => { const b = {riesgos:[], sev:'', prob:'', medidas:[], sevD:'', probD:'', documentos:[]};
+      l.forEach(r=>{ b.riesgos.push(r.peligro); b.medidas = b.medidas.concat(medidas(r)); b.sev = peor(JSA_SEV,b.sev,cv.jsaSev(r.s)); b.prob = peor(JSA_PROB,b.prob,cv.jsaProb(r.p));
+        b.sevD = peor(JSA_SEV,b.sevD,cv.jsaSev(r.s)); b.probD = peor(JSA_PROB,b.probD,cv.jsaProb(r.pRes||r.p)); b.documentos = b.documentos.concat(r.documentos||[]); });
+      b.medidas = unicos(b.medidas); b.documentos = unicos(b.documentos.concat(conDocs||[])); return b; };
+    return {texto:p.tarea, seg:bloque(rs.filter(r=>r.tipo!=='AMBIENTAL'), docs), amb:bloque(rs.filter(r=>r.tipo==='AMBIENTAL'))};
+  }).filter(t=>tipo==='JRA' ? t.riesgos.length : (t.seg.riesgos.length || t.amb.riesgos.length));
+  return {tareas, documentos:docs};
+}
 
 /* ═══════════════ MATRIZ DE RIESGOS ═══════════════ */
 let MZ = null, MZ_TAB = 'publicada';
@@ -1206,8 +1245,14 @@ function filasAnalisis(){
   $('an-rows').innerHTML = rows.length ? rows.map(a=>`<tr class="tbl-row"><td class="mono" style="font-size:.74rem">${esc(a.folio)}</td><td><strong>${esc(a.tipo)}</strong></td><td>${chipAn(a.estatus)}${String(a.bloqueado).toUpperCase()==='TRUE'?`<br><span class="help" style="color:#B91C1C">${esc(L('Riesgo alto después de controles','High risk after controls'))}</span>`:''}</td><td class="no-i18n">${esc(a.actividad)}</td><td class="no-i18n">${esc(a.area||'')}${a.compania?' / '+esc(a.compania):''}</td><td>${nivelDoc(a)}</td><td class="no-i18n">${esc(a.capturoNombre||'—')}${a.origen==='PUBLICO'?` <span class="badge b-info">${esc(L('Sin cuenta','No account'))}</span>`:''}</td><td style="white-space:nowrap">${fecha(a.creado)}</td><td><button class="btn-g btn-sm" type="button" onclick="verAnalisis('${a.id}')">${esc(L('Ver','View'))}</button></td></tr>`).join('') : vacio(9, L('No hay documentos con esos filtros.','No documents match the filters.'));
   $('an-count').textContent = `${rows.length} de ${AN.length} documentos`;
 }
+const AN_DET = {};
+async function obtenerAnalisis(id){
+  if(AN_DET[id]) return AN_DET[id];
+  const r = await llamar({action:'analisisObtener', token:tok(), id}); if(!r) return null;
+  return (AN_DET[id] = r.documento);
+}
 async function verAnalisis(id){
-  const a = AN.find(x=>x.id===id), yo = SESSION.user.username;
+  const a = await obtenerAnalisis(id), yo = SESSION.user.username; if(!a) return;
   const puedeEditar = (a.capturo===yo && ['BORRADOR','RECHAZADO'].includes(a.estatus)) || esSafety();
   const revisar = esSafety() && a.estatus==='ENVIADO';
   modal(1, `${a.folio} · ${a.tipo}`, `<div>${chipAn(a.estatus)} ${nivelDoc(a)}</div>${a.comentarioRevision?`<div class="box"><span class="help">${esc(L('Comentario de Safety','Safety comment'))} · <span class="no-i18n">${esc(a.revisadoPor||'')}</span></span><div class="no-i18n" style="font-size:.86rem">${esc(a.comentarioRevision)}</div></div>`:''}<div id="prev-hojas" style="width:100%"><p class="help">${esc(L('Preparando el formato…','Preparing the form…'))}</p></div>`
@@ -1224,24 +1269,25 @@ function nombreArchivo(tipo, doc, i, n){
   return `${base}_${(doc.numero||doc.folio||g.consecutivo||'').replace(/[^\w-]+/g,'_')}_${f}${sufijo}.xlsx`;
 }
 async function descargarAnalisis(id, doc){
-  const a = doc || AN.find(x=>x.id===id); const partes = KF_ULTIMO && KF_ULTIMO[0] && KF_ULTIMO[0].tipo===a.tipo ? KF_ULTIMO : await KF.generar(a.tipo, a);
+  const a = doc || await obtenerAnalisis(id); const partes = KF_ULTIMO && KF_ULTIMO[0] && KF_ULTIMO[0].tipo===a.tipo ? KF_ULTIMO : await KF.generar(a.tipo, a);
   partes.forEach((p,i)=>KF.descargar(p.bytes, nombreArchivo(a.tipo, a, i, partes.length)));
 }
 async function revisarAnalisis(id, decision){
+  delete AN_DET[id];
   const r = await llamar({action:'analisisRevisar', token:tok(), id, decision, comentario:val('rev-com')}, decision==='APROBAR'?L('Análisis aprobado.','Analysis approved.'):L('Regresado para corregir.','Returned for corrections.'));
   if(r){ closeModal('m-gen'); cargarAnalisis(); }
 }
 const JSA_VACIO = () => ({riesgos:[], sev:'', prob:'', medidas:[], sevD:'', probD:'', documentos:[]});
 async function nuevoAnalisis(tipo, publico){
-  PUB = null; await cargarPublicos();
+  await cargarPublicos();
   const g = {fechaTrabajo:hoy(), capturoNombre: publico?'':(SESSION?SESSION.user.nombre:'')};
   ED = tipo==='JSA' ? {id:'', tipo, publico, datos:{general:g, actividadId:'', respuestas:{}, nueva:null, tareas:[], personal:[]}}
                     : {id:'', tipo, publico, datos:{general:Object.assign(g,{tipoActividad:'routine'}), actividadId:'', respuestas:{}, nueva:null, tareas:[], otrosRiesgos:[], sinQuimicos:true, quimicos:[]}};
   showView('editor'); renderEditor();
 }
 async function editarAnalisis(id){
-  PUB = null; await cargarPublicos();
-  const a = AN.find(x=>x.id===id);
+  await cargarPublicos();
+  const a = await obtenerAnalisis(id); if(!a) return;
   ED = {id, tipo:a.tipo, publico:false, datos:JSON.parse(JSON.stringify(a.datos||{}))};
   const d = ED.datos; d.general = d.general||{}; d.tareas = d.tareas||[]; d.personal = d.personal||[];
   if(a.tipo==='JSA') d.tareas.forEach(t=>{ t.seg = Object.assign(JSA_VACIO(), t.seg||{}); t.amb = Object.assign(JSA_VACIO(), t.amb||{}); });
@@ -1260,7 +1306,8 @@ function renderEditor(){
   const d = ED.datos, jsa = ED.tipo==='JSA', M = window.KTMEX_FO015;
   let gen;
   if(jsa) gen = `<div class="grid-3">${gIn('compania',L('Compañía','Company'))}${gSel('area',L('Área donde se realiza','Area'),areas())}${gIn('capturoNombre',L('Nombre de quien captura','Name of person entering'))}</div>
-    <div class="grid-3">${gIn('periodo',L('Periodo','Period'),'placeholder="08-08-2026 AL 22-08-2026"')}${gIn('horario',L('Horario','Schedule'),'placeholder="16:00 A 04:00"')}${gIn('telefono',L('Teléfono (opcional)','Phone (optional)'))}</div>`;
+    <div class="grid-4">${gIn('periodoDesde',L('Periodo: desde','Period: from'),'type="date" data-picker="1"')}${gIn('periodoHasta',L('Periodo: hasta','Period: to'),'type="date" data-picker="1"')}${gIn('horaInicio',L('Horario: inicio','Schedule: start'),'type="time" data-picker="1"')}${gIn('horaFin',L('Horario: fin','Schedule: end'),'type="time" data-picker="1"')}</div>
+    <div class="grid-3">${gIn('telefono',L('Teléfono (opcional)','Phone (optional)'))}</div>`;
   else gen = `<div class="grid-4">${gIn('fechaTrabajo',L('Fecha','Date'),'type="date"')}${gIn('consecutivo',L('No. consecutivo','Consecutive no.'),'placeholder="FAC-0019"')}${gIn('capturoNombre',L('Evaluador (nombre)','Evaluator (name)'))}${gSel('area',L('Área','Area'),areas())}</div>
     <div class="grid-4">${gSel('departamento',L('Departamento','Department'),CATS.departamento||[])}${gIn('lineaMaquina',L('Líneas / máquina','Lines / machine'))}${gIn('proceso',L('Proceso','Process'))}${gSel('moe',L('¿Cuenta con MOE?','Has MOE?'),[{v:'SI',t:L('Sí','Yes')},{v:'NO',t:'No'}])}</div>
     <div class="grid-3">${gSel('categoriaTrabajo',L('Categoría de trabajo','Work category'),Object.entries(M.WORK_CATEGORY_LABEL).map(([v,t])=>({v,t})))}${gSel('tipoActividad',L('Tipo de actividad','Activity type'),[{v:'routine',t:L('Rutinaria','Routine')},{v:'nonRoutine',t:L('No rutinaria','Non-routine')}],undefined)}${gIn('moeCodigo',L('Código de MOE (solo para el sistema)','MOE code (system only)'))}</div>
@@ -1313,9 +1360,8 @@ let REGEN_T = null; function regenerarLuego(){ clearTimeout(REGEN_T); REGEN_T = 
 async function regenerar(){
   const d = ED.datos; if(!d.actividadId && !(d.nueva && d.nueva.pasos.some(p=>p.tarea.trim() && p.condiciones.length))){ d.tareas = []; pintarContenido(); return; }
   const datos = d.nueva ? {nueva:{nombre:d.nueva.nombre, pasos:d.nueva.pasos.filter(p=>p.tarea.trim() && p.condiciones.length)}} : {actividadId:d.actividadId, respuestas:d.respuestas};
-  const r = await api({action:'analisisGenerar', tipo:ED.tipo, datos});
-  if(!r.success){ $('ed-contenido').innerHTML = `<div class="err-box">${esc(uiText(r.error))}</div>`; d.tareas = []; return; }
-  d.tareas = r.tareas; pintarContenido();
+  try{ await cargarPublicos(); d.tareas = generarLocal(ED.tipo, datos).tareas; pintarContenido(); }
+  catch(e){ const el = $('ed-contenido'); if(el) el.innerHTML = `<div class="err-box">${esc(uiText(e.message))}</div>`; d.tareas = []; }
 }
 function pintarContenido(){
   const el = $('ed-contenido'), d = ED.datos; if(!el) return;
@@ -1346,7 +1392,12 @@ document.addEventListener('input', edCambio); document.addEventListener('change'
 function edCambio(e){
   const el = e.target; if(!ED || !el.closest || !el.closest('#editor-body')) return;
   const v = el.type==='checkbox' ? el.checked : el.value, d = ED.datos;
-  if(el.dataset.g){ d.general[el.dataset.g] = v; if(el.dataset.g==='area' && e.type==='change'){ renderEditor(); } return; }
+  if(el.dataset.g){ d.general[el.dataset.g] = v;
+    // el formato recibe el periodo y el horario armados: «08-08-2026 AL 22-08-2026» y «16:00 A 04:00»
+    const g = d.general, dmy = x => x ? x.split('-').reverse().join('-') : '';
+    if(/^periodo/.test(el.dataset.g)) g.periodo = [dmy(g.periodoDesde), dmy(g.periodoHasta)].filter(Boolean).join(' AL ');
+    if(/^hora/.test(el.dataset.g)) g.horario = [g.horaInicio, g.horaFin].filter(Boolean).join(' A ');
+    if(el.dataset.g==='area' && e.type==='change'){ renderEditor(); } return; }
   if(el.dataset.personal){ d.personal = lineasDe(v).map(n=>({nombre:n})); return; }
   if(el.dataset.otro!==undefined){ const h = window.KTMEX_FO015.OTHER_HAZARDS[+el.dataset.otro]; d.otrosRiesgos = (d.otrosRiesgos||[]).filter(x=>x!==h).concat(v?[h]:[]); return; }
   if(el.dataset.qm!==undefined){ d.quimicos[+el.dataset.qm][el.dataset.qmk] = /^(frecuencia|duracion|aire|dermico|control)$/.test(el.dataset.qmk) && v!=='' ? Number(v) : v; }
@@ -1369,7 +1420,7 @@ async function guardarEditor(enviar){
     if(ED.publico){
       modal(1, L('Enviado a Safety','Sent to Safety'), `<p style="margin:0">${esc(L('Guarda estos datos para consultar la respuesta de Safety:','Keep this information to check Safety\'s response:'))}</p><div class="grid-2"><div><span class="help">Folio</span><div class="temp-pwd">${esc(r.folio)}</div></div><div><span class="help">${esc(L('Código','Code'))}</span><div class="temp-pwd">${esc(r.codigo)}</div></div></div>${r.bloqueado?`<p style="color:#B91C1C;font-size:.84rem">${esc(L('Atención: queda un riesgo alto después de controles; Safety podría regresarlo.','Note: a high risk remains after controls; Safety may return it.'))}</p>`:''}`,
         `<button class="btn-p" type="button" onclick="closeModal('m-gen');ED=null;showView('publico')">${esc(L('Listo, ya los anoté','Done, I wrote them down'))}</button>`, '');
-    } else { closeModal('m-gen'); toast(enviar?L('Enviado a Safety.','Sent to Safety.'):L('Borrador guardado.','Draft saved.')); ED = null; showView('analisis'); }
+    } else { if(ED.id) delete AN_DET[ED.id]; closeModal('m-gen'); toast(enviar?L('Enviado a Safety.','Sent to Safety.'):L('Borrador guardado.','Draft saved.')); ED = null; showView('analisis'); }
   } catch(e){ toast(e.message,'err'); }
   finally{ const b2=$('btn-confirmar'); if(b2) b2.disabled=false; }
 }
@@ -1427,7 +1478,7 @@ function abrirEvento(id, clase){
     <div class="grid-2"><div id="ev-cuerpo"></div><div>${fld(L('Tipo de lesión','Injury type'), inp('ev-tipoLesion',e.tipoLesion,'placeholder="'+esc(L('Ej. corte, golpe, quemadura','e.g. cut, bruise, burn'))+'"'))}<p class="help" id="ev-partes-txt" style="margin-top:8px"></p></div></div>
     <div class="box" style="border-color:#FCD34D;background:#FFFBEB"><div class="sec-title">${esc(L('Datos confidenciales (nunca se imprimen)','Confidential data (never printed)'))}</div><div class="grid-2">${fld(L('Nombre del lesionado','Injured person'), inp('ev-p-nombre',pv.nombre))}${fld(L('Número de empleado','Employee number'), inp('ev-p-numeroEmpleado',pv.numeroEmpleado))}</div></div>
     ${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}`
-  : `<div class="grid-4">${fld(L('No. de alerta (consecutivo)','Alert no.'), inp('ev-numero',e.numero))}${fld(L('Fecha','Date'), inp('ev-fecha',e.fecha,'type="date" onchange="sugerirMes()"'))}${fld(L('Mes','Month'), sel('ev-mes',MESES,d.mes||MESES[(new Date(e.fecha+'T00:00:00').getMonth())],'—'))}${fld(L('Día','Day'), inp('ev-dia',d.dia||String(new Date(e.fecha+'T00:00:00').getDate()),'type="number" min="1" max="31"'))}</div>
+  : `<div class="grid-4">${fld(L('No. de alerta (consecutivo)','Alert no.'), inp('ev-numero',e.numero))}${fld(L('Fecha','Date'), inp('ev-fecha',e.fecha,'type="date" onchange="sugerirMes()"'))}${fld(L('Mes (sale de la fecha)','Month (from the date)'), inp('ev-mes',d.mes||MESES[(new Date(e.fecha+'T00:00:00').getMonth())],'readonly style="background:#F1F5F9"'))}${fld(L('Día (sale de la fecha)','Day (from the date)'), inp('ev-dia',d.dia||String(new Date(e.fecha+'T00:00:00').getDate()),'readonly style="background:#F1F5F9"'))}</div>
     <div class="grid-4">${fld(L('Departamento','Department'), sel('ev-departamento',CATS.deptoAlerta||[],e.departamento,'—'))}${fld(L('Área (para indicadores)','Area (for indicators)'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Turno / cuadrilla','Shift / crew'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}</div>
     ${biF('ev-problema', d.problema, L('Problema detectado','Detected problem'), true)}
     ${fld(L('No cumplimiento: regla del reglamento interno','Non-compliance: internal rule'), sel('ev-regla',(CATS.regla||[]),d.regla,L('— Ninguna de la lista —','— None from the list —')))}
@@ -1533,7 +1584,7 @@ async function vistaPreviaEvento(){
   const ev = leerEvento(); EVF._ev = ev;
   const tipo = EVF.clase==='COMUNICADO' ? 'COM' : 'ALE';
   modal(2, L('Vista previa del formato','Form preview'), `<p class="help">${esc(L('Así quedará el formato. Revisa y confirma para guardarlo.','This is how the form will look. Review and confirm to save it.'))}</p><div id="prev-ev" style="width:100%"><p class="help">${esc(L('Preparando el formato…','Preparing the form…'))}</p></div>`,
-    `<button class="btn-g" type="button" onclick="closeModal('m-gen2')">${esc(L('Corregir','Correct'))}</button><button class="btn-p" type="button" id="btn-ev-ok" onclick="guardarEvento()">${esc(L('Confirmar y guardar','Confirm and save'))}</button>`, 'xl');
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen2')">${esc(L('Corregir','Correct'))}</button><button class="btn-g" type="button" onclick="descargarEventoPrevio()"><i class="fas fa-file-excel" style="margin-right:6px"></i>${esc(L('Descargar Excel','Download Excel'))}</button><button class="btn-p" type="button" id="btn-ev-ok" onclick="guardarEvento()">${esc(L('Confirmar y guardar','Confirm and save'))}</button>`, 'xl');
   try{ EVF._partes = await KF.generar(tipo, ev, await fotosComoDataUrl(ev._orden)); await KF.mostrar($('prev-ev'), EVF._partes); } catch(e){ $('prev-ev').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
 }
 async function guardarEvento(){
@@ -1544,10 +1595,13 @@ async function guardarEvento(){
   evento.datos.fotosRol = ev._orden.filter(f=>f.id).concat(ev._orden.filter(f=>f.dataUrl)).map(f=>f.rol||'Evento');
   try{ const r = await llamar({action:'eventoGuardar', token:tok(), id:EVF.id, clase:EVF.clase, evento}, L('Guardado.','Saved.'));
     if(r){ const partes = EVF._partes, tipo = EVF.clase==='COMUNICADO'?'COM':'ALE'; closeModal('m-gen2'); closeModal('m-gen');
-      if(partes) KF.descargar(partes[0].bytes, nombreArchivo(tipo, Object.assign({folio:r.folio}, ev), 0, 1));
-      await cargarEventos(); } }
+      EVF._guardado = {partes, nombre:nombreArchivo(tipo, Object.assign({folio:r.folio}, ev), 0, 1)};
+      await cargarEventos();
+      if(partes) modal(1, L('Guardado','Saved'), `<p style="margin:0">${esc(tipo==='COM'?L('El comunicado quedó guardado.','The communication was saved.'):L('La alerta quedó guardada.','The alert was saved.'))}</p>`,
+        `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cerrar','Close'))}</button><button class="btn-p" type="button" onclick="KF.descargar(EVF._guardado.partes[0].bytes, EVF._guardado.nombre)"><i class="fas fa-file-excel" style="margin-right:6px"></i>${esc(L('Descargar Excel','Download Excel'))}</button>`, ''); } }
   finally{ const b2=$('btn-ev-ok'); if(b2) b2.disabled=false; }
 }
+function descargarEventoPrevio(){ const tipo = EVF.clase==='COMUNICADO'?'COM':'ALE'; if(EVF._partes) KF.descargar(EVF._partes[0].bytes, nombreArchivo(tipo, EVF._ev, 0, 1)); else toast(L('Espera a que termine la vista previa.','Wait for the preview to finish.'),'info'); }
 async function verEvento(id){
   const e = EV.find(x=>x.id===id), tipo = e.clase==='COMUNICADO'?'COM':'ALE';
   modal(1, `${e.numero||e.folio} · ${e.clase==='COMUNICADO'?'FO-014':'FO-005'}`, `<div id="prev-ev1" style="width:100%"><p class="help">${esc(L('Preparando el formato…','Preparing the form…'))}</p></div>`,
@@ -1816,6 +1870,7 @@ function renderPublico(){
     ${card("showView('login')",'fa-right-to-bracket','#0F2A4A','#F1F5F9',L('Ingresar','Sign in'),L('Personal con cuenta: Safety, áreas, gerencia y consulta.','Staff with an account: Safety, areas, management and read-only.'))}</div>`;
 }
 
+document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName==='INPUT' && /^(date|time|month)$/.test(el.type) && typeof el.showPicker==='function'){ try{ el.showPicker(); }catch(_){} } });
 /* ═══ Arranque ═══ */
 (async function init(){
   try{ if(localStorage.getItem(KEY_SIDEBAR)==='1') document.body.classList.add('sb-mini'); }catch(e){}
