@@ -14,7 +14,7 @@
   const cache = {};
   async function maestro(tipo){
     if(cache[tipo]) return cache[tipo];
-    const r = await fetch(MAESTROS[tipo] + '?v=0.6.0', {cache:'no-cache'});
+    const r = await fetch(MAESTROS[tipo] + '?v=0.7.1', {cache:'no-cache'});
     if(!r.ok) throw new Error('No se encontró el formato ' + MAESTROS[tipo] + '. Revisa que la carpeta forms esté en el repositorio.');
     return (cache[tipo] = new Uint8Array(await r.arrayBuffer()));
   }
@@ -139,7 +139,9 @@
     const turno = { Verde:['Y9','G'], Azul:['AA9','B'], Mixto:['Y9','M'] }[ev.turno];
     const d = ev.datos||{}, cells = { Y9:'', AA9:'', H13:ev.numero||'', H15:(fechaMx(ev.fecha)+' '+(ev.hora||'')).trim(), H17:(fechaMx(d.fechaNotificacion)+' '+(d.horaNotificacion||'')).trim(),
       H19:biR(d.ubicacion,'\n'), H21:biR(d.antiguedadPlanta,'\n'), H23:biR(d.antiguedadEstacion,'\n'), E27:biR(d.queOcurrio,'\n'), E29:biR(d.comoOcurrio,'\n'),
-      B37:(!ev.stopRiesgo || ev.stopRiesgo==='NA') ? 'NA' : ev.stopRiesgo.replace(/\d/,''),   // sin riesgo STOP 6 → «NA», como en los formatos de Safety G75:biLista((d.acciones||[]).map(a=>a.accion||{}).filter(a=>(a.es||'').trim()), '\n', i=>`${i+1}. `),
+      // sin riesgo STOP 6 → «NA», como en los formatos de Safety
+      B37:(!ev.stopRiesgo || ev.stopRiesgo==='NA') ? 'NA' : ev.stopRiesgo.replace(/\d/,''),
+      G75:biLista((d.acciones||[]).map(a=>a.accion||{}).filter(a=>(a.es||'').trim()), '\n', i=>`${i+1}. `),
       Y75:[...new Set((d.acciones||[]).map(a=>a.responsable).filter(Boolean))].join(', ') };
     Object.values(COM_CLASIF).forEach(c=>cells[c]=''); Object.values(COM_STOPSEV).forEach(c=>cells[c]='');
     if(turno) cells[turno[0]] = turno[1];

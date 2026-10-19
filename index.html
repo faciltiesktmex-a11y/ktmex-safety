@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.7.0';
+window.FRONT_VERSION = '0.7.1';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -203,10 +203,10 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.7.0" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.7.0" charset="utf-8"></script>
-<script src="formatos.js?v=0.7.0" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.7.0" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.7.1" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.7.1" charset="utf-8"></script>
+<script src="formatos.js?v=0.7.1" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.7.1" charset="utf-8"></script>
 </head>
 <body>
 
@@ -1940,6 +1940,7 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.7.1': [ L('Comunicado: las contramedidas inmediatas vuelven a escribirse en el formato (en español y en inglés).','Communication: immediate countermeasures are written in the form again (Spanish and English).') ],
   '0.7.0': [
     L('JSA y JRA: figura del cuerpo con las partes expuestas según los riesgos de la actividad.','JSA and JRA: body figure with the parts exposed by the activity risks.'),
     L('Indicadores: Pareto de eventos por tipo y por área, con porcentaje acumulado y línea de 80 %.','Indicators: Pareto of events by type and by area, with cumulative percentage and 80% line.'),
