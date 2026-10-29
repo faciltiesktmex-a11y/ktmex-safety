@@ -14,7 +14,7 @@
   const cache = {};
   async function maestro(tipo){
     if(cache[tipo]) return cache[tipo];
-    const r = await fetch(MAESTROS[tipo] + '?v=0.7.1', {cache:'no-cache'});
+    const r = await fetch(MAESTROS[tipo] + '?v=0.8.0', {cache:'no-cache'});
     if(!r.ok) throw new Error('No se encontró el formato ' + MAESTROS[tipo] + '. Revisa que la carpeta forms esté en el repositorio.');
     return (cache[tipo] = new Uint8Array(await r.arrayBuffer()));
   }
@@ -361,6 +361,19 @@
     [/asfixia|gas|vapor|humo|atmósfera|atmosfera|confinad|intoxic|oxígeno|oxigeno/, ['cara','torax']],
     [/pie|calzado|piso/, AMBOS('pie')]
   ];
+  // Grupos del registro RE-001 (9 partes, sin lado) y las zonas de la figura que abarca cada uno (v0.8)
+  const GRUPOS_CUERPO = [
+    ['Cabeza y cara',['cabeza','cara','ojo_der','ojo_izq']], ['Cuello',['cuello']], ['Hombro',AMBOS('hombro')],
+    ['Tórax y espalda',['torax','espalda_alta','espalda_baja']], ['Abdomen y cadera',['abdomen'].concat(AMBOS('cadera'))],
+    ['Brazo y codo',AMBOS('brazo','codo','antebrazo')], ['Mano y dedos',AMBOS('muneca','mano','dedos')],
+    ['Pierna y rodilla',AMBOS('muslo','rodilla','pierna')], ['Pie y tobillo',AMBOS('tobillo','pie')]
+  ];
+  const grupoDeZona = z => ((GRUPOS_CUERPO.find(g=>g[1].includes(z))||[])[0]) || '';
+  const zonasDeGrupo = g => ((GRUPOS_CUERPO.find(x=>x[0]===g)||[])[1]) || [];
+  // Grupos de un evento: de las zonas marcadas en la figura o, en el histórico, de la parte anotada en el RE-001
+  const gruposDeEvento = e => { const z = e.partesCuerpo||[]; if(z.length) return [...new Set(z.map(grupoDeZona).filter(Boolean))]; return e.parteRE ? [e.parteRE] : []; };
+  // Zonas de la figura para el mapa de calor: las marcadas o, en el histórico, todas las del grupo (ambos lados)
+  const zonasDeEvento = e => (e.partesCuerpo||[]).length ? e.partesCuerpo : zonasDeGrupo(e.parteRE);
   const CUERPO_CAT = { A:AMBOS('mano','dedos'), B:AMBOS('mano','pie').concat(['cabeza']), C:AMBOS('pierna','cadera'), D:['cabeza'].concat(AMBOS('rodilla','tobillo')), E:AMBOS('mano').concat(['torax']), F:AMBOS('mano').concat(['cara']) };
   function zonasDeRiesgo(r){
     const t = ((r.peligro||'')+' '+(r.causa||'')).toLowerCase(), z = new Set();
@@ -394,5 +407,5 @@
   }
   const nombreZonaPlanta = id => { const z = root.KTLAYOUT && root.KTLAYOUT.zonas.find(x=>x.id===Number(id)); return z ? z.n : String(id); };
 
-  root.KF = { MAESTROS, HOJAS, JSA_SEV, JSA_PROB, JSA_CAT, jsaPuntaje, JRA, desdeMatriz, generar, descargar, vista, mostrar, cuerpoSVG, ZONAS_CUERPO, nombreZona, zonasDeRiesgo, layoutSVG, nombreZonaPlanta, bi, fechaMx, r2, _spec:{specJSA,specJRA,specCOM,specALE}, maestro };
+  root.KF = { VERSION:'0.8.0', GRUPOS_CUERPO, grupoDeZona, zonasDeGrupo, gruposDeEvento, zonasDeEvento, MAESTROS, HOJAS, JSA_SEV, JSA_PROB, JSA_CAT, jsaPuntaje, JRA, desdeMatriz, generar, descargar, vista, mostrar, cuerpoSVG, ZONAS_CUERPO, nombreZona, zonasDeRiesgo, layoutSVG, nombreZonaPlanta, bi, fechaMx, r2, _spec:{specJSA,specJRA,specCOM,specALE}, maestro };
 })(typeof window!=='undefined'?window:globalThis);

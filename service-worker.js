@@ -1,6 +1,6 @@
 /* ============================================================
    KTMEX Safety — Service Worker
-   Versión de interfaz: 0.7.1
+   Versión de interfaz: 0.8.0
 
    - Navegación: red primero; la copia guardada solo sirve sin conexión.
    - Archivos de la app: se responde desde caché y se actualiza en segundo plano.
@@ -11,8 +11,8 @@
    Cada versión nueva de index.html debe subir el número de CACHE.
    ============================================================ */
 const PREFIJO = 'ktmex-safety-';
-const CACHE = PREFIJO + 'v9-0.7.1-20261018';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './xlsx-fill.js', './fo015-map.js', './formatos.js', './layout-zonas.js', './layout.png', './cuerpo.jpg',
+const CACHE = PREFIJO + 'v10-0.8.0-20261028';
+const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './xlsx-fill.js', './fo015-map.js', './formatos.js', './layout-zonas.js', './tablero.js', './layout.png', './cuerpo.jpg',
   './forms/F-SGA-8.1-7.xlsx', './forms/FO-015.xlsx', './forms/FO-014.xlsx', './forms/FO-005.xlsx'];
 
 self.addEventListener('install', event => {

@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.7.1';
+window.FRONT_VERSION = '0.8.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -203,10 +203,11 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.7.1" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.7.1" charset="utf-8"></script>
-<script src="formatos.js?v=0.7.1" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.7.1" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.8.0" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.8.0" charset="utf-8"></script>
+<script src="formatos.js?v=0.8.0" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.8.0" charset="utf-8"></script>
+<script src="tablero.js?v=0.8.0" charset="utf-8"></script>
 </head>
 <body>
 
@@ -270,6 +271,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
       <p style="font-size:1.05rem;color:#fff;font-weight:600;margin:0 0 6px">Un solo criterio para evaluar, aprobar y ejecutar el trabajo</p>
       <p>Sistema de Safety de KTMEX: matriz de riesgos, análisis JSA y JRA, comunicados y alertas, indicadores, contratistas y capacitación.</p>
     </div>
+    <div id="home-cm"></div>
     <div class="mod-grid" id="home-mods"></div>
   </div>
 </div>
@@ -594,6 +596,7 @@ function pintarInicio(){
   $('home-mods').innerHTML = MODULOS.filter(m=>roleCanView(m.v)).map(m=>`<div class="card mod go" tabindex="0" onclick="showView('${m.v}')" onkeydown="if(event.key==='Enter')showView('${m.v}')">
       <div class="mod-ico" style="background:${m.bg}"><i class="fas ${m.ico}" style="color:${m.color};font-size:18px"></i></div>
       <h3>${esc(m.titulo)}</h3><p>${esc(m.texto)}</p></div>`).join('');
+  if(u) cargarMisContramedidas(); else if($('home-cm')) $('home-cm').innerHTML = '';
 }
 function showView(v){
   if(!roleCanView(v)){
@@ -1442,12 +1445,19 @@ async function buscarFolio(){
 }
 
 /* ═══════════════ COMUNICADOS (FO-014) Y ALERTAS (FO-005) ═══════════════ */
-let EV = [], EV_TAB = 'COMUNICADO', EVF = null, PLANO_URL = null;
+let EV = [], EV_TAB = 'COMUNICADO', EVF = null, PLANO_URL = null, EV_ANIO = 'Todos';
 const CLASIF = ['Lesión','Tratamiento médico','Primer auxilio','Daño a la propiedad','Casi accidente'];
 const TIPO_DE = {'Lesión':'Accidente','Tratamiento médico':'Accidente','Primer auxilio':'Incidente','Daño a la propiedad':'Daño a la propiedad','Casi accidente':'Casi accidente'};
 const TIPOS_EV = ['Accidente','Incidente','Casi accidente','Daño a la propiedad'];
 const STOP_SEV = ['Sin lesión','Primeros auxilios','Tratamiento médico','Restricción','Incapacidad','Fatalidad'];
 const STOP_R = [['NA','N/A · No aplica'],['A','Atrapado / pellizcado / otro por equipo energizado'],['B','Contacto con / atrapado con objetos pesados'],['C','Contacto con vehículos'],['D','Caída de altura'],['E','Descarga eléctrica'],['F','Contacto con objetos calientes'],['α1','α · Cortadura'],['α2','α · Caída (al caminar)']];
+// v0.8: listas del tablero de incidentes (RE-001)
+const TIPOS_EVENTO = [['Caída de material','Falling material'],['Golpe / contusión','Hit / contusion'],['Choque / equipo móvil','Collision / mobile equipment'],['Corte / laceración','Cut / laceration'],['Daño a instalaciones','Facility damage'],['Atrapamiento / aplastamiento','Entrapment / crushing'],['Quemadura / eléctrico','Burn / electrical'],['Caída de persona','Person fall'],['Otros','Other']];
+const TIPOS_HERIDA = [['Golpe / contusión','Hit / contusion'],['Corte / laceración','Cut / laceration'],['Atrapamiento / aplastamiento','Entrapment / crushing'],['Caída','Fall'],['Esguince / torsión','Sprain / twist'],['Cuerpo extraño','Foreign body'],['Quemadura','Burn'],['Otro','Other']];
+const CMS_OPC = [['1','Sin iniciar','Not started'],['2','En proceso','In progress'],['3','OK','OK']];
+const lista2 = (l, actual) => l.map(([es,en])=>({v:es, t:LANG==='en'?en:es})).concat(actual && !l.some(x=>x[0]===actual) ? [{v:actual,t:actual}] : []);
+let RESP = null;
+async function cargarResponsables(){ if(RESP) return RESP; const r = await llamar({action:'responsablesListar', token:tok()}); RESP = r ? r.usuarios : []; return RESP; }
 const MESES = ['Enero / January','Febrero / February','Marzo / March','Abril / April','Mayo / May','Junio / June','Julio / July','Agosto / August','Septiembre / September','Octubre / October','Noviembre / November','Diciembre / December'];
 async function cargarEventos(){
   $('eventos-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
@@ -1462,28 +1472,33 @@ function renderEventos(){
   const acc = esGestor() && EV_TAB!=='REGLAS' ? `<button class="btn-p btn-sm" type="button" onclick="abrirEvento(null,'${EV_TAB}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(com?L('Nuevo comunicado','New communication'):L('Nueva alerta','New alert'))}</button>` : '';
   let h = cabecera(L('Comunicados y alertas','Communications and alerts'), L('Comunicado KQMS-SA-FO-014 (lesión, tratamiento médico, primer auxilio, daño a la propiedad, casi accidente) y alerta KQMS-SA-FO-005 (actos inseguros), en su formato y en español / inglés.','Communication KQMS-SA-FO-014 and alert KQMS-SA-FO-005, in their form and in Spanish / English.'), acc) + pestanas(tabs, EV_TAB, 'tabEventos');
   if(EV_TAB==='REGLAS'){ $('eventos-body').innerHTML = h + htmlReglamento(); return; }
-  const lista = EV.filter(e=>e.clase===EV_TAB);
-  h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>No.</th><th>${esc(L('Fecha','Date'))}</th>${com?`<th>${esc(L('Clasificación','Classification'))}</th><th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Área','Area'))}</th>`:`<th>${esc(L('Problema detectado','Detected problem'))}</th><th>${esc(L('Departamento','Department'))}</th>`}<th>${esc(L('Turno','Shift'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${lista.length?lista.map(e=>`<tr class="tbl-row"><td><strong>${esc(e.numero||'—')}</strong><br><span class="mono help">${esc(e.folio)}</span></td><td style="white-space:nowrap">${esc(e.fecha)} ${esc(e.hora||'')}</td>${com?`<td>${esc(e.clasificacion||'—')}</td><td><strong>${esc(e.tipo)}</strong></td><td class="no-i18n">${esc(e.area)}</td>`:`<td class="no-i18n">${esc(KF.bi((e.datos||{}).problema)||'—')}</td><td class="no-i18n">${esc(e.departamento||'')}</td>`}<td>${esc(e.turno||'—')}</td><td>${esc(e.estatus||'')}</td>
+  const aniosEv = [...new Set(EV.filter(e=>e.clase===EV_TAB).map(e=>String(e.fecha||'').slice(0,4)).filter(a=>/^\d{4}$/.test(a)))].sort().reverse();
+  if(EV_ANIO!=='Todos' && !aniosEv.includes(EV_ANIO)) EV_ANIO = 'Todos';
+  h += `<div class="toolbar" style="margin-bottom:10px"><label class="lbl" for="ev-anio" style="margin:0">${esc(L('Año','Year'))}</label>${sel('ev-anio',[{v:'Todos',t:uiText(L('Todos','All'))}].concat(aniosEv),EV_ANIO,undefined,'onchange="EV_ANIO=this.value;renderEventos()" style="width:auto"')}</div>`;
+  const lista = EV.filter(e=>e.clase===EV_TAB && (EV_ANIO==='Todos' || String(e.fecha||'').startsWith(EV_ANIO)));
+  h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>No.</th><th>${esc(L('Fecha','Date'))}</th>${com?`<th>${esc(L('Clasificación','Classification'))}</th><th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Área','Area'))}</th>`:`<th>${esc(L('Problema detectado','Detected problem'))}</th><th>${esc(L('Departamento','Department'))}</th>`}<th>${esc(L('Turno','Shift'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${lista.length?lista.map(e=>`<tr class="tbl-row"><td><strong>${esc(e.numero||'—')}</strong><br><span class="mono help">${esc(e.folio)}</span>${e.origen==='RE-001'?`<br><span class="badge b-info" style="font-size:.65rem">${esc(L('Histórico RE-001','RE-001 history'))}</span>`:''}</td><td style="white-space:nowrap">${esc(e.fecha)} ${esc(e.hora||'')}</td>${com?`<td>${esc(e.clasificacion||'—')}</td><td><strong>${esc(e.tipo)}</strong></td><td class="no-i18n">${esc(e.area)}</td>`:`<td class="no-i18n">${esc(KF.bi((e.datos||{}).problema)||'—')}</td><td class="no-i18n">${esc(e.departamento||'')}</td>`}<td>${esc(e.turno||'—')}</td><td>${esc(e.estatus||'')}</td>
     <td style="white-space:nowrap"><button class="btn-g btn-sm" type="button" onclick="verEvento('${e.id}')" title="${esc(L('Ver formato','View form'))}" aria-label="${esc(L('Ver formato','View form'))}"><i class="fas fa-eye"></i></button>${esGestor()?` <button class="btn-g btn-sm" type="button" onclick="abrirEvento('${e.id}')" title="${esc(L('Editar','Edit'))}" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`:''}</td></tr>`).join(''):vacio(8, L('Todavía no hay registros.','No records yet.'))}</tbody></table></div></section>`;
   $('eventos-body').innerHTML = h;
 }
 const biF = (id, v, label, tarea) => `<div class="grid-2">${fld(label+' · '+L('español','Spanish'), (tarea?ta:inp)(id+'-es', (v&&v.es)||'', tarea?'rows="2"':''))}${fld(label+' · '+L('inglés','English'), (tarea?ta:inp)(id+'-en', (v&&v.en)||'', (tarea?'rows="2" ':'')+'placeholder="'+esc(L('Se traduce automáticamente','Translated automatically'))+'"'))}</div>`;
 const biV = id => ({es:val(id+'-es'), en:val(id+'-en')});
-function abrirEvento(id, clase){
+async function abrirEvento(id, clase){
+  if((id ? (EV.find(x=>x.id===id)||{}).clase : clase) === 'COMUNICADO') await cargarResponsables();
   const e = id ? JSON.parse(JSON.stringify(EV.find(x=>x.id===id))) : {clase, fecha:hoy(), datos:{acciones:[]}, privado:{}, fotos:[], estatus:'Abierto', partesCuerpo:[]};
   const com = e.clase==='COMUNICADO', d = e.datos||{}, pv = e.privado||{};
-  EVF = {id:id||'', clase:e.clase, existentes:(e.fotos||[]).map((f,i)=>({id:f, rol:((d.fotosRol||[])[i])||'Evento'})), nuevas:[], acciones:(d.acciones||[]).map(a=>Object.assign({accion:{es:'',en:''}},a)), zonas:(e.zonas||[]).map(Number), partes:(e.partesCuerpo||[]).slice()};
+  EVF = {id:id||'', clase:e.clase, existentes:(e.fotos||[]).map((f,i)=>({id:f, rol:((d.fotosRol||[])[i])||'Evento'})), nuevas:[], acciones:(d.acciones||[]).map(a=>Object.assign({accion:{es:'',en:''}},a,{avanceBase:Number(a.avance)||0, notaRespBase:a.notaResp||'', estatusBase:a.estatus||'Abierta'})), zonas:(e.zonas||[]).map(Number), partes:(e.partesCuerpo||[]).slice()};
   const cuerpo = com ? `
     <div class="grid-4">${fld(L('Incidente # (consecutivo)','Incident #'), inp('ev-numero',e.numero))}${fld(L('Clasificación','Classification'), sel('ev-clasificacion',CLASIF,e.clasificacion,'—','onchange="$(\'ev-tipo-txt\').textContent=TIPO_DE[this.value]||\'—\'"'))}${fld(L('Tipo para indicadores','Type for indicators'), `<div class="inp" id="ev-tipo-txt" style="display:flex;align-items:center;background:#F1F5F9">${esc(TIPO_DE[e.clasificacion]||'—')}</div>`)}${fld(L('Turno / cuadrilla','Shift / crew'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}</div>
     <div class="grid-4">${fld(L('Fecha del evento','Event date'), inp('ev-fecha',e.fecha,'type="date"'))}${fld(L('Hora del evento','Event time'), inp('ev-hora',e.hora,'type="time"'))}${fld(L('Fecha de notificación a Safety','Date notified to Safety'), inp('ev-fechaNotificacion',d.fechaNotificacion,'type="date"'))}${fld(L('Hora de notificación','Notification time'), inp('ev-horaNotificacion',d.horaNotificacion,'type="time"'))}</div>
     <div class="grid-3">${fld(L('Área','Area'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Departamento','Department'), sel('ev-departamento',CATS.departamento||[],e.departamento,'—'))}${fld(L('Persona involucrada','Person involved'), sel('ev-tipoPersona',[{v:'Empleado',t:L('Empleado','Employee')},{v:'Contratista',t:L('Contratista','Contractor')},{v:'Visitante',t:L('Visitante','Visitor')}],e.tipoPersona,'—'))}</div>
+    <div class="grid-2">${fld(L('Tipo de evento (para el tablero de incidentes)','Event type (for the incident dashboard)'), sel('ev-tipoEvento',lista2(TIPOS_EVENTO,e.tipoEvento),e.tipoEvento,'—'))}${e.origen==='RE-001'?`<div class="help" style="align-self:end;padding-bottom:10px"><span class="badge b-info">${esc(L('Histórico RE-001','RE-001 history'))}</span> ${esc(L('Importado del registro KQMS-SA-RE-001; la descripción viene cortada.','Imported from record KQMS-SA-RE-001; the description is cut.'))}${d.parteRE?' · '+esc(L('Parte del cuerpo en el registro','Body part in the record'))+': '+esc(d.parteRE):''}</div>`:''}</div>
     ${biF('ev-ubicacion', d.ubicacion, L('Ubicación','Location'))}${biF('ev-antiguedadPlanta', d.antiguedadPlanta, L('Antigüedad en planta','Plant seniority'))}${biF('ev-antiguedadEstacion', d.antiguedadEstacion, L('Antigüedad en estación / operación','Station / operation seniority'))}
     ${biF('ev-queOcurrio', d.queOcurrio, L('¿Qué ocurrió?','What happened?'), true)}${biF('ev-comoOcurrio', d.comoOcurrio, L('¿Cómo ocurrió?','How did it happen?'), true)}
     <div class="grid-4">${fld(L('STOP 6 · clasificación','STOP 6 · classification'), sel('ev-stopSeveridad',STOP_SEV,e.stopSeveridad,'—'))}${fld(L('STOP 6 · riesgo','STOP 6 · risk'), sel('ev-stopRiesgo',STOP_R.map(x=>({v:x[0],t:x[0]==='NA'?x[1]:x[0].replace(/\d/,'')+' – '+x[1].replace('α · ','')})),e.stopRiesgo||'NA'))}${fld(L('Días perdidos','Lost days'), inp('ev-diasPerdidos',e.diasPerdidos||0,'type="number" min="0"'))}${fld(L('Costo estimado del daño (MXN)','Estimated damage cost (MXN)'), inp('ev-costo',e.costo||0,'type="number" min="0"'))}</div>
     <div class="sec-title">${esc(L('Parte del cuerpo afectada (solo para el sistema e indicadores)','Body part affected (system and indicators only)'))}</div>
-    <div class="grid-2"><div id="ev-cuerpo"></div><div>${fld(L('Tipo de lesión','Injury type'), inp('ev-tipoLesion',e.tipoLesion,'placeholder="'+esc(L('Ej. corte, golpe, quemadura','e.g. cut, bruise, burn'))+'"'))}<p class="help" id="ev-partes-txt" style="margin-top:8px"></p></div></div>
+    <div class="grid-2"><div id="ev-cuerpo"></div><div>${fld(L('Tipo de lesión (herida)','Injury (wound) type'), sel('ev-tipoLesion',lista2(TIPOS_HERIDA,e.tipoLesion),e.tipoLesion,'—'))}<p class="help" id="ev-partes-txt" style="margin-top:8px"></p></div></div>
     <div class="box" style="border-color:#FCD34D;background:#FFFBEB"><div class="sec-title">${esc(L('Datos confidenciales (nunca se imprimen)','Confidential data (never printed)'))}</div><div class="grid-2">${fld(L('Nombre del lesionado','Injured person'), inp('ev-p-nombre',pv.nombre))}${fld(L('Número de empleado','Employee number'), inp('ev-p-numeroEmpleado',pv.numeroEmpleado))}</div></div>
-    ${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}`
+    ${fld(L('Estatus del comunicado (problem solving)','Communication status (problem solving)'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}`
   : `<div class="grid-4">${fld(L('No. de alerta (consecutivo)','Alert no.'), inp('ev-numero',e.numero))}${fld(L('Fecha','Date'), inp('ev-fecha',e.fecha,'type="date" onchange="sugerirMes()"'))}${fld(L('Mes (sale de la fecha)','Month (from the date)'), inp('ev-mes',d.mes||MESES[(new Date(e.fecha+'T00:00:00').getMonth())],'readonly style="background:#F1F5F9"'))}${fld(L('Día (sale de la fecha)','Day (from the date)'), inp('ev-dia',d.dia||String(new Date(e.fecha+'T00:00:00').getDate()),'readonly style="background:#F1F5F9"'))}</div>
     <div class="grid-4">${fld(L('Departamento','Department'), sel('ev-departamento',CATS.deptoAlerta||[],e.departamento,'—'))}${fld(L('Área (para indicadores)','Area (for indicators)'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Turno / cuadrilla','Shift / crew'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}</div>
     ${biF('ev-problema', d.problema, L('Problema detectado','Detected problem'), true)}
@@ -1496,7 +1511,8 @@ function abrirEvento(id, clase){
     <div id="ev-thumbs"></div><input type="file" id="ev-foto" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="fotoEvento(this)">
     <div class="sec-title">${esc(L('Zona del layout donde ocurrió','Layout zone where it happened'))}</div><div id="ev-plano"></div>`,
     `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-g" type="button" onclick="traducirEvento(true)"><i class="fas fa-language" style="margin-right:6px"></i>${esc(L('Traducir al inglés','Translate to English'))}</button><button class="btn-p" type="button" id="btn-ev" onclick="vistaPreviaEvento()"><i class="fas fa-eye" style="margin-right:6px"></i>${esc(L('Vista previa','Preview'))}</button>`, 'xl');
-  pintarAcciones(); pintarThumbs(); pintarPlanoEvento(); if(com) pintarCuerpoEvento();
+  // cada sección se pinta por separado: si una falla, las demás siguen apareciendo
+  [pintarAcciones, pintarThumbs, pintarPlanoEvento].concat(com ? [pintarCuerpoEvento] : []).forEach(f=>{ try{ f(); }catch(err){ console.error(err); revisarArchivos(); } });
 }
 function sugerirMes(){ const f = new Date(val('ev-fecha')+'T00:00:00'); if(isNaN(f)) return; $('ev-mes').value = MESES[f.getMonth()]; $('ev-dia').value = f.getDate(); }
 function pintarCuerpoEvento(){
@@ -1505,6 +1521,7 @@ function pintarCuerpoEvento(){
   $('ev-partes-txt').textContent = EVF.partes.length ? EVF.partes.map(KF.nombreZona).join(', ') : L('Toca la figura para marcar las zonas.','Tap the figure to mark the areas.');
 }
 function pintarAcciones(){
+  if(EVF.clase==='COMUNICADO') return pintarContramedidas();
   const max = EVF.clase==='ALERTA' ? 3 : 10, ale = EVF.clase==='ALERTA';
   $('ev-acc').innerHTML = EVF.acciones.map((a,i)=>`<div class="box" style="margin-bottom:8px"><div class="grid-2">${inp('ac-es-'+i,a.accion.es,`placeholder="${esc(L('Acción en español','Action in Spanish'))}" oninput="EVF.acciones[${i}].accion.es=this.value"`)}${inp('ac-en-'+i,a.accion.en,`placeholder="${esc(L('Acción en inglés (automática)','Action in English (automatic)'))}" oninput="EVF.acciones[${i}].accion.en=this.value"`)}</div>
       <div class="grid-4" style="margin-top:6px">${inp('ac-r-'+i,a.responsable,`placeholder="${esc(L('Responsable','Owner'))}" oninput="EVF.acciones[${i}].responsable=this.value"`)}${ale?inp('ac-i-'+i,a.inicio,`type="date" title="${esc(L('Fecha de inicio','Start date'))}" oninput="EVF.acciones[${i}].inicio=this.value"`):''}${inp('ac-c-'+i,a.cierre,`type="date" title="${esc(L('Fecha de cierre','Close date'))}" oninput="EVF.acciones[${i}].cierre=this.value"`)}<div style="display:flex;gap:6px">${sel('ac-e-'+i,['Abierta','En proceso','Cerrada'],a.estatus||'Abierta','',`onchange="EVF.acciones[${i}].estatus=this.value"`)}<button class="btn-g btn-sm" type="button" onclick="EVF.acciones.splice(${i},1);pintarAcciones()" aria-label="${esc(L('Quitar','Remove'))}"><i class="fas fa-xmark"></i></button></div></div></div>`).join('')
@@ -1574,13 +1591,54 @@ async function traducirEvento(todo){
   if(todo) toast(L('Traducción lista. Revísala antes de guardar.','Translation ready. Review it before saving.'));
   return true;
 }
+// Contramedidas del comunicado (v0.8): responsable del sistema, compromiso, extensión, avance, seguimiento a 3 meses y CMS
+function pintarContramedidas(){
+  const us = RESP || [];
+  const opResp = a => [{v:'',t:a.responsable && !a.responsableUsuario ? a.responsable+' · '+uiText(L('sin usuario','no user')) : '— '+uiText(L('Responsable','Owner'))+' —'}].concat(us.map(u=>({v:u.username,t:u.nombre+(u.departamento?' · '+u.departamento:'')})));
+  $('ev-acc').innerHTML = `<p class="help" style="margin:0 0 8px">${esc(L('El responsable ve la contramedida en su inicio y actualiza su avance; Safety confirma el CMS y la cierra.','The owner sees the countermeasure on their home page and updates its progress; Safety confirms the CMS and closes it.'))}</p>`
+    + EVF.acciones.map((a,i)=>`<div class="box" style="margin-bottom:8px"><div class="grid-2">${inp('ac-es-'+i,a.accion.es,`placeholder="${esc(L('Contramedida en español','Countermeasure in Spanish'))}" oninput="EVF.acciones[${i}].accion.es=this.value"`)}${inp('ac-en-'+i,a.accion.en,`placeholder="${esc(L('Contramedida en inglés (automática)','Countermeasure in English (automatic)'))}" oninput="EVF.acciones[${i}].accion.en=this.value"`)}</div>
+      <div class="grid-4" style="margin-top:6px">${fld(L('Responsable','Owner'), sel('ac-r-'+i,opResp(a),a.responsableUsuario||'',undefined,`onchange="ccResp(${i},this.value)"`))}${fld(L('Fecha compromiso','Commitment date'), inp('ac-cp-'+i,a.compromiso,`type="date" onchange="ccComp(${i},this.value)"`))}${fld(L('Extendida a','Extended to'), inp('ac-ex-'+i,a.extendida,`type="date" oninput="EVF.acciones[${i}].extendida=this.value"`))}${fld(L('Avance %','Progress %'), inp('ac-av-'+i,a.avance||0,`type="number" min="0" max="100" step="5" oninput="EVF.acciones[${i}].avance=Math.max(0,Math.min(100,Number(this.value)||0))"`))}</div>
+      <div class="grid-4" style="margin-top:6px">${fld(L('Seguimiento a 3 meses','3-month follow-up'), inp('ac-sg-'+i,a.seguimiento,`type="date" oninput="EVF.acciones[${i}].seguimiento=this.value"`))}${fld('CMS', sel('ac-cms-'+i,CMS_OPC.map(([v,es,en])=>({v,t:v+' · '+(LANG==='en'?en:es)})),a.cms||'','—',`onchange="EVF.acciones[${i}].cms=this.value"`))}${fld(L('Estatus','Status'), sel('ac-e-'+i,['Abierta','En proceso','Cerrada'],a.estatus||'Abierta','',`onchange="EVF.acciones[${i}].estatus=this.value"`))}<div style="display:flex;align-items:end"><button class="btn-g btn-sm" type="button" onclick="EVF.acciones.splice(${i},1);pintarAcciones()"><i class="fas fa-xmark" style="margin-right:6px"></i>${esc(L('Quitar','Remove'))}</button></div></div>
+      ${a.notaResp?`<p class="help" style="margin:6px 0 0"><i class="fas fa-comment" style="margin-right:6px"></i>${esc(L('Nota del responsable','Owner note'))}${a.fechaAvance?' ('+esc(String(a.fechaAvance).slice(0,10))+')':''}: <span class="no-i18n">${esc(a.notaResp)}</span></p>`:''}${a.nota?`<p class="help no-i18n" style="margin:4px 0 0">${esc(a.nota)}</p>`:''}</div>`).join('')
+    + (EVF.acciones.length<10?`<button class="btn-g btn-sm" type="button" onclick="EVF.acciones.push({accion:{es:'',en:''},responsableUsuario:'',responsable:'',compromiso:'',extendida:'',avance:0,seguimiento:'',cms:'1',estatus:'Abierta'});pintarAcciones()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar contramedida','Add countermeasure'))}</button>`:'');
+}
+function ccResp(i, u){ const x = (RESP||[]).find(r=>r.username===u), a = EVF.acciones[i]; a.responsableUsuario = u; if(x) a.responsable = x.nombre; }
+// al poner la fecha compromiso se sugiere el seguimiento a 3 meses
+function ccComp(i, v){ const a = EVF.acciones[i]; a.compromiso = v; if(v && !a.seguimiento){ const [y,m,d] = v.split('-').map(Number), k = m-1+3, yy = y+Math.floor(k/12), mm = k%12, ult = new Date(Date.UTC(yy,mm+1,0)).getUTCDate(); a.seguimiento = `${yy}-${String(mm+1).padStart(2,'0')}-${String(Math.min(d,ult)).padStart(2,'0')}`; const el = $('ac-sg-'+i); if(el) el.value = a.seguimiento; } }
+
+/* ═══ Inicio: mis contramedidas pendientes (v0.8) ═══ */
+let MIS_CM = [];
+async function cargarMisContramedidas(){
+  const box = $('home-cm'); if(!box) return;
+  try{ const r = await api({action:'misContramedidas', token:tok()}); MIS_CM = (r && r.success) ? r.contramedidas : []; }catch(e){ MIS_CM = []; }
+  if(!MIS_CM.length){ box.innerHTML = ''; return; }
+  const hoyS = hoy();
+  box.innerHTML = `<section class="card" style="padding:16px;margin-bottom:16px;border-left:4px solid #F59E0B"><div class="sec-title" style="margin-top:0"><i class="fas fa-list-check" style="margin-right:8px;color:#B45309"></i>${esc(L('Mis contramedidas pendientes','My pending countermeasures'))} (${MIS_CM.length})</div>
+    <div class="tbl-wrap"><table><thead><tr><th>${esc(L('Comunicado','Communication'))}</th><th>${esc(L('Contramedida','Countermeasure'))}</th><th>${esc(L('Vence','Due'))}</th><th>${esc(L('Avance','Progress'))}</th><th></th></tr></thead><tbody>${MIS_CM.map((c,i)=>{ const a = c.accion, vence = a.extendida || a.compromiso, tarde = vence && vence < hoyS;
+      return `<tr><td style="white-space:nowrap"><strong>${esc(c.numero||'—')}</strong> <span class="mono help">${esc(c.folio)}</span><br><span class="help no-i18n">${esc(c.area||'')} · ${esc(c.fecha||'')}</span></td><td class="no-i18n" style="min-width:220px">${esc((a.accion||{}).es || (a.accion||{}).en || '—')}<br><span class="help">${esc(String(c.que||'').slice(0,120))}</span></td>
+        <td style="white-space:nowrap;${tarde?'color:#B91C1C;font-weight:700':''}">${esc(vence||'—')}${tarde?' · '+esc(L('vencida','overdue')):''}</td><td style="white-space:nowrap">${Number(a.avance)||0}%</td><td><button class="btn-p btn-sm" type="button" onclick="abrirAvance(${i})">${esc(L('Actualizar','Update'))}</button></td></tr>`; }).join('')}</tbody></table></div></section>`;
+}
+function abrirAvance(i){
+  const c = MIS_CM[i], a = c.accion;
+  modal(1, L('Avance de la contramedida','Countermeasure progress'), `<p class="no-i18n" style="margin:0 0 6px"><strong>${esc((a.accion||{}).es || (a.accion||{}).en || '')}</strong></p><p class="help" style="margin:0 0 12px">${esc(c.folio)} · ${esc(L('Compromiso','Commitment'))}: ${esc(a.compromiso||'—')}${a.extendida?' · '+esc(L('extendida a','extended to'))+' '+esc(a.extendida):''}</p>
+    <div class="grid-2">${fld(L('Avance %','Progress %'), inp('av-pct', Number(a.avance)||0, 'type="number" min="0" max="100" step="5"'))}<div></div></div>
+    ${fld(L('Nota para Safety (qué se hizo o qué falta)','Note for Safety (what was done or what is missing)'), `<textarea id="av-nota" class="inp" rows="3">${esc(a.notaResp||'')}</textarea>`)}
+    <p class="help">${esc(L('Al llegar a 100 % Safety revisa, confirma el CMS y cierra la contramedida.','At 100% Safety reviews, confirms the CMS and closes the countermeasure.'))}</p>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" id="btn-av" onclick="guardarAvance(${i})">${esc(L('Guardar avance','Save progress'))}</button>`, '');
+}
+async function guardarAvance(i){
+  const c = MIS_CM[i], b = $('btn-av'); if(b) b.disabled = true;
+  try{ const r = await llamar({action:'contramedidaAvance', token:tok(), eventoId:c.eventoId, accionId:c.accion.id, avance:Number(val('av-pct'))||0, nota:val('av-nota')}, L('Avance guardado.','Progress saved.'));
+    if(r){ closeModal('m-gen'); cargarMisContramedidas(); } }
+  finally{ const b2 = $('btn-av'); if(b2) b2.disabled = false; }
+}
 function leerEvento(){
   const com = EVF.clase==='COMUNICADO', g = k => val('ev-'+k), fotosTodas = EVF.existentes.concat(EVF.nuevas);
   const orden = com ? fotosTodas.slice().sort((a,b)=>(a.rol==='Evento'?0:1)-(b.rol==='Evento'?0:1)) : fotosTodas;
   const datos = com ? {fechaNotificacion:g('fechaNotificacion'), horaNotificacion:g('horaNotificacion'), ubicacion:biV('ev-ubicacion'), antiguedadPlanta:biV('ev-antiguedadPlanta'), antiguedadEstacion:biV('ev-antiguedadEstacion'), queOcurrio:biV('ev-queOcurrio'), comoOcurrio:biV('ev-comoOcurrio'), acciones:EVF.acciones}
                     : {mes:g('mes'), dia:g('dia'), problema:biV('ev-problema'), regla:g('regla'), noCumplimiento:biV('ev-noCumplimiento'), acciones:EVF.acciones};
   return { numero:g('numero'), clasificacion:g('clasificacion'), tipo:com?(TIPO_DE[g('clasificacion')]||''):'Acto inseguro', fecha:g('fecha'), hora:g('hora'), turno:g('turno'), area:g('area'), departamento:g('departamento'),
-    stopRiesgo:g('stopRiesgo'), stopSeveridad:g('stopSeveridad'), diasPerdidos:g('diasPerdidos'), costo:g('costo'), tipoPersona:g('tipoPersona'), estatus:g('estatus'), tipoLesion:g('tipoLesion'),
+    stopRiesgo:g('stopRiesgo'), stopSeveridad:g('stopSeveridad'), diasPerdidos:g('diasPerdidos'), costo:g('costo'), tipoPersona:g('tipoPersona'), estatus:g('estatus'), tipoLesion:com?g('tipoLesion'):'', tipoEvento:com?g('tipoEvento'):'',
     planoX:'', planoY:'', zonas:EVF.zonas, partesCuerpo:EVF.partes, datos:Object.assign(datos,{fotosRol:orden.map(f=>f.rol||'Evento')}),
     privado: com ? {nombre:g('p-nombre'), numeroEmpleado:g('p-numeroEmpleado')} : {}, _orden:orden };
 }
@@ -1641,7 +1699,8 @@ async function guardarReglas(lista){
 }
 
 /* ═══════════════ INDICADORES ═══════════════ */
-let KP = null, KP_ANIO = String(new Date().getFullYear()), CHARTS = [];
+let KP = null, KP_ANIO = String(new Date().getFullYear()), CHARTS = [], KP_TAB = 'ind';
+function tabKPI(t){ KP_TAB = t; renderKPI(); }
 async function cargarKPI(){
   $('kpi-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
   const r = await llamar({action:'kpiDatos', token:tok()}); if(!r) return; KP = r;
@@ -1650,6 +1709,13 @@ async function cargarKPI(){
 }
 async function renderKPI(){
   CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); CHARTS = [];
+  const tabsKP = pestanas([['ind',L('Indicadores','Indicators'),'fa-chart-column'],['tablero',L('Tablero de incidentes','Incident dashboard'),'fa-table-cells-large']], KP_TAB, 'tabKPI');
+  if(KP_TAB==='tablero'){
+    $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Tablero de incidentes: comunicados del sistema y el histórico KQMS-SA-RE-001.','Incident dashboard: system communications and the KQMS-SA-RE-001 history.')) + tabsKP + `<div id="kp-tablero"></div>`;
+    if(!window.KTB){ $('kp-tablero').innerHTML = `<div class="err-box">${esc(L('No se cargó tablero.js. Súbelo a GitHub junto con index.html.','tablero.js was not loaded. Upload it to GitHub together with index.html.'))}</div>`; return; }
+    try{ KTB.render($('kp-tablero'), KP.eventos, {lang: LANG==='en'?'en':'es', KF:window.KF}); }catch(e){ console.error(e); $('kp-tablero').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
+    return;
+  }
   const anios = [...new Set(KP.eventos.map(e=>String(e.fecha).slice(0,4)).concat([String(new Date().getFullYear())]))].filter(a=>/^\d{4}$/.test(a)).sort().reverse();
   const ev = KP.eventos.filter(e=>String(e.fecha).startsWith(KP_ANIO)), com = ev.filter(e=>e.clase==='COMUNICADO'), ale = ev.filter(e=>e.clase==='ALERTA');
   const cuenta = t => com.filter(e=>e.tipo===t).length;
@@ -1659,7 +1725,7 @@ async function renderKPI(){
   const dias = com.reduce((s,e)=>s+Number(e.diasPerdidos||0),0), base = KP.base;
   const TF = horas ? (cuenta('Accidente')*base/horas).toFixed(2) : '—', TG = horas ? (dias*base/horas).toFixed(2) : '—';
   const k = (v,l,c) => `<div class="card kpi"><div class="v" style="${c?'color:'+c:''}">${esc(v)}</div><div class="l">${esc(l)}</div></div>`;
-  $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Se calculan solos a partir de los comunicados, alertas, análisis y la matriz.','Calculated automatically from communications, alerts, analyses and the matrix.'), sel('kp-anio',anios,KP_ANIO,undefined,'onchange="KP_ANIO=this.value;renderKPI()" style="width:auto"'))
+  $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Se calculan solos a partir de los comunicados, alertas, análisis y la matriz.','Calculated automatically from communications, alerts, analyses and the matrix.'), sel('kp-anio',anios,KP_ANIO,undefined,'onchange="KP_ANIO=this.value;renderKPI()" style="width:auto"')) + tabsKP
     + `<div class="grid-4" style="margin-bottom:12px">${k(diasSin===null?'—':diasSin, L('Días sin accidentes','Days without accidents'),'#15803D')}${k(cuenta('Accidente'),L('Accidentes','Accidents'),'#B91C1C')}${k(cuenta('Incidente'),L('Incidentes','Incidents'))}${k(cuenta('Casi accidente'),L('Casi accidentes','Near misses'))}${k(cuenta('Daño a la propiedad'),L('Daños a la propiedad','Property damage'))}${k(ale.length,L('Alertas de actos inseguros','Unsafe-act alerts'),'#B45309')}${k(dias,L('Días perdidos','Lost days'))}${k(TF+' / '+TG, L('Tasa de frecuencia / gravedad','Frequency / severity rate'))}</div>
     <p class="help" style="margin:-4px 0 14px">${esc(`Tasa de frecuencia = accidentes × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Tasa de gravedad = días perdidos × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Horas-hombre del año: ${horas.toLocaleString('es-MX')}.`)}</p>
     <div class="grid-2"><section class="card chart-card"><h3>${esc(L('Eventos por mes','Events by month'))}</h3><canvas id="ch-mes"></canvas></section><section class="card chart-card"><h3>${esc(L('Pareto de eventos por tipo','Pareto of events by type'))}</h3><canvas id="ch-pir"></canvas><p class="help">${esc(L('Barras de mayor a menor y porcentaje acumulado: los primeros tipos hasta la línea de 80 % son tu problema mayor.','Bars from highest to lowest and cumulative percentage: the first types up to the 80% line are your main problem.'))}</p></section>
@@ -1703,12 +1769,13 @@ async function renderKPI(){
   $('kp-an').textContent = tiempos.length ? `Tiempo promedio de aprobación: ${(tiempos.reduce((s,x)=>s+x,0)/tiempos.length).toFixed(1)} horas (${tiempos.length} aprobados).` : '';
   const turnos = (CATS.turno && CATS.turno.length ? CATS.turno : ['Verde','Azul','Mixto']);
   grafica('ch-turno', {type:'bar', data:{labels:turnos, datasets:[{label:L('Comunicados','Communications'), data:turnos.map(t=>com.filter(e=>e.turno===t).length), backgroundColor:'#2563EB'},{label:L('Alertas','Alerts'), data:turnos.map(t=>ale.filter(e=>e.turno===t).length), backgroundColor:'#10B981'}]}, options:opt});
-  const conteo = {}; com.forEach(e=>(e.partesCuerpo||[]).forEach(z=>conteo[z]=(conteo[z]||0)+1));
+  const zonasEv = e => (window.KF && KF.zonasDeEvento) ? KF.zonasDeEvento(e) : (e.partesCuerpo||[]);
+  const conteo = {}; com.forEach(e=>zonasEv(e).forEach(z=>conteo[z]=(conteo[z]||0)+1));
   $('kp-cuerpo').innerHTML = KF.cuerpoSVG([], conteo, false);
   // recuadro al pasar el cursor (o tocar): mes actual, trimestre, año seleccionado e histórico
   const hoyD = new Date(), mesAct = hoyD.toISOString().slice(0,7), trim = Math.floor(hoyD.getMonth()/3), anioAct = String(hoyD.getFullYear());
   const lesiones = KP.eventos.filter(e=>e.clase==='COMUNICADO');
-  const porZona = (z, f) => lesiones.filter(e=>(e.partesCuerpo||[]).includes(z) && f(String(e.fecha||''))).length;
+  const porZona = (z, f) => lesiones.filter(e=>zonasEv(e).includes(z) && f(String(e.fecha||''))).length;
   const tip = $('kp-tip') || Object.assign(document.body.appendChild(document.createElement('div')), {id:'kp-tip'});
   tip.style.cssText = 'position:fixed;z-index:120;display:none;background:#0B1730;color:#fff;border-radius:10px;padding:10px 12px;font-size:.78rem;line-height:1.5;box-shadow:0 10px 26px rgba(0,0,0,.25);pointer-events:none;min-width:180px';
   const mostrarTip = (ev, z) => { tip.innerHTML = `<strong style="font-size:.86rem">${esc(KF.nombreZona(z))}</strong><br>${esc(L('Mes actual','Current month'))}: <b>${porZona(z,f=>f.startsWith(mesAct))}</b><br>${esc(L('Trimestre','Quarter'))}: <b>${porZona(z,f=>f.startsWith(anioAct) && Math.floor((Number(f.slice(5,7))-1)/3)===trim)}</b><br>${esc(L('Año','Year'))} ${esc(KP_ANIO)}: <b>${porZona(z,f=>f.startsWith(KP_ANIO))}</b><br>${esc(L('Histórico','All time'))}: <b>${porZona(z,()=>true)}</b>`;
@@ -1940,6 +2007,12 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.8.0': [
+    L('Indicadores: nueva pestaña «Tablero de incidentes» con tendencias por mes, área, clasificación, turno y tipo de evento, partes del cuerpo y seguimiento de contramedidas. Tiene botón de japonés.','Indicators: new «Incident dashboard» tab with trends by month, area, classification, shift and event type, body parts and countermeasure tracking. It has a Japanese button.'),
+    L('Comunicados: se importaron los 279 eventos de 2024 a 2026 del registro KQMS-SA-RE-001 (folio RE-AAAA-NNN).','Communications: the 279 events from 2024 to 2026 of record KQMS-SA-RE-001 were imported (ID RE-YYYY-NNN).'),
+    L('Comunicado: tipo de evento y tipo de lesión como listas, y cada contramedida con responsable (usuario del sistema), fecha compromiso, extensión, % de avance, seguimiento a 3 meses y CMS.','Communication: event type and injury type as lists, and each countermeasure with owner (system user), commitment date, extension, % progress, 3-month follow-up and CMS.'),
+    L('Inicio: cada responsable ve sus contramedidas pendientes y actualiza su avance.','Home: each owner sees their pending countermeasures and updates their progress.')
+  ],
   '0.7.1': [ L('Comunicado: las contramedidas inmediatas vuelven a escribirse en el formato (en español y en inglés).','Communication: immediate countermeasures are written in the form again (Spanish and English).') ],
   '0.7.0': [
     L('JSA y JRA: figura del cuerpo con las partes expuestas según los riesgos de la actividad.','JSA and JRA: body figure with the parts exposed by the activity risks.'),
@@ -1950,6 +2023,20 @@ const NOVEDADES = {
   ]
 };
 let AVISO_MOSTRADO = '';
+// Si formatos.js (o tablero.js) no son de esta misma versión, la figura del cuerpo, el layout y los formatos fallan.
+// Pasa cuando en GitHub no se subieron todos los archivos de la versión: se avisa en vez de dejar secciones en blanco.
+function revisarArchivos(){
+  const falta = [];
+  if(!window.KF || window.KF.VERSION !== window.FRONT_VERSION) falta.push('formatos.js');
+  if(!window.KTB || window.KTB.VERSION !== window.FRONT_VERSION) falta.push('tablero.js');
+  if(!window.KTLAYOUT) falta.push('layout-zonas.js');
+  if(!falta.length || document.getElementById('aviso-archivos')) return;
+  const d = document.createElement('div'); d.id = 'aviso-archivos'; d.className = 'aviso-version'; d.setAttribute('role','alert'); d.style.background = '#7F1D1D';
+  d.innerHTML = `<i class="fas fa-triangle-exclamation" style="color:#FCA5A5"></i><span>${esc(uiText(L('Faltan archivos de esta versión en el sitio','Files of this version are missing on the site')))} (v${esc(window.FRONT_VERSION)}): <b class="no-i18n">${esc(falta.join(', '))}</b>. ${esc(uiText(L('Súbelos a GitHub junto con index.html.','Upload them to GitHub together with index.html.')))}</span><button class="x-btn" type="button" aria-label="Cerrar">✕</button>`;
+  d.querySelector('.x-btn').onclick = ()=>d.remove();
+  document.body.appendChild(d);
+}
+window.addEventListener('load', ()=>setTimeout(revisarArchivos, 300));
 async function revisarVersion(){
   try{
     const r = await fetch('index.html?vcheck=' + Date.now(), {cache:'no-store'}); if(!r.ok) return;
