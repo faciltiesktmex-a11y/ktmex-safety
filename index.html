@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.8.0';
+window.FRONT_VERSION = '0.9.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -127,6 +127,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 /* ═══ Vistas ═══ */
 .view{display:none}
 .page{max-width:1180px;margin:0 auto;padding:30px 20px 48px}
+.diap-img{background:#0B1730;border-radius:12px;overflow:hidden;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;margin-top:10px}.diap-img img{width:100%;height:100%;object-fit:contain;display:block}.diap-img .help{color:#CBD5E1}
 .hero{background:linear-gradient(120deg,#0B1730 0%,#17345F 58%,#2463EB 140%);border-radius:22px;padding:28px 30px;margin-bottom:24px;position:relative;overflow:hidden;box-shadow:0 16px 38px rgba(11,23,48,.18)}
 .hero:after{content:'';position:absolute;width:280px;height:280px;border-radius:50%;right:-90px;top:-130px;background:rgba(255,255,255,.07)}
 .hero h1{color:#fff;font-size:1.65rem;letter-spacing:-.025em;margin:0 0 6px}
@@ -203,11 +204,11 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.8.0" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.8.0" charset="utf-8"></script>
-<script src="formatos.js?v=0.8.0" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.8.0" charset="utf-8"></script>
-<script src="tablero.js?v=0.8.0" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.9.0" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.9.0" charset="utf-8"></script>
+<script src="formatos.js?v=0.9.0" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.9.0" charset="utf-8"></script>
+<script src="tablero.js?v=0.9.0" charset="utf-8"></script>
 </head>
 <body>
 
@@ -225,6 +226,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
   <div class="sb-section">Control</div>
   <button class="sb-btn" id="nav-kpi" type="button" onclick="showView('kpi')"><i class="fas fa-chart-column"></i>Indicadores</button>
   <div class="sb-section" id="sec-contr">Contratistas</div>
+  <button class="sb-btn" id="nav-mcontr" type="button" onclick="showView('mcontr')"><i class="fas fa-address-book"></i>Matriz de contratistas</button>
   <button class="sb-btn" id="nav-contratistas" type="button" onclick="showView('contratistas')"><i class="fas fa-id-card"></i>Contratistas y DC-3</button>
   <button class="sb-btn" id="nav-cursos" type="button" onclick="showView('cursos')"><i class="fas fa-graduation-cap"></i>Capacitación</button>
   <div class="sb-section" id="sec-gestion">Gestión</div>
@@ -321,6 +323,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 <div id="view-editor" class="view"><div class="page fade" id="editor-body"></div></div>
 <div id="view-eventos" class="view"><div class="page fade" id="eventos-body"></div></div>
 <div id="view-kpi" class="view"><div class="page fade" id="kpi-body"></div></div>
+<div id="view-mcontr" class="view"><div class="page fade" id="mcontr-body" style="max-width:1400px"></div></div>
 <div id="view-contratistas" class="view"><div class="page fade" id="contratistas-body"></div></div>
 <div id="view-cursos" class="view"><div class="page fade" id="cursos-body"></div></div>
 <div id="view-curso" class="view"><div class="page fade" id="curso-body" style="max-width:820px"></div></div>
@@ -559,6 +562,7 @@ function roleCanView(v){
   if(!SESSION) return v==='editor' && !!(ED && ED.publico);
   if(v==='admin') return puedeAdministrar();
   if(v==='contratistas'||v==='cursos') return esCap() || perm('verTodo');
+  if(v==='mcontr') return veMatrizContr();
   return ['home','matriz','analisis','eventos','kpi','editor'].includes(v);
 }
 
@@ -566,7 +570,9 @@ function configureRoleUI(){
   const adm = puedeAdministrar();
   $('nav-admin').style.display = adm ? '' : 'none';
   $('sec-gestion').style.display = adm ? '' : 'none';
-  ['nav-contratistas','nav-cursos','sec-contr'].forEach(id=>$(id).style.display = (esCap()||perm('verTodo')) ? '' : 'none');
+  ['nav-contratistas','nav-cursos'].forEach(id=>$(id).style.display = (esCap()||perm('verTodo')) ? '' : 'none');
+  $('nav-mcontr').style.display = veMatrizContr() ? '' : 'none';
+  $('sec-contr').style.display = (esCap()||perm('verTodo')||veMatrizContr()) ? '' : 'none';
   if(soloIngles()){ LANG='en'; $('lang-switch').style.display='none'; }
   else $('lang-switch').style.display='flex';
   pintarUsuarioSidebar();
@@ -586,6 +592,7 @@ const MODULOS = [
   {v:'analisis', ico:'fa-clipboard-check', color:'#12805C', bg:'#ECFDF5', titulo:'JSA y JRA', texto:'Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.'},
   {v:'eventos', ico:'fa-bullhorn', color:'#D97706', bg:'#FFFBEB', titulo:'Comunicados y alertas', texto:'Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.'},
   {v:'kpi', ico:'fa-chart-column', color:'#7C3AED', bg:'#F5F3FF', titulo:'Indicadores', texto:'Gráficas de eventos por mes, área y tipo, y el plano de la planta.'},
+  {v:'mcontr', ico:'fa-address-book', color:'#0369A1', bg:'#F0F9FF', titulo:'Matriz de contratistas', texto:'Perfil de cada empresa y trabajador: cursos, exámenes, DC-3, credencial azul y JSA.'},
   {v:'contratistas', ico:'fa-id-card', color:'#0E7490', bg:'#ECFEFF', titulo:'Contratistas y DC-3', texto:'Empresas, trabajadores, constancias DC-3 con vigencia y aptitud por permiso de trabajo.'},
   {v:'cursos', ico:'fa-graduation-cap', color:'#9333EA', bg:'#FAF5FF', titulo:'Capacitación', texto:'Cursos y exámenes para contratistas, con calificación en el servidor y resultados.'},
   {v:'admin', ico:'fa-users-gear', color:'#0F2A4A', bg:'#F1F5F9', titulo:'Administración', texto:'Alta de usuarios, roles, contraseñas temporales y bitácora de movimientos.'}
@@ -614,6 +621,7 @@ function showView(v){
   if(v==='eventos') cargarEventos();
   if(v==='kpi') cargarKPI();
   if(v==='contratistas') cargarContratistas();
+  if(v==='mcontr') cargarMatrizContr();
   if(v==='cursos') cargarCursos();
   if(v!=='curso' && CP && CP.examen){ clearInterval(CP.examen.timer); }
   if(v==='login') $('log-user').focus();
@@ -942,6 +950,8 @@ const perm = p => !!(BOOT && BOOT.permisos && (BOOT.permisos.lista||[]).includes
 const esGestor = () => perm('comunicados');    // emite comunicados y alertas
 const esSafety = () => perm('revisar');        // revisa riesgos y actividades, aprueba JSA/JRA
 const esCap = () => perm('capacitacion');      // capacitación, contratistas y DC-3
+// Matriz de contratistas: todo el equipo de Safety (y Servicio médico para sus datos)
+const veMatrizContr = () => !!(SESSION && SESSION.user) && (['safety','admin','manager'].includes(SESSION.user.rol) || ['revisar','capacitacion','comunicados','usuarios','verTodo','medico'].some(perm));
 const hoy = () => new Date().toISOString().slice(0,10);
 function opts(list, val, ph){
   return (ph!==undefined?`<option value="">${esc(ph)}</option>`:'') + (list||[]).map(o=>{
@@ -1921,30 +1931,69 @@ function renderCursos(){
   $('cursos-body').innerHTML = h;
 }
 function abrirCurso(id){
-  const c = id ? JSON.parse(JSON.stringify(CU.cursos.find(x=>x.id===id))) : {titulo:'', descripcion:'', temas:[{titulo:'',contenido:''}], preguntas:[{texto:'',opciones:['',''],correcta:0}], segundos:30, minimo:80, intentos:3, vigenciaMeses:12, activo:'TRUE'};
+  const c = id ? JSON.parse(JSON.stringify(CU.cursos.find(x=>x.id===id))) : {titulo:'', descripcion:'', temas:[{titulo:'',contenido:'',desde:0,hasta:0}], preguntas:[{texto:'',opciones:['',''],correcta:0,tema:''}], segundos:30, minimo:80, intentos:3, vigenciaMeses:12, activo:'TRUE', porExamen:0, diapositivas:[]};
   CUF = {id:id||'', c}; pintarCursoForm();
 }
 function leerCursoForm(){
-  const c = CUF.c; c.titulo=val('cu-titulo'); c.descripcion=val('cu-descripcion'); c.segundos=val('cu-segundos'); c.minimo=val('cu-minimo'); c.intentos=val('cu-intentos'); c.vigenciaMeses=val('cu-vigencia'); c.activo=$('cu-activo').checked;
-  c.temas = c.temas.map((t,i)=>({titulo:val('cu-tt-'+i), contenido:$('cu-tc-'+i).value}));
-  c.preguntas = c.preguntas.map((p,i)=>({texto:val('cu-pt-'+i), opciones:$('cu-po-'+i).value.split('\n').map(x=>x.trim()).filter(Boolean), correcta:Number(val('cu-pc-'+i))||0}));
+  const c = CUF.c; c.titulo=val('cu-titulo'); c.descripcion=val('cu-descripcion'); c.segundos=val('cu-segundos'); c.minimo=val('cu-minimo'); c.intentos=val('cu-intentos'); c.vigenciaMeses=val('cu-vigencia'); c.activo=$('cu-activo').checked; c.porExamen=val('cu-porexamen');
+  c.temas = c.temas.map((t,i)=>({titulo:val('cu-tt-'+i), contenido:$('cu-tc-'+i).value, desde:Number(val('cu-td-'+i))||0, hasta:Number(val('cu-th-'+i))||0}));
+  c.preguntas = c.preguntas.map((p,i)=>({texto:val('cu-pt-'+i), opciones:$('cu-po-'+i).value.split('\n').map(x=>x.trim()).filter(Boolean), correcta:Number(val('cu-pc-'+i))||0, tema:val('cu-pg-'+i)}));
 }
 function pintarCursoForm(){
   const c = CUF.c;
   modal(1, CUF.id?L('Editar curso','Edit course'):L('Nuevo curso','New course'), `
     <div class="grid-2">${fld(L('Título','Title'), inp('cu-titulo',c.titulo))}${fld(L('Descripción','Description'), inp('cu-descripcion',c.descripcion))}</div>
     <div class="grid-4">${fld(L('Segundos por pregunta','Seconds per question'), inp('cu-segundos',c.segundos,'type="number" min="10" max="300"'))}${fld(L('Calificación mínima (%)','Pass mark (%)'), inp('cu-minimo',c.minimo,'type="number" min="1" max="100"'))}${fld(L('Intentos máximos','Max attempts'), inp('cu-intentos',c.intentos,'type="number" min="1" max="10"'))}${fld(L('Vigencia (meses)','Validity (months)'), inp('cu-vigencia',c.vigenciaMeses,'type="number" min="1" max="60"'))}</div>
+    <div class="grid-2">${fld(L('Preguntas por examen (0 = todas, en el mismo orden)','Questions per exam (0 = all, same order)'), inp('cu-porexamen',c.porExamen||0,'type="number" min="0" max="200"'))}<p class="help" style="align-self:end">${esc(L('Con un número mayor a 0, cada intento sortea esa cantidad del banco (repartida entre los temas de las preguntas) y revuelve el orden de preguntas y opciones.','With a number above 0, each attempt draws that many from the bank (spread across the question topics) and shuffles questions and options.'))}</p></div>
     <label class="help" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="cu-activo" ${String(c.activo).toUpperCase()==='FALSE'?'':'checked'}> ${esc(L('Publicado para los contratistas','Published to contractors'))}</label>
+    <div class="sec-title">${esc(L('Presentación (diapositivas)','Presentation (slides)'))}</div>
+    <div class="box"><p class="help" style="margin:0 0 8px">${esc(L('Sube las imágenes de las diapositivas (JPG o PNG) seleccionándolas todas a la vez; el número del nombre del archivo es su posición (01.jpg, 02.jpg…). Se guardan en el Drive privado de Safety y solo se ven desde el sistema.','Upload the slide images (JPG or PNG) selecting them all at once; the number in the file name is its position (01.jpg, 02.jpg…). They are stored in Safety\'s private Drive and can only be seen from the system.'))}</p>
+      <div class="toolbar"><span class="badge b-info" id="cu-ndiap">${(c.diapositivas||[]).filter(Boolean).length} ${esc(L('diapositivas','slides'))}</span>${CUF.id?`<button class="btn-g btn-sm" type="button" onclick="$('cu-files').click()"><i class="fas fa-upload" style="margin-right:6px"></i>${esc(L('Subir diapositivas','Upload slides'))}</button><input type="file" id="cu-files" accept="image/jpeg,image/png,image/webp" multiple style="display:none" onchange="subirDiapositivas(this)">`:`<span class="help">${esc(L('Guarda el curso primero para poder subir diapositivas.','Save the course first to upload slides.'))}</span>`}<span class="help" id="cu-subida"></span></div></div>
     <div class="sec-title">${esc(L('Temas (se leen en orden antes del examen)','Topics (read in order before the exam)'))}</div>
-    ${c.temas.map((t,i)=>`<div class="box">${fld(L('Título del tema','Topic title'), inp('cu-tt-'+i,t.titulo))}${fld(L('Contenido','Content'), ta('cu-tc-'+i,t.contenido,'rows="4"'))}<button class="btn-g btn-sm" type="button" style="margin-top:6px" onclick="leerCursoForm();CUF.c.temas.splice(${i},1);pintarCursoForm()">${esc(L('Quitar tema','Remove topic'))}</button></div>`).join('')}
-    <button class="btn-g btn-sm" type="button" onclick="leerCursoForm();CUF.c.temas.push({titulo:'',contenido:''});pintarCursoForm()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tema','Add topic'))}</button>
+    ${c.temas.map((t,i)=>`<div class="box">${fld(L('Título del tema','Topic title'), inp('cu-tt-'+i,t.titulo))}${fld(L('Contenido','Content'), ta('cu-tc-'+i,t.contenido,'rows="3"'))}<div class="grid-4">${fld(L('Diapositiva desde','Slide from'), inp('cu-td-'+i,t.desde||'','type="number" min="0"'))}${fld(L('Diapositiva hasta','Slide to'), inp('cu-th-'+i,t.hasta||'','type="number" min="0"'))}</div><button class="btn-g btn-sm" type="button" style="margin-top:6px" onclick="leerCursoForm();CUF.c.temas.splice(${i},1);pintarCursoForm()">${esc(L('Quitar tema','Remove topic'))}</button></div>`).join('')}
+    <button class="btn-g btn-sm" type="button" onclick="leerCursoForm();CUF.c.temas.push({titulo:'',contenido:'',desde:0,hasta:0});pintarCursoForm()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar tema','Add topic'))}</button>
     <div class="sec-title">${esc(L('Preguntas','Questions'))}</div>
-    ${c.preguntas.map((p,i)=>`<div class="box">${fld(L('Pregunta','Question'), inp('cu-pt-'+i,p.texto))}<div class="grid-2">${fld(L('Opciones (una por renglón)','Options (one per line)'), ta('cu-po-'+i,(p.opciones||[]).join('\n'),'rows="4"'))}${fld(L('Respuesta correcta','Correct answer'), sel('cu-pc-'+i,(p.opciones||[]).map((o,k)=>({v:k,t:(k+1)+'. '+o})),p.correcta))}</div><button class="btn-g btn-sm" type="button" style="margin-top:6px" onclick="leerCursoForm();CUF.c.preguntas.splice(${i},1);pintarCursoForm()">${esc(L('Quitar pregunta','Remove question'))}</button></div>`).join('')}
-    <button class="btn-g btn-sm" type="button" onclick="leerCursoForm();CUF.c.preguntas.push({texto:'',opciones:['',''],correcta:0});pintarCursoForm()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar pregunta','Add question'))}</button>
+    <datalist id="cu-temas-p">${[...new Set(c.preguntas.map(p=>p.tema).filter(Boolean))].map(t=>`<option value="${esc(t)}">`).join('')}</datalist>
+    <p class="help">${esc(`${c.preguntas.length} preguntas en el banco.`)}</p>
+    ${c.preguntas.map((p,i)=>`<div class="box"><div class="grid-2">${fld((i+1)+'. '+L('Pregunta','Question'), inp('cu-pt-'+i,p.texto))}${fld(L('Tema de la pregunta (para el sorteo)','Question topic (for the draw)'), inp('cu-pg-'+i,p.tema||'','list="cu-temas-p"'))}</div><div class="grid-2">${fld(L('Opciones (una por renglón)','Options (one per line)'), ta('cu-po-'+i,(p.opciones||[]).join('\n'),'rows="4"'))}${fld(L('Respuesta correcta','Correct answer'), sel('cu-pc-'+i,(p.opciones||[]).map((o,k)=>({v:k,t:(k+1)+'. '+o})),p.correcta))}</div><button class="btn-g btn-sm" type="button" style="margin-top:6px" onclick="leerCursoForm();CUF.c.preguntas.splice(${i},1);pintarCursoForm()">${esc(L('Quitar pregunta','Remove question'))}</button></div>`).join('')}
+    <button class="btn-g btn-sm" type="button" onclick="leerCursoForm();CUF.c.preguntas.push({texto:'',opciones:['',''],correcta:0,tema:''});pintarCursoForm()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Agregar pregunta','Add question'))}</button>
     <p class="help">${esc(L('Después de escribir las opciones, guarda y vuelve a abrir el curso para elegir la respuesta correcta entre las opciones nuevas.','After writing the options, save and reopen the course to pick the correct answer among the new options.'))}</p>`,
     `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" onclick="guardarCurso()">${esc(L('Guardar curso','Save course'))}</button>`, 'xl');
 }
+// Sube las diapositivas una por una (el número en el nombre del archivo es la posición)
+async function subirDiapositivas(input){
+  const fs = [...(input.files||[])].map(f=>({f, n:Number(((f.name.match(/(\d+)/g)||[]).pop())||0)})).filter(x=>x.n>0).sort((a,b)=>a.n-b.n);
+  input.value = '';
+  if(!fs.length){ toast(L('Los archivos deben tener su número en el nombre (01.jpg, 02.jpg…).','File names must include their number (01.jpg, 02.jpg…).'),'err'); return; }
+  const total = Math.max(...fs.map(x=>x.n)), info = $('cu-subida'); let ok = 0;
+  for(const x of fs){
+    if(info) info.textContent = uiText(L('Subiendo','Uploading')) + ` ${x.n} / ${total}…`;
+    try{ const d = await reducirImagen(await leerArchivo(x.f), 1600, .82);
+      const r = await api({action:'cursoDiapositivaSubir', token:tok(), cursoId:CUF.id, n:x.n, dataUrl:d, total});
+      if(r && r.success){ ok++; const b=$('cu-ndiap'); if(b) b.textContent = r.total+' '+uiText(L('diapositivas','slides')); } else toast((r&&r.error)||'Error','err');
+    }catch(e){ toast(String(e.message||e),'err'); }
+  }
+  if(info) info.textContent = uiText(L('Listo:','Done:'))+` ${ok} / ${fs.length}`;
+  const r = await api({action:'cursosListar', token:tok()}); if(r && r.success){ CU = r; const c = CU.cursos.find(x=>x.id===CUF.id); if(c) CUF.c.diapositivas = c.diapositivas; }
+}
 async function guardarCurso(){ leerCursoForm(); const r = await llamar({action:'cursoGuardar', token:tok(), id:CUF.id, datos:CUF.c}, L('Curso guardado.','Course saved.')); if(r){ closeModal('m-gen'); cargarCursos(); } }
+
+/* ═══════════════ MATRIZ DE CONTRATISTAS (v0.9) ═══════════════
+   matriz.html se abre dentro de un marco. Los datos llegan del servidor (window.__MATRIZ_DATOS) y lo que se
+   guarda (giros, datos médicos) vuelve por window.__MATRIZ_API. Nada se guarda en el navegador. */
+window.__MATRIZ_API = {
+  guardarPersona: async (nombre, datos) => { const r = await api({action:'matrizPersonaGuardar', token:tok(), nombre, datos}); if(!r || !r.success) toast((r&&r.error)||L('No se pudo guardar.','Could not save.'),'err'); },
+  guardarGiros: async (giros) => { const r = await api({action:'matrizGirosGuardar', token:tok(), giros}); if(!r || !r.success) toast((r&&r.error)||L('No se pudo guardar.','Could not save.'),'err'); }
+};
+async function cargarMatrizContr(){
+  const b = $('mcontr-body');
+  b.innerHTML = cabecera(L('Matriz de contratistas','Contractor matrix'), L('Base de Safety más cada examen en línea de Capacitación. DC-3 y JSA salen de sus módulos.','Safety base plus every online exam from Training. DC-3 and JSA come from their modules.'),
+    `<button class="btn-g btn-sm" type="button" onclick="cargarMatrizContr()"><i class="fas fa-rotate" style="margin-right:6px"></i>${esc(L('Actualizar','Refresh'))}</button>`) + `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+  const r = await llamar({action:'matrizDatos', token:tok()}); if(!r) return;
+  window.__MATRIZ_DATOS = Object.assign({}, r, {lang: LANG==='en'?'en':'es'});
+  b.querySelector('p.help').outerHTML = `<iframe id="mcontr-frame" title="${esc(L('Matriz de contratistas','Contractor matrix'))}" src="matriz.html?v=${window.FRONT_VERSION}" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--border);border-radius:14px;background:#fff"></iframe>
+    ${r.medico?`<p class="help" style="margin-top:8px"><i class="fas fa-user-doctor" style="margin-right:6px"></i>${esc(L('Tienes el permiso de Servicio médico: ves y capturas el historial médico y el género de cada trabajador. Nadie más los ve.','You have the Medical service permission: you see and capture each worker\'s medical history and gender. No one else sees them.'))}</p>`:''}`;
+}
 
 /* ═══════════════ CAPACITACIÓN (contratista, sin cuenta) ═══════════════ */
 let CP = null;
@@ -1955,14 +2004,38 @@ async function abrirCapacitacion(){
   $('curso-body').innerHTML = cabecera(L('Capacitación para contratistas','Contractor training'), L('Elige tu curso. Lee todos los temas y después presenta el examen cronometrado.','Choose your course. Read all topics, then take the timed exam.'), `<button class="btn-g btn-sm" type="button" onclick="showView('publico')">${esc(L('Regresar','Back'))}</button>`)
     + (CP.cursos.length ? `<div class="mod-grid">${CP.cursos.map((c,i)=>`<div class="card mod go" tabindex="0" onclick="elegirCurso(${i})" onkeydown="if(event.key==='Enter')elegirCurso(${i})"><div class="mod-ico" style="background:#F5F3FF"><i class="fas fa-graduation-cap" style="color:#7C3AED;font-size:18px"></i></div><h3 class="no-i18n">${esc(c.titulo)}</h3><p class="no-i18n">${esc(c.descripcion||'')}</p><span class="help">${esc(`${c.totalPreguntas} preguntas · mínimo ${c.minimo}% · ${c.intentos} intentos`)}</span></div>`).join('')}</div>` : `<div class="box"><p class="help">${esc(L('No hay cursos publicados por ahora.','No courses published for now.'))}</p></div>`);
 }
-function elegirCurso(i){ CP.curso = CP.cursos[i]; CP.leidos = {}; pintarCursoPublico(); }
+function elegirCurso(i){ CP.curso = CP.cursos[i]; CP.leidos = {}; CP.tema = 0; CP.sl = {}; CP.pos = {}; CP.visto = {}; pintarCursoPublico(); }
+const temaConDiap = (c, t) => t && t.desde > 0 && t.hasta >= t.desde && (c.totalDiapositivas||0) >= t.desde;
+function abrirTemaCP(i){ guardarDatosCP(); CP.tema = i; pintarCursoPublico(); }
 function pintarCursoPublico(){
   const c = CP.curso, n = (c.temas||[]).length, leidos = Object.keys(CP.leidos).length, listo = leidos>=n;
   $('curso-body').innerHTML = cabecera(c.titulo, c.descripcion||'', `<button class="btn-g btn-sm" type="button" onclick="abrirCapacitacion()">${esc(L('Otros cursos','Other courses'))}</button>`)
     + `<section class="card" style="padding:18px;margin-bottom:14px"><div class="sec-title">${esc(L('Tus datos','Your information'))}</div><div class="grid-3">${fld(L('Nombre completo','Full name'), inp('cp-nombre',CP.nombre||''))}${fld(L('Compañía','Company'), inp('cp-empresa',CP.empresa||''))}${fld(L('Identificador (gafete, ID o folio)','ID (badge, ID or number)'), inp('cp-ident',CP.ident||''))}</div></section>`
-    + (c.temas||[]).map((t,i)=>{ const abierto = i<=leidos; return `<section class="card" style="padding:18px;margin-bottom:10px;${abierto?'':'opacity:.5'}"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><h3 class="no-i18n" style="margin:0;font-size:.95rem;color:var(--navy)">${i+1}. ${esc(t.titulo)}</h3>${CP.leidos[i]?`<span class="badge b-done">${esc(L('Leído','Read'))}</span>`:''}</div>${abierto?`<p class="no-i18n" style="white-space:pre-wrap;font-size:.88rem;line-height:1.6">${esc(t.contenido)}</p>${CP.leidos[i]?'':`<button class="btn-g btn-sm" type="button" onclick="CP.leidos[${i}]=1;guardarDatosCP();pintarCursoPublico()">${esc(L('Marcar como leído','Mark as read'))}</button>`}`:`<p class="help">${esc(L('Termina el tema anterior para abrir este.','Finish the previous topic to open this one.'))}</p>`}</section>`; }).join('')
+    + (c.temas||[]).map((t,i)=>{ const abierto = i<=leidos, activo = abierto && CP.tema===i, diap = temaConDiap(c,t);
+      const total = diap ? Math.min(t.hasta, c.totalDiapositivas) - t.desde + 1 : 0, pos = CP.pos[i]||0, vioTodo = !diap || (CP.visto[i]||0) >= total-1;
+      return `<section class="card" style="padding:18px;margin-bottom:10px;${abierto?'':'opacity:.5'}"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center;${abierto&&!activo?'cursor:pointer':''}" ${abierto&&!activo?`onclick="abrirTemaCP(${i})"`:''}><h3 class="no-i18n" style="margin:0;font-size:.95rem;color:var(--navy)">${i+1}. ${esc(t.titulo)}</h3><span style="display:flex;gap:6px;align-items:center">${diap?`<span class="help">${total} ${esc(L('diapositivas','slides'))}</span>`:''}${CP.leidos[i]?`<span class="badge b-done">${esc(L('Leído','Read'))}</span>`:''}</span></div>`
+      + (!abierto ? `<p class="help">${esc(L('Termina el tema anterior para abrir este.','Finish the previous topic to open this one.'))}</p>`
+        : !activo ? '' : `${t.contenido?`<p class="no-i18n" style="white-space:pre-wrap;font-size:.88rem;line-height:1.6">${esc(t.contenido)}</p>`:''}
+        ${diap?`<div class="diap"><div class="diap-img" id="dp-img"><p class="help">${esc(L('Cargando diapositiva…','Loading slide…'))}</p></div>
+          <div class="toolbar" style="justify-content:space-between;margin-top:8px"><button class="btn-g btn-sm" type="button" ${pos>0?'':'disabled'} onclick="moverDiap(${i},-1)"><i class="fas fa-chevron-left"></i> ${esc(L('Anterior','Previous'))}</button><span class="help">${pos+1} / ${total}</span><button class="btn-g btn-sm" type="button" ${pos<total-1?'':'disabled'} onclick="moverDiap(${i},1)">${esc(L('Siguiente','Next'))} <i class="fas fa-chevron-right"></i></button></div></div>`:''}
+        ${CP.leidos[i]?'':`<button class="btn-p btn-sm" type="button" style="margin-top:10px" ${vioTodo?'':'disabled'} onclick="CP.leidos[${i}]=1;CP.tema=${i+1};guardarDatosCP();pintarCursoPublico()">${esc(L('Marcar como leído','Mark as read'))}</button>${vioTodo?'':`<span class="help" style="margin-left:8px">${esc(L('Revisa todas las diapositivas del tema.','Go through all the slides of the topic.'))}</span>`}`}`)
+      + `</section>`; }).join('')
     + `<section class="card" style="padding:18px"><p class="help">${esc(`${c.totalPreguntas} preguntas · ${c.segundos} segundos por pregunta · mínimo ${c.minimo}% · ${c.intentos} intentos`)}</p><button class="btn-p" type="button" ${listo?'':'disabled'} onclick="iniciarExamen()"><i class="fas fa-stopwatch" style="margin-right:6px"></i>${esc(L('Iniciar examen','Start exam'))}</button>${listo?'':`<p class="help" style="margin-top:8px">${esc(L('Lee todos los temas para habilitar el examen.','Read all topics to enable the exam.'))}</p>`}</section>`;
+  const t = (c.temas||[])[CP.tema]; if(t && temaConDiap(c,t) && CP.tema<=leidos) mostrarDiap(CP.tema);
 }
+async function diapositiva(n){
+  if(CP.sl[n]) return CP.sl[n];
+  const r = await api({action:'cursoDiapositiva', cursoId:CP.curso.id, n}); if(!r || !r.success) throw new Error((r&&r.error)||'Error');
+  return (CP.sl[n] = r.dataUrl);
+}
+async function mostrarDiap(i){
+  const t = CP.curso.temas[i], n = t.desde + (CP.pos[i]||0), box = $('dp-img'); if(!box) return;
+  try{ const u = await diapositiva(n); const b2 = $('dp-img'); if(b2 && CP.tema===i && t.desde+(CP.pos[i]||0)===n) b2.innerHTML = `<img src="${u}" alt="${esc(L('Diapositiva','Slide'))} ${n}">`;
+    if(n+1 <= Math.min(t.hasta, CP.curso.totalDiapositivas)) diapositiva(n+1).catch(()=>{}); }
+  catch(e){ box.innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
+}
+function moverDiap(i, d){ guardarDatosCP(); const t = CP.curso.temas[i], total = Math.min(t.hasta, CP.curso.totalDiapositivas) - t.desde + 1;
+  CP.pos[i] = Math.max(0, Math.min(total-1, (CP.pos[i]||0) + d)); CP.visto[i] = Math.max(CP.visto[i]||0, CP.pos[i]); pintarCursoPublico(); }
 function guardarDatosCP(){ CP.nombre=val('cp-nombre'); CP.empresa=val('cp-empresa'); CP.ident=val('cp-ident'); }
 async function iniciarExamen(){
   guardarDatosCP();
@@ -2007,6 +2080,11 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.9.0': [
+    L('Nuevo módulo «Matriz de contratistas»: perfil por empresa y trabajador, cursos y exámenes, DC-3, credencial azul de KTMEX para imprimir y JSA.','New «Contractor matrix» module: profile per company and worker, courses and exams, DC-3, printable KTMEX blue badge and JSA.'),
+    L('Capacitación: curso SGS-TR-02 con la presentación por temas y un banco de 100 preguntas; cada examen sortea 13 y revuelve preguntas y respuestas.','Training: course SGS-TR-02 with the presentation by topic and a 100-question bank; each exam draws 13 and shuffles questions and answers.'),
+    L('Permiso nuevo «Servicio médico»: solo quien lo tiene ve y captura los datos médicos y de género de los contratistas.','New «Medical service» permission: only those who have it see and capture contractors\' medical and gender data.')
+  ],
   '0.8.0': [
     L('Indicadores: nueva pestaña «Tablero de incidentes» con tendencias por mes, área, clasificación, turno y tipo de evento, partes del cuerpo y seguimiento de contramedidas. Tiene botón de japonés.','Indicators: new «Incident dashboard» tab with trends by month, area, classification, shift and event type, body parts and countermeasure tracking. It has a Japanese button.'),
     L('Comunicados: se importaron los 279 eventos de 2024 a 2026 del registro KQMS-SA-RE-001 (folio RE-AAAA-NNN).','Communications: the 279 events from 2024 to 2026 of record KQMS-SA-RE-001 were imported (ID RE-YYYY-NNN).'),
