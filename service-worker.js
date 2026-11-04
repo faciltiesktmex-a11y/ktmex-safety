@@ -1,6 +1,6 @@
 /* ============================================================
    KTMEX Safety — Service Worker
-   Versión de interfaz: 0.9.0
+   Versión de interfaz: 0.10.0
 
    - Navegación: red primero; la copia guardada solo sirve sin conexión.
    - Archivos de la app: se responde desde caché y se actualiza en segundo plano.
@@ -11,8 +11,8 @@
    Cada versión nueva de index.html debe subir el número de CACHE.
    ============================================================ */
 const PREFIJO = 'ktmex-safety-';
-const CACHE = PREFIJO + 'v11-0.9.0-20261103';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './xlsx-fill.js', './fo015-map.js', './formatos.js', './layout-zonas.js', './tablero.js', './matriz.html', './layout.png', './cuerpo.jpg',
+const CACHE = PREFIJO + 'v12-0.10.0-20261104';
+const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './xlsx-fill.js', './fo015-map.js', './formatos.js', './layout-zonas.js', './tablero.js', './matriz.html', './ejercicios.js', './layout.png', './cuerpo.jpg',
   './forms/F-SGA-8.1-7.xlsx', './forms/FO-015.xlsx', './forms/FO-014.xlsx', './forms/FO-005.xlsx'];
 
 self.addEventListener('install', event => {
@@ -48,7 +48,7 @@ self.addEventListener('fetch', event => {
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req, { cache: 'no-store' })
-        .then(r => { const copy = r.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); return r; })
+        .then(r => { if (r && r.ok && !/matriz\.html$/.test(url.pathname)) { const copy = r.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); } return r; })
         .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
     );
     return;
