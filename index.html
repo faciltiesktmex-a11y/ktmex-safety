@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.10.0';
+window.FRONT_VERSION = '0.10.1';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -204,12 +204,12 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.10.0" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.10.0" charset="utf-8"></script>
-<script src="formatos.js?v=0.10.0" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.10.0" charset="utf-8"></script>
-<script src="tablero.js?v=0.10.0" charset="utf-8"></script>
-<script src="ejercicios.js?v=0.10.0" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.10.1" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.10.1" charset="utf-8"></script>
+<script src="formatos.js?v=0.10.1" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.10.1" charset="utf-8"></script>
+<script src="tablero.js?v=0.10.1" charset="utf-8"></script>
+<script src="ejercicios.js?v=0.10.1" charset="utf-8"></script>
 </head>
 <body>
 
@@ -2008,7 +2008,7 @@ async function cargarMatrizContr(){
   const r = await llamar({action:'matrizDatos', token:tok()}); if(!r) return;
   window.__MATRIZ_DATOS = Object.assign({}, r, {lang: LANG==='en'?'en':'es'});
   const aviso = r.baseCargada ? '' : `<div class="box" style="border-color:#FCD34D;background:#FFFBEB;margin-bottom:12px"><div class="sec-title" style="margin-top:0"><i class="fas fa-triangle-exclamation" style="margin-right:6px;color:#B45309"></i>${esc(L('Falta cargar la base de contratistas de Safety','The Safety contractor base is not loaded yet'))}</div>
-    <p class="help" style="margin:0 0 8px">${esc(L('La matriz solo tiene los exámenes en línea. Para cargar los registros de la base, ejecuta instalarSistema con el archivo SemillaMatriz en Apps Script, o carga aquí el archivo Matriz_de_contratistas.html que compartió Safety.','The matrix only has the online exams. To load the base records, run instalarSistema with the SemillaMatriz file in Apps Script, or load here the Matriz_de_contratistas.html file shared by Safety.'))}</p>
+    <p class="help" style="margin:0 0 8px">${esc(L('La matriz solo tiene los exámenes en línea. Los 450 registros de la base de Safety vienen dentro de Code.gs: ejecuta instalarSistema en Apps Script y vuelve a abrir este módulo. También puedes cargar aquí el archivo Matriz_de_contratistas.html.','The matrix only has the online exams. The 450 Safety base records come inside Code.gs: run instalarSistema in Apps Script and reopen this module. You can also load the Matriz_de_contratistas.html file here.'))}</p>
     ${r.puedeImportar?`<button class="btn-p btn-sm" type="button" onclick="$('mc-base').click()"><i class="fas fa-file-import" style="margin-right:6px"></i>${esc(L('Cargar base desde el archivo','Load base from the file'))}</button><input type="file" id="mc-base" accept=".html,text/html" style="display:none" onchange="importarBaseMatriz(this)"> <span class="help" id="mc-base-txt"></span>`:`<p class="help" style="margin:0">${esc(L('Pide a capacitación o a administración que la carguen.','Ask training or administration to load it.'))}</p>`}</div>`;
   b.querySelector('p.help').outerHTML = aviso + `<iframe id="mcontr-frame" title="${esc(L('Matriz de contratistas','Contractor matrix'))}" src="matriz.html?v=${window.FRONT_VERSION}" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:1px solid var(--border);border-radius:14px;background:#fff"></iframe>
     ${r.medico?`<p class="help" style="margin-top:8px"><i class="fas fa-user-doctor" style="margin-right:6px"></i>${esc(L('Tienes el permiso de Servicio médico: ves y capturas el historial médico y el género de cada trabajador. Nadie más los ve.','You have the Medical service permission: you see and capture each worker\'s medical history and gender. No one else sees them.'))}</p>`:''}`;
@@ -2147,6 +2147,7 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.10.1': [ L('Matriz de contratistas: los 450 registros de la base de Safety ya vienen integrados en el sistema; no hace falta subir ningún archivo.','Contractor matrix: the 450 Safety base records now come built into the system; no file upload is needed.') ],
   '0.10.0': [
     L('Curso SGS-TR-02: 22 ejercicios interactivos (clasificar, ordenar, seleccionar y repaso) y la diapositiva 7 convertida en ejercicio para encontrar actos y condiciones inseguras.','Course SGS-TR-02: 22 interactive exercises (sort, order, select and review) and slide 7 turned into an exercise to find unsafe acts and conditions.'),
     L('Audio: botón «Escuchar» con la voz del dispositivo y opción de subir audio grabado por tema o ejercicio.','Audio: «Listen» button with the device voice and the option to upload recorded audio per topic or exercise.'),

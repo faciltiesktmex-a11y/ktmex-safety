@@ -14,7 +14,7 @@
   const cache = {};
   async function maestro(tipo){
     if(cache[tipo]) return cache[tipo];
-    const r = await fetch(MAESTROS[tipo] + '?v=0.10.0', {cache:'no-cache'});
+    const r = await fetch(MAESTROS[tipo] + '?v=0.10.1', {cache:'no-cache'});
     if(!r.ok) throw new Error('No se encontró el formato ' + MAESTROS[tipo] + '. Revisa que la carpeta forms esté en el repositorio.');
     return (cache[tipo] = new Uint8Array(await r.arrayBuffer()));
   }
@@ -407,5 +407,5 @@
   }
   const nombreZonaPlanta = id => { const z = root.KTLAYOUT && root.KTLAYOUT.zonas.find(x=>x.id===Number(id)); return z ? z.n : String(id); };
 
-  root.KF = { VERSION:'0.10.0', GRUPOS_CUERPO, grupoDeZona, zonasDeGrupo, gruposDeEvento, zonasDeEvento, MAESTROS, HOJAS, JSA_SEV, JSA_PROB, JSA_CAT, jsaPuntaje, JRA, desdeMatriz, generar, descargar, vista, mostrar, cuerpoSVG, ZONAS_CUERPO, nombreZona, zonasDeRiesgo, layoutSVG, nombreZonaPlanta, bi, fechaMx, r2, _spec:{specJSA,specJRA,specCOM,specALE}, maestro };
+  root.KF = { VERSION:'0.10.1', GRUPOS_CUERPO, grupoDeZona, zonasDeGrupo, gruposDeEvento, zonasDeEvento, MAESTROS, HOJAS, JSA_SEV, JSA_PROB, JSA_CAT, jsaPuntaje, JRA, desdeMatriz, generar, descargar, vista, mostrar, cuerpoSVG, ZONAS_CUERPO, nombreZona, zonasDeRiesgo, layoutSVG, nombreZonaPlanta, bi, fechaMx, r2, _spec:{specJSA,specJRA,specCOM,specALE}, maestro };
 })(typeof window!=='undefined'?window:globalThis);
