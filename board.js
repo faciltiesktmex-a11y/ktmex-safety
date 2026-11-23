@@ -107,11 +107,11 @@
   .kbd .b-sh{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:8px}
   .kbd .b-sh h3{margin:0;font-size:.98rem;color:var(--n)} .kbd .b-sh h3 small{color:#2463EB;font-weight:800;margin-right:6px}
   .kbd .b-sh p{margin:2px 0 0;font-size:.78rem;color:#64748B}
-  .kbd .b-gear{border:1px solid #E2E8F3;background:#fff;color:#4338CA;font:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;flex:none;min-height:32px}
-  .kbd .b-gear:hover{background:#EEF2FF;border-color:#C7D2FE;box-shadow:0 6px 14px -8px rgba(79,70,229,.6)}
+  .kcs-gear,.kbd .b-gear{border:1px solid #E2E8F3;background:#fff;color:#4338CA;font:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;flex:none;min-height:32px}
+  .kcs-gear:hover,.kbd .b-gear:hover{background:#EEF2FF;border-color:#C7D2FE;box-shadow:0 6px 14px -8px rgba(79,70,229,.6)}
   .kbd .b-sec.st-target{outline:2px solid #6366F1;outline-offset:3px}
-  @media(min-width:1280px){.kbd.st-open{margin-right:392px}}
-  @media(max-width:520px){.kbd .b-gear .gl{display:none}}
+  @media(min-width:1280px){.kbd.st-open,.kcs-open{margin-right:392px}}
+  @media(max-width:520px){.kbd .b-gear .gl,.kcs-gear .gl{display:none}} .kcs-target{outline:2px solid #6366F1;outline-offset:3px}
   .kbd .b-cv{position:relative;width:100%}
   .kbd .b-heat{border-collapse:collapse;width:100%;font-size:.72rem} .kbd .b-heat th{font-weight:600;color:#475569;padding:4px;text-align:center}
   .kbd .b-heat td{text-align:center;padding:6px 2px;border:2px solid #fff;border-radius:6px;font-weight:700}
@@ -164,11 +164,170 @@
   .kbd-st .st-select,.kbd-st .st-in{font:inherit;font-size:11.5px;font-weight:700;color:#334155;border:1px solid #E2E8F3;background:#F6F8FC;border-radius:999px;padding:6px 12px;max-width:170px}
   .kbd-st .st-in{border-radius:10px;max-width:none;width:100%;font-weight:600;font-size:12.5px;padding:8px 10px}
   @media(max-width:760px){.kbd-st{top:auto;width:100%;height:62vh;border-left:none;border-top:1px solid #E2E8F0;border-radius:24px 24px 0 0;transform:translateY(104%)}.kbd-st.open{transform:none}}
-  @media print{.kbd-st,.kbd .b-gear{display:none!important}}
+  @media print{.kbd-st,.kbd .b-gear,.kcs-gear{display:none!important}}
   .kbd-pres{position:fixed;inset:0;background:#0B1730;z-index:400;display:flex;flex-direction:column;padding:16px}
   .kbd-pres .ph{display:flex;justify-content:space-between;align-items:center;color:#fff;gap:10px;margin-bottom:10px}
   .kbd-pres .pb{flex:1;background:#fff;border-radius:16px;padding:20px;overflow:auto;min-height:0}
   .kbd-pres .pb .b-sec{border:0;padding:0} .kbd-pres .b-btn{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25)}`;
+
+
+  /* ═════════ Personalizar gráfica (KCS): estilo, armado de Chart.js y panel lateral ═════════
+     Lo usan el Board de incidentes y el módulo Indicadores (pestañas Indicadores y Tablero). */
+  const ESTILO_BASE = { palette: 'original', colors: {}, labels: true, grid: true, legend: 'auto', gradient: false, radius: 4, thick: 80, line: 2.5, point: 3, smooth: true, fill: 20, border: 2, cutout: 58, font: 'md', height: 300, titulo: '' };
+  function estiloDe(guardado, defecto) {
+    const st = Object.assign({}, ESTILO_BASE, defecto || {}, guardado || {});
+    st.palette = PAL_ANT[st.palette] || (PALETAS[st.palette] ? st.palette : 'original');   // compatibilidad con la 0.11.0
+    if (st.legend === true) st.legend = 'auto'; if (st.legend === false) st.legend = 'none';
+    if (typeof st.height === 'string') st.height = ALTURAS[st.height] || 300;
+    st.colors = Object.assign({}, st.colors || {});
+    return st;
+  }
+  function cssKCS() { if (!document.getElementById('kbd-css')) { const x = document.createElement('style'); x.id = 'kbd-css'; x.textContent = CSS; document.head.appendChild(x); } }
+  // Números sobre las barras / rebanadas
+  const valores = { id: 'kbdValores', afterDatasetsDraw(ch) {
+    const op = ch.options.plugins.kbdValores; if (!op || !op.on) return;
+    const { ctx } = ch; ctx.save(); ctx.font = '600 ' + (op.size || 11) + 'px Inter,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const radial = ['doughnut', 'pie', 'polarArea'].includes(ch.config.type), apil = ch.options.scales && ch.options.scales.x && ch.options.scales.x.stacked;
+    ch.data.datasets.forEach((ds, di) => { const meta = ch.getDatasetMeta(di); if (meta.hidden || ds._sinValor || ds.type === 'line' && ch.config.type === 'bar') return;
+      meta.data.forEach((el, i) => { const v = ds.data[i]; if (!v) return;
+        if (radial) { const p = el.tooltipPosition(); ctx.fillStyle = '#fff'; ctx.fillText(v, p.x, p.y); return; }
+        if (ch.config.type === 'radar') return;
+        const hor = ch.options.indexAxis === 'y';
+        if (apil && ch.config.type === 'bar') { if (v < 2) return; const p = el.tooltipPosition(); ctx.fillStyle = '#fff'; ctx.fillText(v, hor ? (el.x + el.base) / 2 : p.x, hor ? p.y : (el.y + el.base) / 2); return; }
+        ctx.fillStyle = op.color || '#334155'; if (hor) { ctx.textAlign = 'left'; ctx.fillText(v, el.x + 5, el.y); ctx.textAlign = 'center'; } else ctx.fillText(v, el.x, el.y - 9); }); });
+    ctx.restore(); } };
+  // Aplica el estilo elegido (cuadrícula, leyenda, texto, degradado) a la configuración de Chart.js
+  function aplicarEstilo(cfg, st, fam, canvas) {
+    const o = cfg.options, sc = o.scales || {};
+    Object.keys(sc).forEach(k => { if (k === 'y1') return; sc[k].grid = Object.assign({}, sc[k].grid, { display: st.grid, color: '#EEF2F7' }); sc[k].ticks = Object.assign({}, sc[k].ticks, { font: { size: FUENTES[st.font] || 12 } }); });
+    if (o.scales && o.scales.r) o.scales.r.grid = { display: st.grid };
+    if (fam === 'radial' && cfg.type === 'polarArea') o.scales = { r: { grid: { display: st.grid }, ticks: { display: false } } };
+    const lg = o.plugins.legend || {}, multi = !!(cfg.data.datasets.filter(d => !d._sinLeyenda).length > 1 || fam !== 'cart' || cfg._pareto);
+    lg.display = st.legend === 'none' ? false : st.legend === 'auto' ? multi : true;
+    lg.position = st.legend === 'auto' || st.legend === 'none' ? 'bottom' : st.legend;
+    lg.labels = Object.assign({}, lg.labels, { font: { size: FUENTES[st.font] || 12 }, boxWidth: 14 });
+    o.plugins.legend = lg;
+    o.plugins.kbdValores = { on: st.labels, size: (FUENTES[st.font] || 12) - 1 };
+    if (st.gradient && canvas) {
+      const ctx = canvas.getContext('2d'), h = canvas.parentNode.clientHeight || 300, w = canvas.parentNode.clientWidth || 500;
+      cfg.data.datasets.forEach(ds => { if (ds.type === 'line' || cfg.type === 'line' || cfg.type === 'radar' || typeof ds.backgroundColor !== 'string' && !Array.isArray(ds.backgroundColor)) return;
+        const grad = c => { if (typeof c !== 'string') return c; const g = cfg.options.indexAxis === 'y' ? ctx.createLinearGradient(0, 0, w, 0) : ctx.createLinearGradient(0, h, 0, 0); g.addColorStop(0, c + 'A6'); g.addColorStop(0.55, c); g.addColorStop(1, c); return g; };
+        ds.backgroundColor = Array.isArray(ds.backgroundColor) ? ds.backgroundColor.map(grad) : grad(ds.backgroundColor); });
+    }
+    return cfg;
+  }
+  const alfa = a => Math.round(Math.max(0, Math.min(100, a)) * 2.55).toString(16).padStart(2, '0');
+  /* Arma una gráfica a partir de datos ya contados.
+     spec = { labels, series:[{k, name, data, color}], porCategoria, coloresCat:[...], linea80, numerar, en, textoVacio }
+     Devuelve { chart, items } (items = elementos con color, para el panel). */
+  function construir(canvas, spec, st) {
+    const EN = !!spec.en, T = (es, en) => EN ? en : es, pal = PALETAS[st.palette];
+    const type = st.type, fam = TIPO(type)[3];
+    const usaOriginal = st.palette === 'original';
+    let labels = spec.labels.slice(), series = spec.series.map(x => Object.assign({}, x, { data: x.data.slice() }));
+    let cfg, items;
+    const colorCat = (l, i) => st.colors[l] || (usaOriginal && spec.coloresCat && spec.coloresCat[i]) || pal[i % pal.length];
+    const colorSerie = (sr, i) => st.colors[sr.k] || (usaOriginal && sr.color) || pal[i % pal.length];
+    const total = i => series.reduce((a, sr) => a + (Number(sr.data[i]) || 0), 0);
+    if (fam === 'radial') {
+      const idx = labels.map((_, i) => i).filter(i => total(i) > 0);
+      items = idx.map(i => ({ k: labels[i], name: labels[i], color: colorCat(labels[i], i) }));
+      cfg = { type: type === 'polar' ? 'polarArea' : type, data: { labels: idx.map(i => labels[i]), datasets: [{ data: idx.map(total), backgroundColor: items.map(x => x.color + (type === 'polar' ? 'CC' : '')), borderColor: '#fff', borderWidth: st.border }] },
+        options: { cutout: type === 'doughnut' ? st.cutout + '%' : undefined, plugins: { legend: {} } } };
+    } else if (type === 'pareto') {
+      const orden = labels.map((_, i) => [total(i), i]).filter(x => x[0] > 0).sort((a, b) => b[0] - a[0]);
+      const suma = orden.reduce((a, x) => a + x[0], 0) || 1; let acc = 0; const cum = orden.map(x => Math.round((acc += x[0]) * 1000 / suma) / 10);
+      const unaCat = series.length === 1 && spec.porCategoria;
+      items = unaCat ? orden.map(x => ({ k: labels[x[1]], name: labels[x[1]], color: colorCat(labels[x[1]], x[1]) })) : series.map((sr, i) => ({ k: sr.k, name: sr.name, color: colorSerie(sr, i) }));
+      const kL = '_acum'; items.push({ k: kL, name: T('% acumulado', 'Cumulative %'), color: st.colors[kL] || (usaOriginal ? '#0F2A4A' : pal[3] || '#DC2626') });
+      const ds = series.map((sr, i) => ({ type: 'bar', label: sr.name, data: orden.map(x => sr.data[x[1]]), backgroundColor: unaCat ? items.slice(0, -1).map(x => x.color) : items[i].color, borderRadius: st.radius, categoryPercentage: st.thick / 100, barPercentage: .95, stack: 'p', yAxisID: 'y', order: 2, _sinLeyenda: unaCat }));
+      ds.push({ type: 'line', label: items[items.length - 1].name, data: cum, borderColor: items[items.length - 1].color, backgroundColor: items[items.length - 1].color, yAxisID: 'y1', tension: st.smooth ? .3 : 0, borderWidth: st.line, pointRadius: st.point, order: 1 });
+      if (spec.linea80) ds.push({ type: 'line', label: '80 %', data: orden.map(() => 80), borderColor: '#DC2626', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5, yAxisID: 'y1', order: 0, _sinValor: true });
+      cfg = { _pareto: true, type: 'bar', data: { labels: orden.map((x, n) => (spec.numerar ? (n + 1) + '. ' : '') + labels[x[1]]), datasets: ds },
+        options: { scales: { x: { stacked: true, ticks: { autoSkip: false, maxRotation: 60 } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }, y1: { position: 'right', min: 0, max: 100, grid: { display: false }, ticks: { callback: x => x + '%' } } },
+          plugins: { legend: {}, tooltip: { callbacks: { label: c => c.dataset.yAxisID === 'y1' ? `${c.dataset.label}: ${c.raw}%` : `${c.dataset.label}: ${c.raw}` } } } } };
+    } else {
+      const lineal = ['line', 'area', 'stepped', 'radar'].includes(type), unaCat = series.length === 1 && spec.porCategoria && !lineal;
+      items = unaCat ? labels.map((l, j) => ({ k: l, name: l, color: colorCat(l, j) })) : series.map((sr, i) => ({ k: sr.k, name: sr.name, color: colorSerie(sr, i) }));
+      const ds = series.map((sr, i) => { const col = unaCat ? null : items[i].color;
+        return { label: sr.name, data: sr.data, backgroundColor: col ? col + (type === 'area' || type === 'radar' ? alfa(st.fill) : '') : items.map(x => x.color),
+          borderColor: col || items.map(x => x.color), borderWidth: lineal ? st.line : 0, borderRadius: st.radius, categoryPercentage: st.thick / 100, barPercentage: .92, spanGaps: false,
+          tension: st.smooth && type !== 'stepped' ? .3 : 0, stepped: type === 'stepped', fill: type === 'area' || type === 'radar', pointRadius: st.point, pointBackgroundColor: col || undefined, _sinLeyenda: unaCat }; });
+      const jsType = ['hbar', 'stacked'].includes(type) ? 'bar' : ['area', 'stepped'].includes(type) ? 'line' : type;
+      cfg = { type: jsType, data: { labels, datasets: ds }, options: { indexAxis: type === 'hbar' ? 'y' : 'x', plugins: { legend: {} } } };
+      if (jsType !== 'radar') cfg.options.scales = type === 'hbar' ? { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { ticks: { autoSkip: false } } }
+        : { x: { stacked: type === 'stacked', ticks: { autoSkip: false, maxRotation: 60 } }, y: { stacked: type === 'stacked', beginAtZero: true, ticks: { precision: 0 } } };
+      else cfg.options.scales = { r: { beginAtZero: true, ticks: { precision: 0, backdropColor: 'transparent' } } };
+    }
+    cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, layout: { padding: { top: 18, right: type === 'hbar' ? 28 : 8 } } }, cfg.options);
+    aplicarEstilo(cfg, st, fam, canvas);
+    if (spec.colorTexto) { cfg.options.color = spec.colorTexto; Object.values(cfg.options.scales || {}).forEach(x => { x.ticks = Object.assign({}, x.ticks, { color: spec.colorTexto }); }); cfg.options.plugins.kbdValores.color = spec.colorTexto; }
+    cfg.plugins = [valores];
+    return { chart: new root.Chart(canvas, cfg), items };
+  }
+  function descargar(canvas, nombre) {
+    const out = document.createElement('canvas'); out.width = canvas.width; out.height = canvas.height;
+    const x = out.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); x.drawImage(canvas, 0, 0);
+    const a = document.createElement('a'); a.href = out.toDataURL('image/png'); a.download = String(nombre || 'grafica').replace(/[^\w-]+/g, '-') + '.png'; document.body.appendChild(a); a.click(); a.remove();
+  }
+  function panelEl() {
+    cssKCS();
+    let p = document.getElementById('kbd-st');
+    if (!p) { p = document.createElement('aside'); p.id = 'kbd-st'; p.className = 'kbd-st no-i18n'; p.setAttribute('role', 'dialog'); document.body.appendChild(p); }
+    if (!document.__kcsEscOn) { document.__kcsEscOn = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.__kcsEsc) document.__kcsEsc(); }); }
+    return p;
+  }
+  function cerrarPanel() { const p = document.getElementById('kbd-st'); if (p) p.classList.remove('open'); }
+  /* Dibuja el panel «Personalizar gráfica».
+     o = { en, titulo, st, items, tipos:[claves] | null, datosHTML, set(cambios), reset(), png(), cerrar(), repintar(), alPintar(p), nota } */
+  function panel(o) {
+    const p = panelEl(), EN = !!o.en, T = (es, en) => EN ? en : es, st = o.st, fam = TIPO(st.type)[3];
+    const isBar = ['bar', 'hbar', 'stacked', 'pareto'].includes(st.type), isLine = ['line', 'area', 'stepped', 'pareto'].includes(st.type) || fam === 'radar';
+    const tipos = o.tipos ? TIPOS.filter(t => o.tipos.includes(t[0])) : TIPOS;
+    const sec = (t, inner) => `<section class="st-sec"><h5>${esc(t)}</h5>${inner}</section>`;
+    const tog = (l, k, v) => `<label class="st-row"><span>${esc(l)}</span><span class="st-sw"><input type="checkbox" data-s="${k}" ${v ? 'checked' : ''}><i></i></span></label>`;
+    const rng = (l, k, mn, mx, v, u) => `<label class="st-row st-range"><span>${esc(l)}</span><input type="range" min="${mn}" max="${mx}" step="${k === 'line' ? .5 : 1}" value="${v}" data-r="${k}"><b>${v}${u || ''}</b></label>`;
+    const selc = (l, k, ops, v) => `<label class="st-row"><span>${esc(l)}</span><select class="st-select" data-s="${k}">${ops.map(x => `<option value="${x[0]}" ${String(x[0]) === String(v) ? 'selected' : ''}>${esc(T(x[1], x[2]))}</option>`).join('')}</select></label>`;
+    let h = sec(T('Tipo de gráfica', 'Chart type'), `<div class="st-types">${tipos.map(t => `<button type="button" class="st-type ${t[0] === st.type ? 'on' : ''}" data-tipo="${t[0]}">${t[4]}<span>${esc(EN ? t[2] : t[1])}</span></button>`).join('')}</div>`);
+    h += sec(T('Paleta de colores', 'Color palette'), `<div class="st-pals">${Object.keys(PALETAS).map(n => `<button type="button" class="st-pal ${st.palette === n ? 'on' : ''}" data-pal="${n}"><span class="sws">${PALETAS[n].slice(0, 4).map(c => `<i style="background:${c}"></i>`).join('')}</span><small>${esc(EN ? PAL_NOM[n][1] : PAL_NOM[n][0])}</small></button>`).join('')}</div>`);
+    const items = o.items || [];
+    h += sec(T('Colores', 'Colors'), (items.length ? `<div class="st-colors">${items.slice(0, 24).map((it, i) => `<label class="st-color" title="${esc(it.name)}"><input type="color" value="${esc(/^#[0-9a-f]{6}$/i.test(it.color) ? it.color : '#2463EB')}" data-col="${i}"><span>${esc(it.name)}</span></label>`).join('')}</div>` : `<p style="font-size:11.5px;color:#94A3B8;margin:0">${esc(T('Sin elementos con los filtros actuales.', 'No items with the current filters.'))}</p>`)
+      + `<button type="button" class="st-link" data-x="rcol">↺ ${esc(T('Restablecer colores', 'Reset colors'))}</button>`);
+    let e = tog(T('Etiquetas de datos', 'Data labels'), 'labels', st.labels);
+    if (fam !== 'radial' || st.type === 'polar') e += tog(T('Líneas de cuadrícula', 'Grid lines'), 'grid', st.grid);
+    e += selc(T('Leyenda', 'Legend'), 'legend', [['auto', 'Auto', 'Auto'], ['top', 'Arriba', 'Top'], ['bottom', 'Abajo', 'Bottom'], ['right', 'Derecha', 'Right'], ['none', 'Oculta', 'Hidden']], st.legend);
+    if (isBar) e += tog(T('Relleno degradado', 'Gradient fill'), 'gradient', st.gradient) + rng(T('Esquinas redondeadas', 'Corner radius'), 'radius', 0, 20, st.radius, 'px') + rng(T('Grosor de barras', 'Bar thickness'), 'thick', 20, 100, st.thick, '%');
+    if (isLine) e += rng(T('Grosor de línea', 'Line width'), 'line', 1, 7, st.line, 'px') + rng(T('Tamaño de punto', 'Point size'), 'point', 0, 9, st.point, 'px');
+    if (['line', 'area', 'pareto'].includes(st.type)) e += tog(T('Curvas suaves', 'Smooth curves'), 'smooth', st.smooth);
+    if (st.type === 'area' || fam === 'radar') e += rng(T('Opacidad del relleno', 'Fill opacity'), 'fill', 2, 70, st.fill, '%');
+    if (fam === 'radial') e += rng(T('Grosor del borde', 'Border width'), 'border', 0, 8, st.border, 'px');
+    if (st.type === 'doughnut') e += rng(T('Hueco de la dona', 'Donut hole'), 'cutout', 20, 85, st.cutout, '%');
+    e += selc(T('Tamaño de texto', 'Text size'), 'font', [['sm', 'Pequeño', 'Small'], ['md', 'Normal', 'Normal'], ['lg', 'Grande', 'Large']], st.font);
+    e += rng(T('Alto de la gráfica', 'Chart height'), 'height', 200, 700, st.height, 'px');
+    h += sec(T('Estilo', 'Style'), e);
+    h += sec(T('Datos', 'Data'), o.datosHTML != null ? o.datosHTML : `<label class="st-row" style="display:block"><span style="display:block;margin-bottom:6px">${esc(T('Título', 'Title'))}</span><input class="st-in" type="text" data-t="titulo" value="${esc(st.titulo || '')}" placeholder="${esc(o.tituloBase || o.titulo)}"></label>`);
+    const prev = p.querySelector('.st-body') ? p.querySelector('.st-body').scrollTop : 0;
+    p.innerHTML = `<div class="st-head"><div><div class="st-eye">${esc(T('Personalizar gráfica', 'Customize chart'))}</div><div class="st-name">${esc(o.titulo)}</div></div><button type="button" class="st-x" data-x="cerrar" aria-label="${esc(T('Cerrar', 'Close'))}">✕</button></div>
+      <div class="st-body">${h}</div>
+      <div class="st-foot"><div class="st-note">${esc(o.nota || T('Los cambios se aplican al instante y los ve todo el equipo de Safety.', 'Changes apply instantly and the whole Safety team sees them.'))}</div><button type="button" data-x="reset">↺ ${esc(T('Restablecer', 'Reset'))}</button><button type="button" data-x="png">⬇ PNG</button><button type="button" class="st-done" data-x="cerrar2">${esc(T('Listo', 'Done'))}</button></div>`;
+    p.querySelector('.st-body').scrollTop = prev;
+    const set = (c, rep) => { o.set(c); if (rep) o.repintar(); };
+    p.querySelectorAll('[data-tipo]').forEach(b => b.onclick = () => set({ type: b.dataset.tipo }, true));
+    p.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => set({ palette: b.dataset.pal, colors: {} }, true));
+    p.querySelectorAll('[data-col]').forEach(inp => { inp.oninput = () => { const it = items[+inp.dataset.col]; set({ colors: Object.assign({}, st.colors, { [it.k]: inp.value }) }); st.colors[it.k] = inp.value; }; inp.onchange = () => o.repintar(); });
+    p.querySelectorAll('input[type=checkbox][data-s]').forEach(x => x.onchange = () => set({ [x.dataset.s]: x.checked }, true));
+    p.querySelectorAll('select[data-s]').forEach(x => x.onchange = () => set({ [x.dataset.s]: x.dataset.s === 'top' ? Number(x.value) : x.value }, x.dataset.s === 'serie'));
+    p.querySelectorAll('[data-r]').forEach(x => { x.oninput = () => { x.nextElementSibling.textContent = x.value + (['thick', 'fill', 'cutout'].includes(x.dataset.r) ? '%' : 'px'); clearTimeout(x._t); x._t = setTimeout(() => set({ [x.dataset.r]: Number(x.value) }), 120); }; });
+    const ti = p.querySelector('[data-t="titulo"]'); if (ti && o.datosHTML == null) ti.onchange = () => { set({ titulo: ti.value.trim() }); p.querySelector('.st-name').textContent = ti.value.trim() || o.tituloBase || o.titulo; };
+    p.querySelector('[data-x="rcol"]').onclick = () => set({ palette: 'original', colors: {} }, true);
+    p.querySelector('[data-x="reset"]').onclick = () => { o.reset(); o.repintar(); };
+    p.querySelector('[data-x="png"]').onclick = () => o.png();
+    p.querySelectorAll('[data-x="cerrar"],[data-x="cerrar2"]').forEach(b => b.onclick = o.cerrar);
+    if (o.alPintar) o.alPintar(p);
+    requestAnimationFrame(() => p.classList.add('open'));
+    return p;
+  }
+  const BOTON = (en, attrs) => `<button class="kcs-gear" type="button" ${attrs} title="${esc(en ? 'Customize chart' : 'Personalizar gráfica')}">⚙<span class="gl"> ${esc(en ? 'Customize' : 'Personalizar')}</span></button>`;
 
   function render(host, data, opts) {
     opts = opts || {};
@@ -179,7 +338,7 @@
       'Lesión': 'Injury (lost time)', 'Tratamiento médico': 'Medical treatment', 'Primer auxilio': 'First aid', 'Daño a la propiedad': 'Property damage', 'Casi accidente': 'Near miss', 'Más de 48': 'Over 48' };
       if (m[s]) return m[s]; const i = MESES.indexOf(s); if (i >= 0) return MESES_EN[i]; const j = DIAS.indexOf(s); if (j >= 0) return DIAS_EN[j]; return s; };
     const KF = opts.KF || root.KF;
-    if (!document.getElementById('kbd-css')) { const st = document.createElement('style'); st.id = 'kbd-css'; st.textContent = CSS; document.head.appendChild(st); }
+    cssKCS();
     (host.__kbdCharts || []).forEach(c => { try { c.destroy(); } catch (e) {} }); host.__kbdCharts = [];
 
     // ---------- datos ----------
@@ -194,15 +353,7 @@
     const todas = () => SECCIONES.concat(S.cfg.propias.map(p => Object.assign({ propia: true }, p)));
     const seccionesOrden = () => { const t = todas(), ids = t.map(s => s.id); const o = S.cfg.orden.filter(id => ids.includes(id)).concat(ids.filter(id => !S.cfg.orden.includes(id))); return o.map(id => t.find(s => s.id === id)); };
     const visibles = () => seccionesOrden().filter(s => !S.cfg.ocultas.includes(s.id));
-    const ESTILO_BASE = { palette: 'original', colors: {}, labels: true, grid: true, legend: 'auto', gradient: false, radius: 4, thick: 80, line: 2.5, point: 3, smooth: true, fill: 20, border: 2, cutout: 58, font: 'md', height: 300 };
-    const estilo = s => {
-      const st = Object.assign({}, ESTILO_BASE, { type: s.type || 'bar', top: s.top || 0, serie: s.serie || '', titulo: '' }, S.cfg.charts[s.id] || {});
-      st.palette = PAL_ANT[st.palette] || (PALETAS[st.palette] ? st.palette : 'original');   // compatibilidad con la 0.11.0
-      if (st.legend === true) st.legend = 'auto'; if (st.legend === false) st.legend = 'none';
-      if (typeof st.height === 'string') st.height = ALTURAS[st.height] || 300;
-      st.colors = st.colors || {};
-      return st;
-    };
+    const estilo = s => estiloDe(S.cfg.charts[s.id], { type: s.type || 'bar', top: s.top || 0, serie: s.serie || '' });
     const ULTIMO = {};   // elementos dibujados en cada gráfica (para el panel de colores)
     let guardarT = null;
     const guardar = () => { if (!opts.puedeEditar) return; clearTimeout(guardarT); guardarT = setTimeout(() => opts.guardarConfig && opts.guardarConfig(S.cfg), 600); };
@@ -222,40 +373,6 @@
       return { labels, series, val: (l, s) => (M[l] && M[l][s]) || 0, tot: l => tot[l] || 0 };
     }
 
-    // ---------- etiquetas con el valor ----------
-    const valores = { id: 'kbdValores', afterDatasetsDraw(ch, a, o) {
-      if (!ch.options.plugins.kbdValores || !ch.options.plugins.kbdValores.on) return;
-      const { ctx } = ch; ctx.save(); ctx.font = '600 ' + (ch.options.plugins.kbdValores.size || 11) + 'px Inter,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      const radial = ['doughnut', 'pie', 'polarArea'].includes(ch.config.type), apil = ch.options.scales && ch.options.scales.x && ch.options.scales.x.stacked;
-      ch.data.datasets.forEach((ds, di) => { const meta = ch.getDatasetMeta(di); if (meta.hidden || ds.type === 'line' && ch.config.type === 'bar') return;
-        meta.data.forEach((el, i) => { const v = ds.data[i]; if (!v) return;
-          if (radial) { const p = el.tooltipPosition(); ctx.fillStyle = '#fff'; ctx.fillText(v, p.x, p.y); return; }
-          if (ch.config.type === 'radar') return;
-          const hor = ch.options.indexAxis === 'y';
-          if (apil) { if (v < 2) return; const p = el.tooltipPosition(); ctx.fillStyle = '#fff'; ctx.fillText(v, hor ? (el.x + el.base) / 2 : p.x, hor ? p.y : (el.y + el.base) / 2); return; }
-          ctx.fillStyle = '#334155'; if (hor) { ctx.textAlign = 'left'; ctx.fillText(v, el.x + 5, el.y); ctx.textAlign = 'center'; } else ctx.fillText(v, el.x, el.y - 9); }); });
-      ctx.restore(); } };
-
-    // Aplica el estilo elegido (cuadrícula, leyenda, texto, grosores, degradado) a la configuración de Chart.js
-    function aplicarEstilo(cfg, st, fam, canvas) {
-      const o = cfg.options, sc = o.scales || {};
-      Object.keys(sc).forEach(k => { if (k === 'y1') return; sc[k].grid = Object.assign({}, sc[k].grid, { display: st.grid, color: '#EEF2F7' }); sc[k].ticks = Object.assign({}, sc[k].ticks, { font: { size: FUENTES[st.font] || 12 } }); });
-      if (o.scales && o.scales.r) o.scales.r.grid = { display: st.grid };
-      if (fam === 'radial' && cfg.type === 'polarArea') o.scales = { r: { grid: { display: st.grid }, ticks: { display: false } } };
-      const lg = o.plugins.legend || {}, multi = cfg.data.datasets.length > 1 || fam !== 'cart' || cfg._pareto;
-      lg.display = st.legend === 'none' ? false : st.legend === 'auto' ? multi : true;
-      lg.position = st.legend === 'auto' || st.legend === 'none' ? (fam === 'cart' || fam === 'radar' ? 'bottom' : 'bottom') : st.legend;
-      lg.labels = { font: { size: FUENTES[st.font] || 12 }, boxWidth: 14 };
-      o.plugins.legend = lg;
-      o.plugins.kbdValores = { on: st.labels, size: (FUENTES[st.font] || 12) - 1 };
-      if (st.gradient && canvas) {
-        const ctx = canvas.getContext('2d'), h = canvas.parentNode.clientHeight || 300, w = canvas.parentNode.clientWidth || 500;
-        cfg.data.datasets.forEach(ds => { if (ds.type === 'line' || cfg.type === 'line' || cfg.type === 'radar') return;
-          const grad = c => { const g = cfg.options.indexAxis === 'y' ? ctx.createLinearGradient(0, 0, w, 0) : ctx.createLinearGradient(0, h, 0, 0); g.addColorStop(0, c + 'A6'); g.addColorStop(0.55, c); g.addColorStop(1, c); return g; };
-          ds.backgroundColor = Array.isArray(ds.backgroundColor) ? ds.backgroundColor.map(grad) : grad(ds.backgroundColor); });
-      }
-      return cfg;
-    }
     function chart(canvas, s, lista) {
       if (!root.Chart) { canvas.parentNode.innerHTML = `<div class="b-empty">${esc(T('No se cargó la librería de gráficas (Chart.js).', 'The chart library (Chart.js) did not load.'))}</div>`; return; }
       const st = estilo(s), pal = PALETAS[st.palette];
@@ -266,7 +383,6 @@
       const lab = c.labels.map(tt);
       const porClasif = serie === 'clasificacion' || (!serie && s.dim === 'clasificacion');
       const colorDe = (k, i) => st.colors[k] || (st.palette === 'original' && porClasif && CLASIF_COLOR[k] ? CLASIF_COLOR[k] : pal[i % pal.length]);
-      const alfa = a => Math.round(Math.max(0, Math.min(100, a)) * 2.55).toString(16).padStart(2, '0');
       let cfg, items;
       if (fam === 'radial') {
         items = c.labels.map((l, i) => ({ k: l, name: tt(l), color: colorDe(l, i) }));
@@ -421,72 +537,33 @@
     }
     function studio(id) {
       ST.id = id;
-      let p = document.getElementById('kbd-st');
-      if (!p) { p = document.createElement('aside'); p.id = 'kbd-st'; p.className = 'kbd-st no-i18n'; p.setAttribute('role', 'dialog'); document.body.appendChild(p); }
+      const p = panelEl();
       host.querySelectorAll('.st-target').forEach(x => x.classList.remove('st-target'));
       const card = host.querySelector(`[data-sec="${CSS_ESC(id)}"]`); if (card) card.classList.add('st-target');
       host.classList.add('st-open');
       pintarStudio(); requestAnimationFrame(() => p.classList.add('open'));
       setTimeout(() => { if (!card) return; const r = card.getBoundingClientRect(); if (window.innerWidth <= 760 || r.top > window.innerHeight * .6 || r.bottom < 120) card.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
-      if (!studio._esc) { studio._esc = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && ST.id && !document.getElementById('kbd-pres')) cerrarStudio(); }); }
+      document.__kcsEsc = () => { if (ST.id && !document.getElementById('kbd-pres')) cerrarStudio(); };
     }
     function pintarStudio() {
-      const p = document.getElementById('kbd-st'), id = ST.id; if (!p || !id) return;
+      const id = ST.id; if (!id) return;
       const s = todas().find(x => x.id === id); if (!s) return cerrarStudio();
       const st = estilo(s), fam = TIPO(st.type)[3], especial = s.esp === 'tasa' || s.esp === 'cuerpo';
-      const isBar = ['bar', 'hbar', 'stacked', 'pareto'].includes(st.type), isLine = ['line', 'area', 'stepped', 'pareto'].includes(st.type) || fam === 'radar';
-      const tipos = s.esp === 'tasa' ? TIPOS.filter(t => ['line', 'area', 'stepped', 'bar'].includes(t[0])) : TIPOS;
-      const sec = (t, inner) => `<section class="st-sec"><h5>${esc(t)}</h5>${inner}</section>`;
-      const tog = (l, k, v) => `<label class="st-row"><span>${esc(l)}</span><span class="st-sw"><input type="checkbox" data-s="${k}" ${v ? 'checked' : ''}><i></i></span></label>`;
-      const rng = (l, k, mn, mx, v, u) => `<label class="st-row st-range"><span>${esc(l)}</span><input type="range" min="${mn}" max="${mx}" step="${k === 'line' ? .5 : 1}" value="${v}" data-r="${k}"><b>${v}${u || ''}</b></label>`;
       const selc = (l, k, ops, v) => `<label class="st-row"><span>${esc(l)}</span><select class="st-select" data-s="${k}">${ops.map(o => `<option value="${o[0]}" ${String(o[0]) === String(v) ? 'selected' : ''}>${esc(T(o[1], o[2]))}</option>`).join('')}</select></label>`;
-      let h = sec(T('Tipo de gráfica', 'Chart type'), `<div class="st-types">${tipos.map(t => `<button type="button" class="st-type ${t[0] === st.type ? 'on' : ''}" data-tipo="${t[0]}">${t[4]}<span>${esc(EN ? t[2] : t[1])}</span></button>`).join('')}</div>`);
-      h += sec(T('Paleta de colores', 'Color palette'), `<div class="st-pals">${Object.keys(PALETAS).map(n => `<button type="button" class="st-pal ${st.palette === n ? 'on' : ''}" data-pal="${n}"><span class="sws">${PALETAS[n].slice(0, 4).map(c => `<i style="background:${c}"></i>`).join('')}</span><small>${esc(EN ? PAL_NOM[n][1] : PAL_NOM[n][0])}</small></button>`).join('')}</div>`);
-      const items = ULTIMO[id] || [];
-      h += sec(T('Colores', 'Colors'), (items.length ? `<div class="st-colors">${items.slice(0, 24).map((it, i) => `<label class="st-color" title="${esc(it.name)}"><input type="color" value="${esc(it.color)}" data-col="${i}"><span>${esc(it.name)}</span></label>`).join('')}</div>` : `<p style="font-size:11.5px;color:#94A3B8;margin:0">${esc(T('Sin elementos con los filtros actuales.', 'No items with the current filters.'))}</p>`)
-        + `<button type="button" class="st-link" data-x="rcol">↺ ${esc(T('Restablecer colores', 'Reset colors'))}</button>`);
-      let e = tog(T('Etiquetas de datos', 'Data labels'), 'labels', st.labels);
-      if (fam !== 'radial' || st.type === 'polar') e += tog(T('Líneas de cuadrícula', 'Grid lines'), 'grid', st.grid);
-      e += selc(T('Leyenda', 'Legend'), 'legend', [['auto', 'Auto', 'Auto'], ['top', 'Arriba', 'Top'], ['bottom', 'Abajo', 'Bottom'], ['right', 'Derecha', 'Right'], ['none', 'Oculta', 'Hidden']], st.legend);
-      if (isBar) e += tog(T('Relleno degradado', 'Gradient fill'), 'gradient', st.gradient) + rng(T('Esquinas redondeadas', 'Corner radius'), 'radius', 0, 20, st.radius, 'px') + rng(T('Grosor de barras', 'Bar thickness'), 'thick', 20, 100, st.thick, '%');
-      if (isLine) e += rng(T('Grosor de línea', 'Line width'), 'line', 1, 7, st.line, 'px') + rng(T('Tamaño de punto', 'Point size'), 'point', 0, 9, st.point, 'px');
-      if (['line', 'area', 'pareto'].includes(st.type)) e += tog(T('Curvas suaves', 'Smooth curves'), 'smooth', st.smooth);
-      if (st.type === 'area' || fam === 'radar') e += rng(T('Opacidad del relleno', 'Fill opacity'), 'fill', 2, 70, st.fill, '%');
-      if (fam === 'radial') e += rng(T('Grosor del borde', 'Border width'), 'border', 0, 8, st.border, 'px');
-      if (st.type === 'doughnut') e += rng(T('Hueco de la dona', 'Donut hole'), 'cutout', 20, 85, st.cutout, '%');
-      e += selc(T('Tamaño de texto', 'Text size'), 'font', [['sm', 'Pequeño', 'Small'], ['md', 'Normal', 'Normal'], ['lg', 'Grande', 'Large']], st.font);
-      e += rng(T('Alto de la gráfica', 'Chart height'), 'height', 200, 700, st.height, 'px');
-      h += sec(T('Estilo', 'Style'), e);
       let dts = `<label class="st-row" style="display:block"><span style="display:block;margin-bottom:6px">${esc(T('Título', 'Title'))}</span><input class="st-in" type="text" data-t="titulo" value="${esc(st.titulo || '')}" placeholder="${esc(EN && s.en ? s.en : s.t)}"></label>`;
       if (!especial) {
         dts += fam === 'radial' || st.type === 'pareto' ? '' : selc(T('Dividir por', 'Split by'), 'serie', [['', 'Sin dividir', 'No split']].concat(Object.keys(DIMS).filter(k => k !== s.dim).map(k => [k, DIMS[k].t, DIMS[k].en])), st.serie);
         if (!Array.isArray(DIMS[s.dim].orden)) dts += selc(T('Mostrar', 'Show'), 'top', [[0, 'Todos', 'All'], [5, 'Los primeros 5', 'Top 5'], [8, 'Los primeros 8', 'Top 8'], [10, 'Los primeros 10', 'Top 10'], [15, 'Los primeros 15', 'Top 15'], [20, 'Los primeros 20', 'Top 20']], st.top || (s.dim === 'linea' ? 15 : 0));
       }
-      h += sec(T('Datos', 'Data'), dts);
-      const prev = p.querySelector('.st-body') ? p.querySelector('.st-body').scrollTop : 0;
-      p.innerHTML = `<div class="st-head"><div><div class="st-eye">${esc(T('Personalizar gráfica', 'Customize chart'))}</div><div class="st-name">${esc(nombre(s))}</div></div><button type="button" class="st-x" data-x="cerrar" aria-label="${esc(T('Cerrar', 'Close'))}">✕</button></div>
-        <div class="st-body">${h}</div>
-        <div class="st-foot"><div class="st-note">${esc(T('Los cambios se aplican al instante y los ve todo el equipo de Safety.', 'Changes apply instantly and the whole Safety team sees them.'))}</div><button type="button" data-x="reset">↺ ${esc(T('Restablecer', 'Reset'))}</button><button type="button" data-x="png">⬇ PNG</button><button type="button" class="st-done" data-x="cerrar2">${esc(T('Listo', 'Done'))}</button></div>`;
-      p.querySelector('.st-body').scrollTop = prev;
-      const set = (cambios, repintarPanel) => { S.cfg.charts[id] = Object.assign({}, S.cfg.charts[id] || {}, cambios); guardar(); refrescarSeccion(id); if (repintarPanel) pintarStudio(); };
-      p.querySelectorAll('[data-tipo]').forEach(b => b.onclick = () => set({ type: b.dataset.tipo }, true));
-      p.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => set({ palette: b.dataset.pal, colors: {} }, true));
-      p.querySelectorAll('[data-col]').forEach(inp => inp.oninput = () => { const it = items[+inp.dataset.col]; const c = Object.assign({}, estilo(s).colors, { [it.k]: inp.value }); set({ colors: c }); });
-      p.querySelectorAll('[data-col]').forEach(inp => inp.onchange = () => pintarStudio());
-      p.querySelectorAll('input[type=checkbox][data-s]').forEach(x => x.onchange = () => set({ [x.dataset.s]: x.checked }));
-      p.querySelectorAll('select[data-s]').forEach(x => x.onchange = () => set({ [x.dataset.s]: x.dataset.s === 'top' ? Number(x.value) : x.value }, x.dataset.s === 'serie'));
-      p.querySelectorAll('[data-r]').forEach(x => { x.oninput = () => { x.nextElementSibling.textContent = x.value + (x.dataset.r === 'thick' || x.dataset.r === 'fill' || x.dataset.r === 'cutout' ? '%' : 'px'); clearTimeout(x._t); x._t = setTimeout(() => set({ [x.dataset.r]: Number(x.value) }), 120); }; });
-      const ti = p.querySelector('[data-t="titulo"]'); ti.onchange = () => { set({ titulo: ti.value.trim() }); p.querySelector('.st-name').textContent = nombre(s); };
-      p.querySelector('[data-x="rcol"]').onclick = () => set({ palette: 'original', colors: {} }, true);
-      p.querySelector('[data-x="reset"]').onclick = () => { delete S.cfg.charts[id]; guardar(); refrescarSeccion(id); pintarStudio(); };
-      p.querySelector('[data-x="png"]').onclick = () => descargarPNG(id);
-      p.querySelectorAll('[data-x="cerrar"],[data-x="cerrar2"]').forEach(b => b.onclick = cerrarStudio);
+      panel({ en: EN, titulo: nombre(s), st, items: ULTIMO[id] || [], tipos: s.esp === 'tasa' ? ['line', 'area', 'stepped', 'bar'] : null,
+        datosHTML: dts, repintar: pintarStudio, cerrar: cerrarStudio, png: () => descargarPNG(id),
+        set: (cambios) => { S.cfg.charts[id] = Object.assign({}, S.cfg.charts[id] || {}, cambios); guardar(); refrescarSeccion(id); },
+        reset: () => { delete S.cfg.charts[id]; guardar(); refrescarSeccion(id); },
+        alPintar: p => { const ti = p.querySelector('[data-t="titulo"]'); ti.onchange = () => { S.cfg.charts[id] = Object.assign({}, S.cfg.charts[id] || {}, { titulo: ti.value.trim() }); guardar(); refrescarSeccion(id); p.querySelector('.st-name').textContent = nombre(s); }; } });
     }
     function descargarPNG(id) {
       const el = host.querySelector(`[data-sec="${CSS_ESC(id)}"] canvas`); if (!el) return;
-      const out = document.createElement('canvas'); out.width = el.width; out.height = el.height;
-      const x = out.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); x.drawImage(el, 0, 0);
-      const a = document.createElement('a'); a.href = out.toDataURL('image/png'); a.download = 'board-incidentes-' + id + '.png'; document.body.appendChild(a); a.click(); a.remove();
+      descargar(el, 'board-incidentes-' + id);
     }
     function menuSecciones() {
       const dibuja = m => {
@@ -541,5 +618,6 @@
     pintar();
     return { refrescar: pintar };
   }
-  root.KBD = { render, VERSION: '0.11.1', SECCIONES, DIMS };
+  root.KBD = { render, VERSION: '0.12.0', SECCIONES, DIMS };
+  root.KCS = { estilo: estiloDe, construir, panel, cerrarPanel, descargar, boton: BOTON, css: cssKCS, TIPOS: TIPOS.map(t => t[0]) };
 })(typeof window !== 'undefined' ? window : this);

@@ -252,8 +252,12 @@
       YEARS.concat(['all']).forEach(function (y) { h += '<button type="button" data-card="' + id + '" data-y="' + y + '" aria-pressed="' + (String(cur) === String(y)) + '">' + (y === 'all' ? t('all') : y) + '</button>'; });
       return h + '</div>';
     }
+    // v0.12: «⚙ Personalizar» en las gráficas por año (mismo panel del Board de incidentes, window.KCS)
+    var G = opts.graficas && root.KCS && root.Chart ? opts.graficas : null, GCH = {}, GITEMS = {}, GABIERTA = null;
+    var PERSONALIZABLES = { month: 1, area: 1, cat: 1, shift: 1, type: 1 };
     var sec = function (id, full, titulo, desc, extra) {
-      return '<section class="k-card' + (full ? ' full' : '') + '"><div class="k-head"><div><h2 data-i="' + titulo + '"></h2><p class="k-desc" data-i="' + desc + '"></p></div>' + (extra || '') + '</div>';
+      var gear = G && G.puedeEditar && PERSONALIZABLES[id] ? root.KCS.boton(S.lang === 'en', 'data-kg="' + id + '"') : '';
+      return '<section class="k-card' + (full ? ' full' : '') + '" data-kgsec="' + id + '"><div class="k-head"><div><h2 data-i="' + titulo + '"></h2><p class="k-desc" data-i="' + desc + '"></p></div>' + (extra || '') + gear + '</div>';
     };
 
     /* ---------- Estructura ---------- */
@@ -279,8 +283,19 @@
       '</div><p class="k-note" id="ktb-foot"></p></div>';
 
     /* ---------- Gráfico de líneas ---------- */
+    function estiloG(id) { return root.KCS.estilo(G.cfg[id], { type: 'line', legend: 'none', labels: false, height: 300 }); }
     function lineChart(hostId, cats, labels, series, opt) {
       opt = opt || {};
+      if (G) {   // Chart.js con el estilo guardado
+        var idG = hostId.replace(/^c-/, ''), hh0 = $(hostId), stG = estiloG(idG);
+        if (GCH[idG]) { try { GCH[idG].destroy(); } catch (e) {} }
+        hh0.innerHTML = '<div style="position:relative;height:' + stG.height + 'px"><canvas></canvas></div>';
+        var tit = host.querySelector('[data-kgsec="' + idG + '"] h2'); if (tit && stG.titulo) tit.textContent = stG.titulo;
+        var cs = getComputedStyle(host), tinta = (cs.getPropertyValue('--k-ink2') || '').trim() || '#52514e';
+        var r = root.KCS.construir(hh0.querySelector('canvas'), { labels: labels, series: series.map(function (x) { return { k: x.name, name: x.name, data: x.vals, color: x.color }; }), en: S.lang === 'en', colorTexto: tinta }, stG);
+        GCH[idG] = r.chart; GITEMS[idG] = r.items; if (GABIERTA === idG) pintarPanel();
+        return;
+      }
       var hh = $(hostId); hh.innerHTML = '';
       var W = hh.clientWidth || 500, narrow = W < 420;
       var trunc = narrow ? 11 : 16;
@@ -594,12 +609,29 @@
       $('cmy').innerHTML = CMYEARS.slice().reverse().map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join(''); $('cmy').value = String(S.cmy);
       $('cmt').textContent = t('cmT') + ' ' + S.cmy;
       [].forEach.call(host.querySelectorAll('[data-i]'), function (n) { n.textContent = t(n.getAttribute('data-i')); });
+      if (G) Object.keys(PERSONALIZABLES).forEach(function (id) { var st = G.cfg[id], h = host.querySelector('[data-kgsec="' + id + '"] h2'); if (h && st && st.titulo) h.textContent = st.titulo; });
       [].forEach.call(host.querySelectorAll('[data-yr]'), function (n) { n.innerHTML = yearSeg(n.getAttribute('data-yr')); });
       $('foot').textContent = t('foot');
       host.setAttribute('lang', S.lang);
     }
+    function cerrarPanelG() { GABIERTA = null; root.KCS.cerrarPanel(); [].forEach.call(host.querySelectorAll('.kcs-target'), function (x) { x.classList.remove('kcs-target'); }); host.classList.remove('kcs-open'); document.__kcsEsc = null; }
+    function pintarPanel() {
+      var id = GABIERTA; if (!id) return; var st = estiloG(id), base = t({ month: 'byMonth', area: 'byArea', cat: 'byCat', shift: 'byShift', type: 'byType' }[id]);
+      root.KCS.panel({ en: S.lang === 'en', titulo: st.titulo || base, tituloBase: base, st: st, items: GITEMS[id] || [], tipos: ['line', 'area', 'stepped', 'bar', 'hbar', 'stacked', 'radar'],
+        repintar: pintarPanel, cerrar: cerrarPanelG,
+        set: function (c) { G.cfg[id] = Object.assign({}, G.cfg[id] || {}, c); G.guardar(); if (c.titulo !== undefined) drawControls(); drawLines(); },
+        reset: function () { delete G.cfg[id]; G.guardar(); drawControls(); drawLines(); },
+        png: function () { var c = host.querySelector('#ktb-c-' + id + ' canvas'); if (c) root.KCS.descargar(c, 'tablero-' + id); } });
+    }
+    function abrirPanelG(id) {
+      GABIERTA = id; [].forEach.call(host.querySelectorAll('.kcs-target'), function (x) { x.classList.remove('kcs-target'); });
+      var card = host.querySelector('[data-kgsec="' + id + '"]'); if (card) card.classList.add('kcs-target'); host.classList.add('kcs-open');
+      document.__kcsEsc = cerrarPanelG; pintarPanel();
+      setTimeout(function () { if (card && (window.innerWidth <= 760 || card.getBoundingClientRect().top > window.innerHeight * .6)) card.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+    }
     host.onclick = function (e) {
       var b = e.target.closest('button'); if (!b || !host.contains(b)) return;
+      if (b.dataset.kg) { abrirPanelG(b.dataset.kg); return; }
       if (b.dataset.lang) { S.lang = b.dataset.lang; drawAll(); }
       else if (b.dataset.gy) { S.year = b.dataset.gy; S.cy = {}; drawAll(); }
       else if (b.dataset.card) { S.cy[b.dataset.card] = b.dataset.y; drawAll(); }
@@ -617,5 +649,5 @@
     return { datos: DATA };
   }
 
-  root.KTB = { render: render, VERSION: '0.11.1' };
+  root.KTB = { render: render, VERSION: '0.12.0' };
 })(typeof window !== 'undefined' ? window : this);

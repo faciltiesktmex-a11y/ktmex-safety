@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.11.1';
+window.FRONT_VERSION = '0.12.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -204,13 +204,13 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.11.1" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.11.1" charset="utf-8"></script>
-<script src="formatos.js?v=0.11.1" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.11.1" charset="utf-8"></script>
-<script src="tablero.js?v=0.11.1" charset="utf-8"></script>
-<script src="ejercicios.js?v=0.11.1" charset="utf-8"></script>
-<script src="board.js?v=0.11.1" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.12.0" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.12.0" charset="utf-8"></script>
+<script src="formatos.js?v=0.12.0" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.12.0" charset="utf-8"></script>
+<script src="tablero.js?v=0.12.0" charset="utf-8"></script>
+<script src="ejercicios.js?v=0.12.0" charset="utf-8"></script>
+<script src="board.js?v=0.12.0" charset="utf-8"></script>
 </head>
 <body>
 
@@ -1722,6 +1722,44 @@ async function guardarReglas(lista){
 /* ═══════════════ INDICADORES ═══════════════ */
 let KP = null, KP_ANIO = String(new Date().getFullYear()), CHARTS = [], KP_TAB = 'ind';
 function tabKPI(t){ KP_TAB = t; renderKPI(); }
+/* ═══ Gráficas personalizables de Indicadores (v0.12) — mismo panel del Board de incidentes.
+   Solo quien tiene el permiso «board» ve «⚙ Personalizar»; lo que guarda lo ven todos. ═══ */
+let KG_DEF = {}, KG_SPEC = {}, KG_CH = {}, KG_ITEMS = {}, KG_ABIERTA = null, KPG = {kpi:{}, tablero:{}}, KPG_T = null;
+const puedeKG = () => !!(KP && KP.puedeEditarGraficas) && !!window.KCS;
+function tarjetaKG(id, extra){
+  const st = window.KCS ? KCS.estilo(KPG.kpi[id], {type:KG_DEF[id].type, height:280}) : {height:280, titulo:''};
+  return `<section class="card chart-card" data-kg="${id}"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><h3 id="kgt-${id}">${esc(st.titulo || KG_DEF[id].t)}</h3>${puedeKG()?KCS.boton(LANG==='en',`onclick="abrirKG('${id}')"`):''}</div>
+    <div id="kgc-${id}" style="position:relative;height:${st.height}px"><canvas id="ch-${id}"></canvas></div>${extra||''}</section>`;
+}
+function dibujarKG(id){
+  const box = $('kgc-'+id); if(!box) return;
+  if(KG_CH[id]){ try{ KG_CH[id].destroy(); }catch(e){} CHARTS = CHARTS.filter(c=>c!==KG_CH[id]); delete KG_CH[id]; }
+  if(typeof Chart==='undefined' || !window.KCS){ box.style.height='auto'; box.innerHTML = `<p class="help">${esc(!window.KCS ? L('Falta board.js: súbelo a GitHub junto con index.html.','board.js is missing: upload it to GitHub with index.html.') : L('No se pudo cargar la librería de gráficas (revisa la conexión).','The chart library could not be loaded (check the connection).'))}</p>`; return; }
+  const sp = KG_SPEC[id], st = KCS.estilo(KPG.kpi[id], {type:KG_DEF[id].type, height:280});
+  box.style.height = st.height+'px'; if($('kgt-'+id)) $('kgt-'+id).textContent = st.titulo || KG_DEF[id].t;
+  if(!box.querySelector('canvas')) box.innerHTML = `<canvas id="ch-${id}"></canvas>`;
+  if(!sp.series.some(x=>x.data.some(v=>Number(v)>0))){ box.style.height='auto'; box.innerHTML = `<p class="help">${esc(L('Sin datos en el año.','No data this year.'))}</p>`; KG_ITEMS[id]=[]; return; }
+  const r = KCS.construir(box.querySelector('canvas'), sp, st); KG_CH[id] = r.chart; KG_ITEMS[id] = r.items; CHARTS.push(r.chart);
+}
+let KPG_T_GUARDAR = null;
+function guardarKPG(){ clearTimeout(KPG_T_GUARDAR); KPG_T_GUARDAR = setTimeout(async ()=>{ const x = await api({action:'graficasIndicadoresGuardar', token:tok(), config:KPG}); if(!x || !x.success) toast((x&&x.error)||L('No se pudo guardar la gráfica.','Could not save the chart.'),'err'); }, 600); }
+function cerrarKG(){ KG_ABIERTA = null; KCS.cerrarPanel(); document.querySelectorAll('.kcs-target').forEach(x=>x.classList.remove('kcs-target')); $('kpi-body').classList.remove('kcs-open'); document.__kcsEsc = null; }
+function abrirKG(id){
+  KG_ABIERTA = id; document.querySelectorAll('.kcs-target').forEach(x=>x.classList.remove('kcs-target'));
+  const card = document.querySelector(`[data-kg="${id}"]`); if(card) card.classList.add('kcs-target'); $('kpi-body').classList.add('kcs-open');
+  document.__kcsEsc = cerrarKG;
+  const pinta = () => { if(KG_ABIERTA!==id) return; const st = KCS.estilo(KPG.kpi[id], {type:KG_DEF[id].type, height:280});
+    KCS.panel({ en:LANG==='en', titulo: st.titulo || KG_DEF[id].t, tituloBase: KG_DEF[id].t, st, items: KG_ITEMS[id]||[], repintar: pinta, cerrar: cerrarKG,
+      set: c => { KPG.kpi[id] = Object.assign({}, KPG.kpi[id]||{}, c); guardarKPG(); dibujarKG(id); },
+      reset: () => { delete KPG.kpi[id]; guardarKPG(); dibujarKG(id); },
+      png: () => { const c = document.querySelector(`#kgc-${id} canvas`); if(c) KCS.descargar(c, 'indicadores-'+id); } }); };
+  pinta();
+  setTimeout(()=>{ if(card && (window.innerWidth<=760 || card.getBoundingClientRect().top > window.innerHeight*.6)) card.scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
+}
+// Tablero de incidentes (pestaña): las 5 gráficas por año usan el mismo panel
+function graficasTablero(){
+  return { puedeEditar: puedeKG(), cfg: KPG.tablero, guardar: () => guardarKPG() };
+}
 async function cargarKPI(){
   $('kpi-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
   const r = await llamar({action:'kpiDatos', token:tok()}); if(!r) return; KP = r;
@@ -1729,12 +1767,14 @@ async function cargarKPI(){
   renderKPI();
 }
 async function renderKPI(){
-  CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); CHARTS = [];
+  CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); CHARTS = []; KG_CH = {};
+  if(KG_ABIERTA && window.KCS) cerrarKG();
+  KPG = KP.graficas = (KP.graficas && typeof KP.graficas==='object') ? KP.graficas : {}; KPG.kpi = KPG.kpi||{}; KPG.tablero = KPG.tablero||{};   // mismo objeto: no se pierden cambios al cambiar de pestaña o año
   const tabsKP = pestanas([['ind',L('Indicadores','Indicators'),'fa-chart-column'],['tablero',L('Tablero de incidentes','Incident dashboard'),'fa-table-cells-large']], KP_TAB, 'tabKPI');
   if(KP_TAB==='tablero'){
     $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Tablero de incidentes: comunicados del sistema y el histórico KQMS-SA-RE-001.','Incident dashboard: system communications and the KQMS-SA-RE-001 history.')) + tabsKP + `<div id="kp-tablero"></div>`;
     if(!window.KTB){ $('kp-tablero').innerHTML = `<div class="err-box">${esc(L('No se cargó tablero.js. Súbelo a GitHub junto con index.html.','tablero.js was not loaded. Upload it to GitHub together with index.html.'))}</div>`; return; }
-    try{ KTB.render($('kp-tablero'), KP.eventos, {lang: LANG==='en'?'en':'es', KF:window.KF}); }catch(e){ console.error(e); $('kp-tablero').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
+    try{ KTB.render($('kp-tablero'), KP.eventos, {lang: LANG==='en'?'en':'es', KF:window.KF, graficas: graficasTablero()}); }catch(e){ console.error(e); $('kp-tablero').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
     return;
   }
   const anios = [...new Set(KP.eventos.map(e=>String(e.fecha).slice(0,4)).concat([String(new Date().getFullYear())]))].filter(a=>/^\d{4}$/.test(a)).sort().reverse();
@@ -1746,13 +1786,18 @@ async function renderKPI(){
   const dias = com.reduce((s,e)=>s+Number(e.diasPerdidos||0),0), base = KP.base;
   const TF = horas ? (cuenta('Accidente')*base/horas).toFixed(2) : '—', TG = horas ? (dias*base/horas).toFixed(2) : '—';
   const k = (v,l,c) => `<div class="card kpi"><div class="v" style="${c?'color:'+c:''}">${esc(v)}</div><div class="l">${esc(l)}</div></div>`;
+  KG_DEF = {
+    mes:{t:L('Eventos por mes','Events by month'), type:'stacked'}, pir:{t:L('Pareto de eventos por tipo','Pareto of events by type'), type:'pareto'},
+    area:{t:L('Pareto de eventos por área','Pareto of events by area'), type:'pareto'}, stop:{t:L('Clasificación STOP 6','STOP 6 classification'), type:'bar'},
+    mz:{t:L('Matriz: riesgos por nivel vigente','Matrix: risks by current level'), type:'bar'}, an:{t:L('JSA y JRA por estatus','JSA and JRA by status'), type:'bar'},
+    turno:{t:L('Eventos por turno o cuadrilla','Events by shift or crew'), type:'bar'} };
   $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Se calculan solos a partir de los comunicados, alertas, análisis y la matriz.','Calculated automatically from communications, alerts, analyses and the matrix.'), sel('kp-anio',anios,KP_ANIO,undefined,'onchange="KP_ANIO=this.value;renderKPI()" style="width:auto"')) + tabsKP
     + `<div class="grid-4" style="margin-bottom:12px">${k(diasSin===null?'—':diasSin, L('Días sin accidentes','Days without accidents'),'#15803D')}${k(cuenta('Accidente'),L('Accidentes','Accidents'),'#B91C1C')}${k(cuenta('Incidente'),L('Incidentes','Incidents'))}${k(cuenta('Casi accidente'),L('Casi accidentes','Near misses'))}${k(cuenta('Daño a la propiedad'),L('Daños a la propiedad','Property damage'))}${k(ale.length,L('Alertas de actos inseguros','Unsafe-act alerts'),'#B45309')}${k(dias,L('Días perdidos','Lost days'))}${k(TF+' / '+TG, L('Tasa de frecuencia / gravedad','Frequency / severity rate'))}</div>
     <p class="help" style="margin:-4px 0 14px">${esc(`Tasa de frecuencia = accidentes × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Tasa de gravedad = días perdidos × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Horas-hombre del año: ${horas.toLocaleString('es-MX')}.`)}</p>
-    <div class="grid-2"><section class="card chart-card"><h3>${esc(L('Eventos por mes','Events by month'))}</h3><canvas id="ch-mes"></canvas></section><section class="card chart-card"><h3>${esc(L('Pareto de eventos por tipo','Pareto of events by type'))}</h3><canvas id="ch-pir"></canvas><p class="help">${esc(L('Barras de mayor a menor y porcentaje acumulado: los primeros tipos hasta la línea de 80 % son tu problema mayor.','Bars from highest to lowest and cumulative percentage: the first types up to the 80% line are your main problem.'))}</p></section>
-    <section class="card chart-card"><h3>${esc(L('Pareto de eventos por área','Pareto of events by area'))}</h3><canvas id="ch-area"></canvas></section><section class="card chart-card"><h3>${esc(L('Clasificación STOP 6','STOP 6 classification'))}</h3><canvas id="ch-stop"></canvas></section>
-    <section class="card chart-card"><h3>${esc(L('Matriz: riesgos por nivel vigente','Matrix: risks by current level'))}</h3><canvas id="ch-mz"></canvas></section><section class="card chart-card"><h3>${esc(L('JSA y JRA por estatus','JSA and JRA by status'))}</h3><canvas id="ch-an"></canvas><p class="help" id="kp-an"></p></section></div>
-    <div class="grid-2" style="margin-top:14px"><section class="card chart-card"><h3>${esc(L('Lesiones por parte del cuerpo','Injuries by body part'))}</h3><div id="kp-cuerpo"></div><div id="kp-cuerpo-lista" class="help"></div></section><section class="card chart-card"><h3>${esc(L('Eventos por turno o cuadrilla','Events by shift or crew'))}</h3><canvas id="ch-turno"></canvas></section></div>
+    <div class="grid-2">${tarjetaKG('mes')}${tarjetaKG('pir', `<p class="help">${esc(L('Barras de mayor a menor y porcentaje acumulado: los primeros tipos hasta la línea de 80 % son tu problema mayor.','Bars from highest to lowest and cumulative percentage: the first types up to the 80% line are your main problem.'))}</p>`)}
+    ${tarjetaKG('area')}${tarjetaKG('stop')}
+    ${tarjetaKG('mz')}${tarjetaKG('an', '<p class="help" id="kp-an"></p>')}</div>
+    <div class="grid-2" style="margin-top:14px"><section class="card chart-card"><h3>${esc(L('Lesiones por parte del cuerpo','Injuries by body part'))}</h3><div id="kp-cuerpo"></div><div id="kp-cuerpo-lista" class="help"></div></section>${tarjetaKG('turno')}</div>
     <section class="card" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 10px;font-size:.9rem;color:var(--navy)">${esc(L('Layout: dónde ocurren los eventos','Layout: where events happen'))}</h3><div id="kp-plano"></div><p class="help" id="kp-plano-txt"></p></section>
     ${esGestor()?`<section class="card" style="padding:16px;margin-top:14px"><div class="sec-title">${esc(L('Horas-hombre trabajadas por mes','Man-hours worked per month'))} · ${esc(KP_ANIO)}</div>
       <p class="help" style="margin:6px 0 10px">${esc(L('Cada casilla es el total de horas que trabajó todo el personal en ese mes (sin contar descansos). Con estas horas se calculan las tasas de frecuencia y gravedad. Escribe el total que te dé Recursos Humanos o usa «Calcular» con el horario de la planta.','Each box is the total hours worked by all staff that month (breaks excluded). They are used to compute the frequency and severity rates. Type the total from HR or use «Calculate» with the plant schedule.'))}</p>
@@ -1763,33 +1808,21 @@ async function renderKPI(){
   const porMes = t => meses.map((_,i)=>ev.filter(e=>(t==='ALERTA'?e.clase==='ALERTA':e.tipo===t)&&Number(String(e.fecha).slice(5,7))===i+1).length);
   const colores = {Accidente:'#DC2626',Incidente:'#F59E0B','Casi accidente':'#3B82F6','Daño a la propiedad':'#8B5CF6',ALERTA:'#10B981'};
   if(!CATS.turno){ try{ const pd = await cargarPublicos(); }catch(e){} }
-  const grafica = (id, cfg) => { if(typeof Chart==='undefined'){ const c=$(id); if(c) c.outerHTML=`<p class="help">${esc(L('No se pudo cargar la librería de gráficas (revisa la conexión).','The chart library could not be loaded (check the connection).'))}</p>`; return; } CHARTS.push(new Chart($(id), cfg)); };
-  const opt = {responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{beginAtZero:true, ticks:{precision:0}}}};
-  grafica('ch-mes', {type:'bar', data:{labels:meses, datasets:TIPOS_EV.concat(['ALERTA']).map(t=>({label:t==='ALERTA'?'Alerta':t, data:porMes(t), backgroundColor:colores[t]}))}, options:Object.assign({}, opt, {scales:{x:{stacked:true}, y:{stacked:true, beginAtZero:true, ticks:{precision:0}}}})});
-  // Pareto: barras de mayor a menor, línea de % acumulado y referencia de 80 %
-  const pareto = (id, etiquetas, series, colores) => {
-    const tot = etiquetas.map((_,k)=>series.reduce((a,sr)=>a+sr.data[k],0)), orden = tot.map((t,k)=>[t,k]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]);
-    if(!orden.length){ const c=$(id); if(c) c.outerHTML = `<p class="help">${esc(L('Sin eventos en el año.','No events this year.'))}</p>`; return; }
-    const suma = orden.reduce((a,x)=>a+x[0],0); let acc = 0; const acum = orden.map(x=>Math.round((acc+=x[0])*1000/suma)/10);
-    grafica(id, {type:'bar', data:{labels:orden.map((x,n)=>(n+1)+'. '+etiquetas[x[1]]), datasets:series.map((sr,m)=>({type:'bar', label:sr.label, data:orden.map(x=>sr.data[x[1]]), backgroundColor:Array.isArray(colores[m]) ? orden.map(x=>colores[m][x[1]]) : (colores[m]||'#2563EB'), stack:'p', yAxisID:'y', order:2}))
-      .concat([{type:'line', label:L('% acumulado','Cumulative %'), data:acum, borderColor:'#0F2A4A', backgroundColor:'#0F2A4A', yAxisID:'y1', tension:.3, order:1, pointRadius:4},
-               {type:'line', label:'80 %', data:orden.map(()=>80), borderColor:'#DC2626', borderDash:[6,4], pointRadius:0, yAxisID:'y1', order:0}])},
-      options:{responsive:true, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>c.dataset.yAxisID==='y1'?`${c.dataset.label}: ${c.raw}%`:`${c.dataset.label}: ${c.raw}`}}},
-        scales:{x:{stacked:true}, y:{stacked:true, beginAtZero:true, ticks:{precision:0}}, y1:{position:'right', min:0, max:100, grid:{drawOnChartArea:false}, ticks:{callback:v=>v+'%'}}}}});
-  };
+  const kgSpec = (id, labels, series, extra) => { KG_SPEC[id] = Object.assign({labels, series, en: LANG==='en'}, extra||{}); dibujarKG(id); };
+  kgSpec('mes', meses, TIPOS_EV.concat(['ALERTA']).map(t=>({k:t, name:t==='ALERTA'?'Alerta':t, data:porMes(t), color:colores[t]})));
   const tiposP = ['Accidente','Daño a la propiedad','Incidente','Casi accidente','Alerta (acto inseguro)'];
-  pareto('ch-pir', tiposP, [{label:L('Eventos','Events'), data:[cuenta('Accidente'),cuenta('Daño a la propiedad'),cuenta('Incidente'),cuenta('Casi accidente'),ale.length]}], [['#DC2626','#8B5CF6','#F59E0B','#3B82F6','#10B981']]);
+  kgSpec('pir', tiposP, [{k:'eventos', name:L('Eventos','Events'), data:[cuenta('Accidente'),cuenta('Daño a la propiedad'),cuenta('Incidente'),cuenta('Casi accidente'),ale.length]}], {porCategoria:true, coloresCat:['#DC2626','#8B5CF6','#F59E0B','#3B82F6','#10B981'], linea80:true, numerar:true});
   const areasEv = [...new Set(ev.map(e=>e.area).filter(Boolean))];
-  pareto('ch-area', areasEv, [{label:L('Comunicados','Communications'), data:areasEv.map(a=>com.filter(e=>e.area===a).length)},{label:L('Alertas','Alerts'), data:areasEv.map(a=>ale.filter(e=>e.area===a).length)}], ['#2563EB','#10B981']);
-  grafica('ch-stop', {type:'bar', data:{labels:STOP_R.filter(x=>x[0]!=='NA').map(x=>x[0].replace(/\d/,'')+' '+x[1].replace('α · ','').slice(0,22)), datasets:[{label:KP_ANIO, data:STOP_R.filter(x=>x[0]!=='NA').map(x=>com.filter(e=>e.stopRiesgo===x[0]).length), backgroundColor:'#0F2A4A'}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
+  kgSpec('area', areasEv, [{k:'com', name:L('Comunicados','Communications'), data:areasEv.map(a=>com.filter(e=>e.area===a).length), color:'#2563EB'},{k:'ale', name:L('Alertas','Alerts'), data:areasEv.map(a=>ale.filter(e=>e.area===a).length), color:'#10B981'}], {linea80:true, numerar:true});
+  kgSpec('stop', STOP_R.filter(x=>x[0]!=='NA').map(x=>x[0].replace(/\d/,'')+' '+x[1].replace('α · ','').slice(0,22)), [{k:'anio', name:KP_ANIO, data:STOP_R.filter(x=>x[0]!=='NA').map(x=>com.filter(e=>e.stopRiesgo===x[0]).length), color:'#0F2A4A'}]);
   const nvs = ['INTOLERABLE','IMPORTANTE','MODERADO','TOLERABLE','SIN EVALUAR'];
-  grafica('ch-mz', {type:'bar', data:{labels:nvs, datasets:[{label:L('Riesgos','Risks'), data:nvs.map(n=>KP.riesgos.filter(r=>r.vigente===n).length), backgroundColor:['#DC2626','#F97316','#EAB308','#16A34A','#94A3B8']}]}, options:Object.assign({}, opt, {plugins:{legend:{display:false}}})});
+  kgSpec('mz', nvs, [{k:'riesgos', name:L('Riesgos','Risks'), data:nvs.map(n=>KP.riesgos.filter(r=>r.vigente===n).length)}], {porCategoria:true, coloresCat:['#DC2626','#F97316','#EAB308','#16A34A','#94A3B8']});
   const anA = KP.analisis.filter(a=>String(a.creado).startsWith(KP_ANIO)), est = Object.keys(ESTATUS_AN);
-  grafica('ch-an', {type:'bar', data:{labels:est.map(s=>ESTATUS_AN[s][1]), datasets:['JSA','JRA'].map((t,i)=>({label:t, data:est.map(s=>anA.filter(a=>a.tipo===t&&a.estatus===s).length), backgroundColor:i?'#16A34A':'#2563EB'}))}, options:opt});
+  kgSpec('an', est.map(s=>ESTATUS_AN[s][1]), ['JSA','JRA'].map((t,i)=>({k:t, name:t, data:est.map(s=>anA.filter(a=>a.tipo===t&&a.estatus===s).length), color:i?'#16A34A':'#2563EB'})));
   const tiempos = anA.filter(a=>a.estatus==='APROBADO'&&a.fechaRevision).map(a=>(new Date(a.fechaRevision)-new Date(a.creado))/3600000);
   $('kp-an').textContent = tiempos.length ? `Tiempo promedio de aprobación: ${(tiempos.reduce((s,x)=>s+x,0)/tiempos.length).toFixed(1)} horas (${tiempos.length} aprobados).` : '';
   const turnos = (CATS.turno && CATS.turno.length ? CATS.turno : ['Verde','Azul','Mixto']);
-  grafica('ch-turno', {type:'bar', data:{labels:turnos, datasets:[{label:L('Comunicados','Communications'), data:turnos.map(t=>com.filter(e=>e.turno===t).length), backgroundColor:'#2563EB'},{label:L('Alertas','Alerts'), data:turnos.map(t=>ale.filter(e=>e.turno===t).length), backgroundColor:'#10B981'}]}, options:opt});
+  kgSpec('turno', turnos, [{k:'com', name:L('Comunicados','Communications'), data:turnos.map(t=>com.filter(e=>e.turno===t).length), color:'#2563EB'},{k:'ale', name:L('Alertas','Alerts'), data:turnos.map(t=>ale.filter(e=>e.turno===t).length), color:'#10B981'}]);
   const zonasEv = e => (window.KF && KF.zonasDeEvento) ? KF.zonasDeEvento(e) : (e.partesCuerpo||[]);
   const conteo = {}; com.forEach(e=>zonasEv(e).forEach(z=>conteo[z]=(conteo[z]||0)+1));
   $('kp-cuerpo').innerHTML = KF.cuerpoSVG([], conteo, false);
@@ -2172,6 +2205,8 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.12.0': [ L('Indicadores: botón «⚙ Personalizar» en las gráficas de las pestañas Indicadores y Tablero de incidentes, con el mismo panel del board (tipo, paleta, colores, estilo, alto y PNG).','Indicators: «⚙ Customize» button on the charts of the Indicators and Incident dashboard tabs, with the same panel as the board (type, palette, colors, style, height and PNG).'),
+    L('Solo quien tiene el permiso «board» personaliza; lo que guarda lo ven todos.','Only users with the «board» permission customize; everyone sees what they save.') ],
   '0.11.1': [ L('Board de incidentes: botón «⚙ Personalizar» en cada gráfica con el panel de Facilities (tipo de gráfica, paleta, colores de cada elemento, etiquetas, cuadrícula, leyenda, degradado, grosores, tamaño de texto, alto y descarga en PNG).','Incident board: «⚙ Customize» button on every chart with the Facilities panel (chart type, palette, per-item colors, labels, grid, legend, gradient, widths, text size, height and PNG download).'),
     L('Los administradores también pueden personalizar el board.','Administrators can also customize the board.') ],
   '0.11.0': [ L('Nuevo módulo «Board de incidentes»: áreas, turnos, grupos, líneas y equipos, STOP 6, partes del cuerpo, antigüedad, género, día y hora, tasa por cada 100 personas y modo presentación.','New «Incident board» module: areas, shifts, groups, lines and equipment, STOP 6, body parts, seniority, gender, day and hour, rate per 100 people and presentation mode.'),
