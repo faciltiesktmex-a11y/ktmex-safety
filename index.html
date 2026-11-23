@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.10.1';
+window.FRONT_VERSION = '0.11.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -204,12 +204,13 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.10.1" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.10.1" charset="utf-8"></script>
-<script src="formatos.js?v=0.10.1" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.10.1" charset="utf-8"></script>
-<script src="tablero.js?v=0.10.1" charset="utf-8"></script>
-<script src="ejercicios.js?v=0.10.1" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.11.0" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.11.0" charset="utf-8"></script>
+<script src="formatos.js?v=0.11.0" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.11.0" charset="utf-8"></script>
+<script src="tablero.js?v=0.11.0" charset="utf-8"></script>
+<script src="ejercicios.js?v=0.11.0" charset="utf-8"></script>
+<script src="board.js?v=0.11.0" charset="utf-8"></script>
 </head>
 <body>
 
@@ -226,6 +227,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
   <button class="sb-btn" id="nav-eventos" type="button" onclick="showView('eventos')"><i class="fas fa-bullhorn"></i>Comunicados y alertas</button>
   <div class="sb-section">Control</div>
   <button class="sb-btn" id="nav-kpi" type="button" onclick="showView('kpi')"><i class="fas fa-chart-column"></i>Indicadores</button>
+  <button class="sb-btn" id="nav-board" type="button" onclick="showView('board')"><i class="fas fa-chart-pie"></i>Board de incidentes</button>
   <div class="sb-section" id="sec-contr">Contratistas</div>
   <button class="sb-btn" id="nav-mcontr" type="button" onclick="showView('mcontr')"><i class="fas fa-address-book"></i>Matriz de contratistas</button>
   <button class="sb-btn" id="nav-contratistas" type="button" onclick="showView('contratistas')"><i class="fas fa-id-card"></i>Contratistas y DC-3</button>
@@ -324,6 +326,7 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 <div id="view-editor" class="view"><div class="page fade" id="editor-body"></div></div>
 <div id="view-eventos" class="view"><div class="page fade" id="eventos-body"></div></div>
 <div id="view-kpi" class="view"><div class="page fade" id="kpi-body"></div></div>
+<div id="view-board" class="view"><div class="page fade" id="board-body" style="max-width:1500px"></div></div>
 <div id="view-mcontr" class="view"><div class="page fade" id="mcontr-body" style="max-width:1400px"></div></div>
 <div id="view-contratistas" class="view"><div class="page fade" id="contratistas-body"></div></div>
 <div id="view-cursos" class="view"><div class="page fade" id="cursos-body"></div></div>
@@ -563,7 +566,7 @@ function roleCanView(v){
   if(!SESSION) return v==='editor' && !!(ED && ED.publico);
   if(v==='admin') return puedeAdministrar();
   if(v==='contratistas'||v==='cursos') return esCap() || perm('verTodo');
-  if(v==='mcontr') return veMatrizContr();
+  if(v==='mcontr'||v==='board') return veMatrizContr();
   return ['home','matriz','analisis','eventos','kpi','editor'].includes(v);
 }
 
@@ -573,6 +576,7 @@ function configureRoleUI(){
   $('sec-gestion').style.display = adm ? '' : 'none';
   ['nav-contratistas','nav-cursos'].forEach(id=>$(id).style.display = (esCap()||perm('verTodo')) ? '' : 'none');
   $('nav-mcontr').style.display = veMatrizContr() ? '' : 'none';
+  $('nav-board').style.display = veMatrizContr() ? '' : 'none';
   $('sec-contr').style.display = (esCap()||perm('verTodo')||veMatrizContr()) ? '' : 'none';
   if(soloIngles()){ LANG='en'; $('lang-switch').style.display='none'; }
   else $('lang-switch').style.display='flex';
@@ -593,6 +597,7 @@ const MODULOS = [
   {v:'analisis', ico:'fa-clipboard-check', color:'#12805C', bg:'#ECFDF5', titulo:'JSA y JRA', texto:'Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.'},
   {v:'eventos', ico:'fa-bullhorn', color:'#D97706', bg:'#FFFBEB', titulo:'Comunicados y alertas', texto:'Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.'},
   {v:'kpi', ico:'fa-chart-column', color:'#7C3AED', bg:'#F5F3FF', titulo:'Indicadores', texto:'Gráficas de eventos por mes, área y tipo, y el plano de la planta.'},
+  {v:'board', ico:'fa-chart-pie', color:'#B91C1C', bg:'#FEF2F2', titulo:'Board de incidentes', texto:'Incidentes por área, turno, grupo, línea o equipo y parte del cuerpo, con modo presentación.'},
   {v:'mcontr', ico:'fa-address-book', color:'#0369A1', bg:'#F0F9FF', titulo:'Matriz de contratistas', texto:'Perfil de cada empresa y trabajador: cursos, exámenes, DC-3, credencial azul y JSA.'},
   {v:'contratistas', ico:'fa-id-card', color:'#0E7490', bg:'#ECFEFF', titulo:'Contratistas y DC-3', texto:'Empresas, trabajadores, constancias DC-3 con vigencia y aptitud por permiso de trabajo.'},
   {v:'cursos', ico:'fa-graduation-cap', color:'#9333EA', bg:'#FAF5FF', titulo:'Capacitación', texto:'Cursos y exámenes para contratistas, con calificación en el servidor y resultados.'},
@@ -623,6 +628,7 @@ function showView(v){
   if(v==='kpi') cargarKPI();
   if(v==='contratistas') cargarContratistas();
   if(v==='mcontr') cargarMatrizContr();
+  if(v==='board') cargarBoard();
   if(v==='cursos') cargarCursos();
   if(v!=='curso' && CP && CP.examen){ clearInterval(CP.examen.timer); }
   if(v==='login') $('log-user').focus();
@@ -1503,12 +1509,14 @@ async function abrirEvento(id, clase){
     <div class="grid-4">${fld(L('Fecha del evento','Event date'), inp('ev-fecha',e.fecha,'type="date"'))}${fld(L('Hora del evento','Event time'), inp('ev-hora',e.hora,'type="time"'))}${fld(L('Fecha de notificación a Safety','Date notified to Safety'), inp('ev-fechaNotificacion',d.fechaNotificacion,'type="date"'))}${fld(L('Hora de notificación','Notification time'), inp('ev-horaNotificacion',d.horaNotificacion,'type="time"'))}</div>
     <div class="grid-3">${fld(L('Área','Area'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Departamento','Department'), sel('ev-departamento',CATS.departamento||[],e.departamento,'—'))}${fld(L('Persona involucrada','Person involved'), sel('ev-tipoPersona',[{v:'Empleado',t:L('Empleado','Employee')},{v:'Contratista',t:L('Contratista','Contractor')},{v:'Visitante',t:L('Visitante','Visitor')}],e.tipoPersona,'—'))}</div>
     <div class="grid-2">${fld(L('Tipo de evento (para el tablero de incidentes)','Event type (for the incident dashboard)'), sel('ev-tipoEvento',lista2(TIPOS_EVENTO,e.tipoEvento),e.tipoEvento,'—'))}${e.origen==='RE-001'?`<div class="help" style="align-self:end;padding-bottom:10px"><span class="badge b-info">${esc(L('Histórico RE-001','RE-001 history'))}</span> ${esc(L('Importado del registro KQMS-SA-RE-001; la descripción viene cortada.','Imported from record KQMS-SA-RE-001; the description is cut.'))}${d.parteRE?' · '+esc(L('Parte del cuerpo en el registro','Body part in the record'))+': '+esc(d.parteRE):''}</div>`:''}</div>
+    <div class="grid-4">${fld(L('Turno (para el board)','Shift (for the board)'), sel('ev-turnoNum',[{v:'1',t:L('1.er turno','1st shift')},{v:'2',t:L('2.º turno','2nd shift')}],e.turnoNum,'—'))}${fld(L('Línea / equipo','Line / equipment'), inp('ev-linea',e.linea,'list="dl-lineas" autocomplete="off"'))}${fld(L('Actividad que realizaba','Activity being performed'), inp('ev-actividad',e.actividad))}${fld(L('Acto o condición insegura','Unsafe act or condition'), sel('ev-actoCondicion',[{v:'Acto',t:L('Acto inseguro','Unsafe act')},{v:'Condición',t:L('Condición insegura','Unsafe condition')}],e.actoCondicion,'—'))}</div>
+    <datalist id="dl-lineas">${LINEAS_BOARD.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
     ${biF('ev-ubicacion', d.ubicacion, L('Ubicación','Location'))}${biF('ev-antiguedadPlanta', d.antiguedadPlanta, L('Antigüedad en planta','Plant seniority'))}${biF('ev-antiguedadEstacion', d.antiguedadEstacion, L('Antigüedad en estación / operación','Station / operation seniority'))}
     ${biF('ev-queOcurrio', d.queOcurrio, L('¿Qué ocurrió?','What happened?'), true)}${biF('ev-comoOcurrio', d.comoOcurrio, L('¿Cómo ocurrió?','How did it happen?'), true)}
     <div class="grid-4">${fld(L('STOP 6 · clasificación','STOP 6 · classification'), sel('ev-stopSeveridad',STOP_SEV,e.stopSeveridad,'—'))}${fld(L('STOP 6 · riesgo','STOP 6 · risk'), sel('ev-stopRiesgo',STOP_R.map(x=>({v:x[0],t:x[0]==='NA'?x[1]:x[0].replace(/\d/,'')+' – '+x[1].replace('α · ','')})),e.stopRiesgo||'NA'))}${fld(L('Días perdidos','Lost days'), inp('ev-diasPerdidos',e.diasPerdidos||0,'type="number" min="0"'))}${fld(L('Costo estimado del daño (MXN)','Estimated damage cost (MXN)'), inp('ev-costo',e.costo||0,'type="number" min="0"'))}</div>
     <div class="sec-title">${esc(L('Parte del cuerpo afectada (solo para el sistema e indicadores)','Body part affected (system and indicators only)'))}</div>
     <div class="grid-2"><div id="ev-cuerpo"></div><div>${fld(L('Tipo de lesión (herida)','Injury (wound) type'), sel('ev-tipoLesion',lista2(TIPOS_HERIDA,e.tipoLesion),e.tipoLesion,'—'))}<p class="help" id="ev-partes-txt" style="margin-top:8px"></p></div></div>
-    <div class="box" style="border-color:#FCD34D;background:#FFFBEB"><div class="sec-title">${esc(L('Datos confidenciales (nunca se imprimen)','Confidential data (never printed)'))}</div><div class="grid-2">${fld(L('Nombre del lesionado','Injured person'), inp('ev-p-nombre',pv.nombre))}${fld(L('Número de empleado','Employee number'), inp('ev-p-numeroEmpleado',pv.numeroEmpleado))}</div></div>
+    <div class="box" style="border-color:#FCD34D;background:#FFFBEB"><div class="sec-title">${esc(L('Datos confidenciales (nunca se imprimen)','Confidential data (never printed)'))}</div><div class="grid-2">${fld(L('Nombre del lesionado','Injured person'), inp('ev-p-nombre',pv.nombre))}${fld(L('Número de empleado','Employee number'), inp('ev-p-numeroEmpleado',pv.numeroEmpleado))}${fld(L('Género (solo para el board, sin nombre)','Gender (board only, no name)'), sel('ev-p-genero',[{v:'Hombre',t:L('Hombre','Male')},{v:'Mujer',t:L('Mujer','Female')}],pv.genero,'—'))}</div></div>
     ${fld(L('Estatus del comunicado (problem solving)','Communication status (problem solving)'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}`
   : `<div class="grid-4">${fld(L('No. de alerta (consecutivo)','Alert no.'), inp('ev-numero',e.numero))}${fld(L('Fecha','Date'), inp('ev-fecha',e.fecha,'type="date" onchange="sugerirMes()"'))}${fld(L('Mes (sale de la fecha)','Month (from the date)'), inp('ev-mes',d.mes||MESES[(new Date(e.fecha+'T00:00:00').getMonth())],'readonly style="background:#F1F5F9"'))}${fld(L('Día (sale de la fecha)','Day (from the date)'), inp('ev-dia',d.dia||String(new Date(e.fecha+'T00:00:00').getDate()),'readonly style="background:#F1F5F9"'))}</div>
     <div class="grid-4">${fld(L('Departamento','Department'), sel('ev-departamento',CATS.deptoAlerta||[],e.departamento,'—'))}${fld(L('Área (para indicadores)','Area (for indicators)'), sel('ev-area',areas(),e.area,'—'))}${fld(L('Turno / cuadrilla','Shift / crew'), sel('ev-turno',CATS.turno||[],e.turno,'—'))}${fld(L('Estatus','Status'), sel('ev-estatus',['Abierto','En seguimiento','Cerrado'],e.estatus))}</div>
@@ -1643,6 +1651,7 @@ async function guardarAvance(i){
     if(r){ closeModal('m-gen'); cargarMisContramedidas(); } }
   finally{ const b2 = $('btn-av'); if(b2) b2.disabled = false; }
 }
+const LINEAS_BOARD = ['Línea A','Línea B','Línea C','Línea D','Línea E','Línea F','Línea G','TR1','TR2','TR3','TR4','TR5','PG1','PG2','PG3','PG4','BL1','BL2','BL3','Tandem','CSP','LPS','Coil line','Almacenes','Embarques','Recibo','Pasillos','Cortinas','Pick up','Surtido','Troqueles','Mantenimiento','Comedor','Conveyors','Volteador','Baton Pass','Retrabajo','Scrap','IPR','OSP','Prensas','BC','Otros'];
 function leerEvento(){
   const com = EVF.clase==='COMUNICADO', g = k => val('ev-'+k), fotosTodas = EVF.existentes.concat(EVF.nuevas);
   const orden = com ? fotosTodas.slice().sort((a,b)=>(a.rol==='Evento'?0:1)-(b.rol==='Evento'?0:1)) : fotosTodas;
@@ -1650,8 +1659,9 @@ function leerEvento(){
                     : {mes:g('mes'), dia:g('dia'), problema:biV('ev-problema'), regla:g('regla'), noCumplimiento:biV('ev-noCumplimiento'), acciones:EVF.acciones};
   return { numero:g('numero'), clasificacion:g('clasificacion'), tipo:com?(TIPO_DE[g('clasificacion')]||''):'Acto inseguro', fecha:g('fecha'), hora:g('hora'), turno:g('turno'), area:g('area'), departamento:g('departamento'),
     stopRiesgo:g('stopRiesgo'), stopSeveridad:g('stopSeveridad'), diasPerdidos:g('diasPerdidos'), costo:g('costo'), tipoPersona:g('tipoPersona'), estatus:g('estatus'), tipoLesion:com?g('tipoLesion'):'', tipoEvento:com?g('tipoEvento'):'',
+    turnoNum:com?g('turnoNum'):'', linea:com?g('linea').trim():'', actividad:com?g('actividad').trim():'', actoCondicion:com?g('actoCondicion'):'',
     planoX:'', planoY:'', zonas:EVF.zonas, partesCuerpo:EVF.partes, datos:Object.assign(datos,{fotosRol:orden.map(f=>f.rol||'Evento')}),
-    privado: com ? {nombre:g('p-nombre'), numeroEmpleado:g('p-numeroEmpleado')} : {}, _orden:orden };
+    privado: com ? {nombre:g('p-nombre'), numeroEmpleado:g('p-numeroEmpleado'), genero:g('p-genero')} : {}, _orden:orden };
 }
 async function fotosComoDataUrl(orden){ return (await Promise.all(orden.map(f=>f.dataUrl ? f.dataUrl : archivo(f.id)))).filter(Boolean); }
 async function vistaPreviaEvento(){
@@ -1994,6 +2004,21 @@ function elegirAudio(clave){ const f = document.createElement('input'); f.type='
 async function quitarAudio(clave){ const r = await api({action:'cursoAudioSubir', token:tok(), cursoId:CUF.id, clave, borrar:true}); if(r && r.success){ const a = Object.assign({}, CUF.c.audios); delete a[clave]; CUF.c.audios = a; leerCursoForm(); pintarCursoForm(); } }
 async function guardarCurso(){ try{ leerCursoForm(); }catch(e){ toast(e.message,'err'); return; } const r = await llamar({action:'cursoGuardar', token:tok(), id:CUF.id, datos:CUF.c}, L('Curso guardado.','Course saved.')); if(r){ closeModal('m-gen'); cargarCursos(); } }
 
+/* ═══════════════ BOARD DE INCIDENTES (v0.11) ═══════════════
+   Lo ve el equipo de Safety. Solo quien tiene el permiso «board» (Fernando Limas y Moisés Mejía) cambia
+   tipos de gráfica, colores, secciones y plantilla; lo que guardan lo ven todos. Nombres nunca llegan aquí. */
+async function cargarBoard(){
+  const b = $('board-body');
+  b.innerHTML = cabecera(L('Board de incidentes','Incident board'), L('Comunicados del sistema y la base de incidentes de Safety.','System communications and the Safety incident base.'),
+    `<button class="btn-g btn-sm" type="button" onclick="cargarBoard()"><i class="fas fa-rotate" style="margin-right:6px"></i>${esc(L('Actualizar','Refresh'))}</button>`) + `<div id="board-host"><p class="help">${esc(L('Cargando…','Loading…'))}</p></div>`;
+  const r = await llamar({action:'boardDatos', token:tok()}); if(!r) return;
+  if(!window.KBD){ $('board-host').innerHTML = `<div class="err-box">${esc(L('No se cargó board.js. Súbelo a GitHub junto con index.html.','board.js was not loaded. Upload it to GitHub together with index.html.'))}</div>`; revisarArchivos(); return; }
+  const host = $('board-host'); host.innerHTML = ''; delete host.__kbdS;
+  window.KBD.render(host, r, { lang: LANG==='en'?'en':'es', KF: window.KF, puedeEditar: !!r.puedeEditar,
+    guardarConfig: async cfg => { const x = await api({action:'boardConfigGuardar', token:tok(), config:cfg}); if(!x || !x.success) toast((x&&x.error)||L('No se pudo guardar el board.','Could not save the board.'),'err'); },
+    guardarPlantilla: async p => { const x = await llamar({action:'boardPlantillaGuardar', token:tok(), plantilla:p}, L('Plantilla guardada.','Headcount saved.')); return x; } });
+}
+
 /* ═══════════════ MATRIZ DE CONTRATISTAS (v0.9) ═══════════════
    matriz.html se abre dentro de un marco. Los datos llegan del servidor (window.__MATRIZ_DATOS) y lo que se
    guarda (giros, datos médicos) vuelve por window.__MATRIZ_API. Nada se guarda en el navegador. */
@@ -2147,6 +2172,9 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.11.0': [ L('Nuevo módulo «Board de incidentes»: áreas, turnos, grupos, líneas y equipos, STOP 6, partes del cuerpo, antigüedad, género, día y hora, tasa por cada 100 personas y modo presentación.','New «Incident board» module: areas, shifts, groups, lines and equipment, STOP 6, body parts, seniority, gender, day and hour, rate per 100 people and presentation mode.'),
+    L('Se integró la base de incidentes de Safety desde 2022 (los comunicados RE-001 se completaron con turno, línea, hora y STOP 6).','The Safety incident base since 2022 was integrated (RE-001 communications were completed with shift, line, time and STOP 6).'),
+    L('Comunicado: nuevos campos de turno (1.º/2.º), línea o equipo, actividad, acto o condición y género (confidencial).','Communication: new fields for shift (1st/2nd), line or equipment, activity, act or condition and gender (confidential).') ],
   '0.10.1': [ L('Matriz de contratistas: los 450 registros de la base de Safety ya vienen integrados en el sistema; no hace falta subir ningún archivo.','Contractor matrix: the 450 Safety base records now come built into the system; no file upload is needed.') ],
   '0.10.0': [
     L('Curso SGS-TR-02: 22 ejercicios interactivos (clasificar, ordenar, seleccionar y repaso) y la diapositiva 7 convertida en ejercicio para encontrar actos y condiciones inseguras.','Course SGS-TR-02: 22 interactive exercises (sort, order, select and review) and slide 7 turned into an exercise to find unsafe acts and conditions.'),
@@ -2183,6 +2211,7 @@ function revisarArchivos(){
   if(!window.KTB || window.KTB.VERSION !== window.FRONT_VERSION) falta.push('tablero.js');
   if(!window.KTLAYOUT) falta.push('layout-zonas.js');
   if(!window.KEJ || window.KEJ.VERSION !== window.FRONT_VERSION) falta.push('ejercicios.js');
+  if(!window.KBD || window.KBD.VERSION !== window.FRONT_VERSION) falta.push('board.js');
   if(!falta.length || document.getElementById('aviso-archivos')) return;
   const d = document.createElement('div'); d.id = 'aviso-archivos'; d.className = 'aviso-version'; d.setAttribute('role','alert'); d.style.background = '#7F1D1D';
   d.innerHTML = `<i class="fas fa-triangle-exclamation" style="color:#FCA5A5"></i><span>${esc(uiText(L('Faltan archivos de esta versión en el sitio','Files of this version are missing on the site')))} (v${esc(window.FRONT_VERSION)}): <b class="no-i18n">${esc(falta.join(', '))}</b>. ${esc(uiText(L('Súbelos a GitHub junto con index.html.','Upload them to GitHub together with index.html.')))}</span><button class="x-btn" type="button" aria-label="Cerrar">✕</button>`;
