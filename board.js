@@ -4,24 +4,42 @@
    filtros, barra de secciones, modo presentación y editor de gráficas.
      KBD.render(contenedor, datos, {lang, KF, puedeEditar, guardarConfig(cfg), guardarPlantilla(p)})
    · datos = respuesta de boardDatos (eventos, plantilla, config).
-   · Solo quien tiene el permiso «board» ve los engranes, el menú de secciones y la plantilla;
+   · Solo quien tiene el permiso «board» ve «⚙ Personalizar» (panel lateral como en Facilities), el menú de secciones y la plantilla;
      lo que guardan lo ven todos.
    ════════════════════════════════════════════════════════════════════ */
 (function (root) {
   'use strict';
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const PALETAS = {
-    ktmex: ['#2463EB', '#F59E0B', '#16A34A', '#DC2626', '#7C3AED', '#0EA5E9', '#DB2777', '#65A30D', '#EA580C', '#0F766E', '#64748B', '#A16207'],
-    oceano: ['#0EA5E9', '#0369A1', '#14B8A6', '#6366F1', '#22D3EE', '#1E40AF', '#2DD4BF', '#818CF8', '#0284C7', '#155E75', '#38BDF8', '#4F46E5'],
-    atardecer: ['#F97316', '#E11D48', '#F59E0B', '#DB2777', '#FB7185', '#EA580C', '#FBBF24', '#BE123C', '#FDBA74', '#9F1239', '#F43F5E', '#D97706'],
+    original: ['#2463EB', '#F59E0B', '#16A34A', '#DC2626', '#7C3AED', '#0EA5E9', '#DB2777', '#65A30D', '#EA580C', '#0F766E', '#64748B', '#A16207'],
+    oceano: ['#0EA5E9', '#2563EB', '#06B6D4', '#6366F1', '#0891B2', '#38BDF8', '#1D4ED8', '#14B8A6', '#818CF8', '#0284C7', '#155E75', '#4F46E5'],
+    atardecer: ['#F97316', '#EF4444', '#F59E0B', '#EC4899', '#FB7185', '#EAB308', '#DC2626', '#F43F5E', '#FBBF24', '#C2410C', '#9F1239', '#D97706'],
     bosque: ['#16A34A', '#65A30D', '#0D9488', '#15803D', '#84CC16', '#059669', '#4D7C0F', '#22C55E', '#10B981', '#166534', '#A3E635', '#047857'],
-    daltonico: ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#56B4E9', '#D55E00', '#F0E442', '#000000', '#999999', '#882255', '#44AA99', '#117733'],
+    violeta: ['#7C3AED', '#A855F7', '#6366F1', '#D946EF', '#8B5CF6', '#C084FC', '#4F46E5', '#E879F9', '#6D28D9', '#9333EA', '#A78BFA', '#C026D3'],
+    neon: ['#22D3EE', '#A3E635', '#F472B6', '#FACC15', '#818CF8', '#FB923C', '#34D399', '#F87171', '#60A5FA', '#C084FC', '#2DD4BF', '#FDE047'],
     pastel: ['#93C5FD', '#FCA5A5', '#86EFAC', '#FDE68A', '#C4B5FD', '#F9A8D4', '#A5F3FC', '#FDBA74', '#BEF264', '#D8B4FE', '#CBD5E1', '#FECACA'],
-    gris: ['#0F172A', '#334155', '#475569', '#64748B', '#94A3B8', '#CBD5E1', '#1E293B', '#52525B', '#71717A', '#A1A1AA', '#D4D4D8', '#3F3F46']
+    daltonico: ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#56B4E9', '#D55E00', '#F0E442', '#000000', '#999999', '#882255', '#44AA99', '#117733'],
+    mono: ['#0F172A', '#334155', '#475569', '#64748B', '#94A3B8', '#CBD5E1', '#1E293B', '#52525B', '#71717A', '#A1A1AA', '#D4D4D8', '#3F3F46']
   };
+  const PAL_NOM = { original: ['Original', 'Original'], oceano: ['Océano', 'Ocean'], atardecer: ['Atardecer', 'Sunset'], bosque: ['Bosque', 'Forest'], violeta: ['Violeta', 'Violet'], neon: ['Neón', 'Neon'], pastel: ['Pastel', 'Pastel'], daltonico: ['Apto daltonismo', 'Color-blind safe'], mono: ['Monocromo', 'Mono'] };
+  const PAL_ANT = { ktmex: 'original', gris: 'mono' };   // nombres de la 0.11.0
   const CLASIF_COLOR = { 'Lesión': '#B91C1C', 'Tratamiento médico': '#EA580C', 'Primer auxilio': '#F59E0B', 'Daño a la propiedad': '#2463EB', 'Casi accidente': '#16A34A' };
-  const TIPOS = [['bar', 'Barras'], ['hbar', 'Barras horizontales'], ['stacked', 'Barras apiladas'], ['line', 'Línea'], ['area', 'Área'], ['doughnut', 'Dona'], ['pie', 'Pastel'], ['polar', 'Polar'], ['radar', 'Radar'], ['pareto', 'Pareto']];
-  const TIPO_EN = { Barras: 'Bars', 'Barras horizontales': 'Horizontal bars', 'Barras apiladas': 'Stacked bars', 'Línea': 'Line', 'Área': 'Area', Dona: 'Doughnut', Pastel: 'Pie', Polar: 'Polar', Radar: 'Radar', Pareto: 'Pareto' };
+  const ICO = inner => `<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">${inner}</svg>`;
+  const TIPOS = [
+    ['line', 'Líneas', 'Lines', 'cart', ICO('<polyline points="3,18 9,10 14,14 21,5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="10" r="1.8"/><circle cx="14" cy="14" r="1.8"/><circle cx="21" cy="5" r="1.8"/>')],
+    ['area', 'Área', 'Area', 'cart', ICO('<path d="M3 20V17L9 10L14 14L21 5V20Z" opacity=".3"/><polyline points="3,17 9,10 14,14 21,5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>')],
+    ['stepped', 'Línea escalonada', 'Step line', 'cart', ICO('<polyline points="3,19 8,19 8,13 13,13 13,7 21,7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>')],
+    ['bar', 'Barras', 'Bars', 'cart', ICO('<rect x="3.5" y="11" width="4.5" height="9" rx="1"/><rect x="9.8" y="4" width="4.5" height="16" rx="1"/><rect x="16" y="8" width="4.5" height="12" rx="1"/>')],
+    ['hbar', 'Barras horizontales', 'Horizontal bars', 'cart', ICO('<rect x="4" y="3.5" width="10" height="4.5" rx="1"/><rect x="4" y="9.8" width="16" height="4.5" rx="1"/><rect x="4" y="16" width="12" height="4.5" rx="1"/>')],
+    ['stacked', 'Barras apiladas', 'Stacked bars', 'cart', ICO('<rect x="4" y="12" width="6" height="8" rx="1"/><rect x="4" y="5" width="6" height="6" rx="1" opacity=".45"/><rect x="13" y="8" width="6" height="12" rx="1"/><rect x="13" y="3" width="6" height="4" rx="1" opacity=".45"/>')],
+    ['pareto', 'Pareto', 'Pareto', 'cart', ICO('<rect x="3" y="8" width="4" height="12" rx="1"/><rect x="8.5" y="12" width="4" height="8" rx="1"/><rect x="14" y="15" width="4" height="5" rx="1"/><polyline points="4,9 10,5 16,3.5 21,3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>')],
+    ['doughnut', 'Dona', 'Doughnut', 'radial', ICO('<path d="M12 3A9 9 0 1 1 3.9 8" fill="none" stroke="currentColor" stroke-width="4.5"/><path d="M3.3 6.5A9 9 0 0 1 10 3.1" fill="none" stroke="currentColor" stroke-width="4.5" opacity=".4"/>')],
+    ['pie', 'Pastel', 'Pie', 'radial', ICO('<path d="M12 12V3A9 9 0 1 1 4 16.2Z"/><path d="M12 12 4 16.2A9 9 0 0 1 12 3Z" opacity=".4"/>')],
+    ['polar', 'Área polar', 'Polar area', 'radial', ICO('<path d="M12 12V3.5A8.5 8.5 0 0 1 20.5 12Z"/><path d="M12 12H18A6 6 0 0 1 12 18Z" opacity=".6"/><path d="M12 12V17A5 5 0 0 1 7 12Z" opacity=".4"/><path d="M12 12H5.5A6.5 6.5 0 0 1 12 5.5Z" opacity=".8"/>')],
+    ['radar', 'Radar', 'Radar', 'radar', ICO('<polygon points="12,3 20.5,9.2 17.3,19.5 6.7,19.5 3.5,9.2" fill="none" stroke="currentColor" stroke-width="1.6"/><polygon points="12,8 16.3,11.1 14.7,16.3 9.3,16.3 7.7,11.1" opacity=".45"/>')]
+  ];
+  const TIPO = k => TIPOS.find(t => t[0] === k) || TIPOS[3];
+  const ALTURAS = { sm: 240, md: 300, lg: 420 }, FUENTES = { sm: 10, md: 12, lg: 14 };
   const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], MESES_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'], DIAS_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const ORDEN_CLASIF = ['Lesión', 'Tratamiento médico', 'Primer auxilio', 'Daño a la propiedad', 'Casi accidente'];
@@ -89,7 +107,11 @@
   .kbd .b-sh{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:8px}
   .kbd .b-sh h3{margin:0;font-size:.98rem;color:var(--n)} .kbd .b-sh h3 small{color:#2463EB;font-weight:800;margin-right:6px}
   .kbd .b-sh p{margin:2px 0 0;font-size:.78rem;color:#64748B}
-  .kbd .b-gear{border:1px solid var(--b);background:#fff;border-radius:9px;width:36px;height:34px;cursor:pointer;font-size:1rem;flex:none}
+  .kbd .b-gear{border:1px solid #E2E8F3;background:#fff;color:#4338CA;font:inherit;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;flex:none;min-height:32px}
+  .kbd .b-gear:hover{background:#EEF2FF;border-color:#C7D2FE;box-shadow:0 6px 14px -8px rgba(79,70,229,.6)}
+  .kbd .b-sec.st-target{outline:2px solid #6366F1;outline-offset:3px}
+  @media(min-width:1280px){.kbd.st-open{margin-right:392px}}
+  @media(max-width:520px){.kbd .b-gear .gl{display:none}}
   .kbd .b-cv{position:relative;width:100%}
   .kbd .b-heat{border-collapse:collapse;width:100%;font-size:.72rem} .kbd .b-heat th{font-weight:600;color:#475569;padding:4px;text-align:center}
   .kbd .b-heat td{text-align:center;padding:6px 2px;border:2px solid #fff;border-radius:6px;font-weight:700}
@@ -107,6 +129,42 @@
   .kbd-modal .lst{border:1px solid #DDE5EF;border-radius:12px;padding:6px 10px;margin:4px 0;display:flex;gap:8px;align-items:center;font-size:.84rem}
   .kbd-modal .lst span{flex:1} .kbd-modal .mini{border:1px solid #DDE5EF;background:#fff;border-radius:8px;width:34px;height:32px;cursor:pointer}
   .kbd-modal table{border-collapse:collapse;font-size:.78rem} .kbd-modal td,.kbd-modal th{padding:3px 4px;text-align:center} .kbd-modal td input{width:64px}
+  .kbd-st{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:100vw;z-index:350;display:flex;flex-direction:column;background:rgba(255,255,255,.97);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-left:1px solid #E2E8F0;box-shadow:-24px 0 60px -24px rgba(15,23,42,.35);transform:translateX(104%);transition:transform .32s cubic-bezier(.2,.8,.2,1);color:#172033;font-family:inherit}
+  .kbd-st.open{transform:none}
+  .kbd-st .st-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 14px;border-bottom:1px solid #EEF1F6;background:linear-gradient(180deg,#F8FAFF,#fff)}
+  .kbd-st .st-eye{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#4F46E5}
+  .kbd-st .st-name{font-size:15px;font-weight:800;color:#0F172A;margin-top:2px}
+  .kbd-st .st-x{border:none;background:#F1F5F9;width:32px;height:32px;border-radius:10px;font-size:14px;cursor:pointer;color:#475569;flex:none}
+  .kbd-st .st-body{flex:1;overflow-y:auto;padding:6px 18px 18px;-webkit-overflow-scrolling:touch}
+  .kbd-st .st-foot{display:flex;align-items:center;gap:8px;padding:12px 18px 14px;border-top:1px solid #EEF1F6;background:#fff;flex-wrap:wrap}
+  .kbd-st .st-note{flex:1 1 100%;font-size:10.5px;color:#94A3B8;margin-bottom:2px}
+  .kbd-st .st-foot button{font:inherit;font-size:12px;font-weight:700;padding:9px 14px;border-radius:11px;cursor:pointer;border:1px solid #E2E8F3;background:#F6F8FC;color:#334155}
+  .kbd-st .st-foot .st-done{margin-left:auto;background:linear-gradient(135deg,#4F46E5,#2463EB);color:#fff;border:none}
+  .kbd-st .st-sec{padding:14px 0 12px;border-bottom:1px dashed #E8EDF5} .kbd-st .st-sec:last-child{border-bottom:none}
+  .kbd-st h5{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#64748B;margin:0 0 10px}
+  .kbd-st .st-types,.kbd-st .st-pals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .kbd-st .st-type{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 4px 7px;border:1px solid #E6EBF3;background:#fff;border-radius:12px;cursor:pointer;color:#64748B;font:inherit;font-size:10.5px;font-weight:700;line-height:1.15;text-align:center}
+  .kbd-st .st-type:hover{border-color:#C7D2FE;color:#4338CA;background:#F8F9FF}
+  .kbd-st .st-type.on{border-color:#4F46E5;background:#EEF2FF;color:#4338CA;box-shadow:0 6px 14px -8px rgba(79,70,229,.7)}
+  .kbd-st .st-pal{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 4px;border:1px solid #E6EBF3;background:#fff;border-radius:12px;cursor:pointer;font:inherit}
+  .kbd-st .st-pal.on{border-color:#4F46E5;background:#EEF2FF}
+  .kbd-st .sws{display:flex} .kbd-st .sws i{width:16px;height:16px;border-radius:50%;margin-left:-4px;box-shadow:0 0 0 2px #fff} .kbd-st .sws i:first-child{margin-left:0}
+  .kbd-st .st-pal small{font-size:10.5px;font-weight:700;color:#475569}
+  .kbd-st .st-colors{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .kbd-st .st-color{display:flex;align-items:center;gap:8px;padding:5px 8px 5px 5px;border:1px solid #E6EBF3;border-radius:10px;font-size:11px;font-weight:600;color:#334155;min-width:0;background:#fff}
+  .kbd-st .st-color span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .kbd-st .st-color input{width:26px;height:26px;border:none;padding:0;background:none;cursor:pointer;flex:none}
+  .kbd-st .st-link{border:none;background:none;color:#4F46E5;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;padding:6px 0 0}
+  .kbd-st .st-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 0;font-size:12.5px;font-weight:600;color:#334155;cursor:pointer}
+  .kbd-st .st-range>span{flex:0 0 118px} .kbd-st .st-range input{flex:1;max-width:150px;accent-color:#4F46E5} .kbd-st .st-range b{min-width:42px;text-align:right;font-size:11.5px;color:#64748B}
+  .kbd-st .st-sw{position:relative;width:38px;height:22px;flex:none} .kbd-st .st-sw input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0;z-index:2}
+  .kbd-st .st-sw i{position:absolute;inset:0;background:#CBD5E1;border-radius:999px;transition:background .15s}
+  .kbd-st .st-sw i::after{content:'';position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+  .kbd-st .st-sw input:checked+i{background:linear-gradient(135deg,#4F46E5,#2463EB)} .kbd-st .st-sw input:checked+i::after{transform:translateX(16px)}
+  .kbd-st .st-select,.kbd-st .st-in{font:inherit;font-size:11.5px;font-weight:700;color:#334155;border:1px solid #E2E8F3;background:#F6F8FC;border-radius:999px;padding:6px 12px;max-width:170px}
+  .kbd-st .st-in{border-radius:10px;max-width:none;width:100%;font-weight:600;font-size:12.5px;padding:8px 10px}
+  @media(max-width:760px){.kbd-st{top:auto;width:100%;height:62vh;border-left:none;border-top:1px solid #E2E8F0;border-radius:24px 24px 0 0;transform:translateY(104%)}.kbd-st.open{transform:none}}
+  @media print{.kbd-st,.kbd .b-gear{display:none!important}}
   .kbd-pres{position:fixed;inset:0;background:#0B1730;z-index:400;display:flex;flex-direction:column;padding:16px}
   .kbd-pres .ph{display:flex;justify-content:space-between;align-items:center;color:#fff;gap:10px;margin-bottom:10px}
   .kbd-pres .pb{flex:1;background:#fff;border-radius:16px;padding:20px;overflow:auto;min-height:0}
@@ -136,7 +194,16 @@
     const todas = () => SECCIONES.concat(S.cfg.propias.map(p => Object.assign({ propia: true }, p)));
     const seccionesOrden = () => { const t = todas(), ids = t.map(s => s.id); const o = S.cfg.orden.filter(id => ids.includes(id)).concat(ids.filter(id => !S.cfg.orden.includes(id))); return o.map(id => t.find(s => s.id === id)); };
     const visibles = () => seccionesOrden().filter(s => !S.cfg.ocultas.includes(s.id));
-    const estilo = s => Object.assign({ type: s.type || 'bar', palette: 'ktmex', labels: true, legend: true, height: 300, top: s.top || 0, serie: s.serie || '', titulo: '' }, S.cfg.charts[s.id] || {});
+    const ESTILO_BASE = { palette: 'original', colors: {}, labels: true, grid: true, legend: 'auto', gradient: false, radius: 4, thick: 80, line: 2.5, point: 3, smooth: true, fill: 20, border: 2, cutout: 58, font: 'md', height: 300 };
+    const estilo = s => {
+      const st = Object.assign({}, ESTILO_BASE, { type: s.type || 'bar', top: s.top || 0, serie: s.serie || '', titulo: '' }, S.cfg.charts[s.id] || {});
+      st.palette = PAL_ANT[st.palette] || (PALETAS[st.palette] ? st.palette : 'original');   // compatibilidad con la 0.11.0
+      if (st.legend === true) st.legend = 'auto'; if (st.legend === false) st.legend = 'none';
+      if (typeof st.height === 'string') st.height = ALTURAS[st.height] || 300;
+      st.colors = st.colors || {};
+      return st;
+    };
+    const ULTIMO = {};   // elementos dibujados en cada gráfica (para el panel de colores)
     let guardarT = null;
     const guardar = () => { if (!opts.puedeEditar) return; clearTimeout(guardarT); guardarT = setTimeout(() => opts.guardarConfig && opts.guardarConfig(S.cfg), 600); };
 
@@ -158,7 +225,7 @@
     // ---------- etiquetas con el valor ----------
     const valores = { id: 'kbdValores', afterDatasetsDraw(ch, a, o) {
       if (!ch.options.plugins.kbdValores || !ch.options.plugins.kbdValores.on) return;
-      const { ctx } = ch; ctx.save(); ctx.font = '600 11px Inter,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const { ctx } = ch; ctx.save(); ctx.font = '600 ' + (ch.options.plugins.kbdValores.size || 11) + 'px Inter,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const radial = ['doughnut', 'pie', 'polarArea'].includes(ch.config.type), apil = ch.options.scales && ch.options.scales.x && ch.options.scales.x.stacked;
       ch.data.datasets.forEach((ds, di) => { const meta = ch.getDatasetMeta(di); if (meta.hidden || ds.type === 'line' && ch.config.type === 'bar') return;
         meta.data.forEach((el, i) => { const v = ds.data[i]; if (!v) return;
@@ -169,35 +236,66 @@
           ctx.fillStyle = '#334155'; if (hor) { ctx.textAlign = 'left'; ctx.fillText(v, el.x + 5, el.y); ctx.textAlign = 'center'; } else ctx.fillText(v, el.x, el.y - 9); }); });
       ctx.restore(); } };
 
+    // Aplica el estilo elegido (cuadrícula, leyenda, texto, grosores, degradado) a la configuración de Chart.js
+    function aplicarEstilo(cfg, st, fam, canvas) {
+      const o = cfg.options, sc = o.scales || {};
+      Object.keys(sc).forEach(k => { if (k === 'y1') return; sc[k].grid = Object.assign({}, sc[k].grid, { display: st.grid, color: '#EEF2F7' }); sc[k].ticks = Object.assign({}, sc[k].ticks, { font: { size: FUENTES[st.font] || 12 } }); });
+      if (o.scales && o.scales.r) o.scales.r.grid = { display: st.grid };
+      if (fam === 'radial' && cfg.type === 'polarArea') o.scales = { r: { grid: { display: st.grid }, ticks: { display: false } } };
+      const lg = o.plugins.legend || {}, multi = cfg.data.datasets.length > 1 || fam !== 'cart' || cfg._pareto;
+      lg.display = st.legend === 'none' ? false : st.legend === 'auto' ? multi : true;
+      lg.position = st.legend === 'auto' || st.legend === 'none' ? (fam === 'cart' || fam === 'radar' ? 'bottom' : 'bottom') : st.legend;
+      lg.labels = { font: { size: FUENTES[st.font] || 12 }, boxWidth: 14 };
+      o.plugins.legend = lg;
+      o.plugins.kbdValores = { on: st.labels, size: (FUENTES[st.font] || 12) - 1 };
+      if (st.gradient && canvas) {
+        const ctx = canvas.getContext('2d'), h = canvas.parentNode.clientHeight || 300, w = canvas.parentNode.clientWidth || 500;
+        cfg.data.datasets.forEach(ds => { if (ds.type === 'line' || cfg.type === 'line' || cfg.type === 'radar') return;
+          const grad = c => { const g = cfg.options.indexAxis === 'y' ? ctx.createLinearGradient(0, 0, w, 0) : ctx.createLinearGradient(0, h, 0, 0); g.addColorStop(0, c + 'A6'); g.addColorStop(0.55, c); g.addColorStop(1, c); return g; };
+          ds.backgroundColor = Array.isArray(ds.backgroundColor) ? ds.backgroundColor.map(grad) : grad(ds.backgroundColor); });
+      }
+      return cfg;
+    }
     function chart(canvas, s, lista) {
       if (!root.Chart) { canvas.parentNode.innerHTML = `<div class="b-empty">${esc(T('No se cargó la librería de gráficas (Chart.js).', 'The chart library (Chart.js) did not load.'))}</div>`; return; }
-      const st = estilo(s), pal = PALETAS[st.palette] || PALETAS.ktmex;
-      const serie = st.type === 'pareto' || ['doughnut', 'pie', 'polar'].includes(st.type) ? '' : st.serie;
+      const st = estilo(s), pal = PALETAS[st.palette];
+      const type = st.type, fam = TIPO(type)[3];
+      const serie = type === 'pareto' || fam === 'radial' ? '' : st.serie;
       const c = contar(lista, s.dim, serie, st.top || (s.dim === 'linea' ? 15 : 0));
-      if (!c.labels.length) { canvas.parentNode.innerHTML = `<div class="b-empty">${esc(T('Sin datos con estos filtros.', 'No data with these filters.'))}</div>`; return; }
+      if (!c.labels.length) { canvas.parentNode.innerHTML = `<div class="b-empty">${esc(T('Sin datos con estos filtros.', 'No data with these filters.'))}</div>`; ULTIMO[s.id] = []; return; }
       const lab = c.labels.map(tt);
-      const colorDe = (k, i) => (serie === 'clasificacion' || (!serie && s.dim === 'clasificacion')) && CLASIF_COLOR[k] ? CLASIF_COLOR[k] : pal[i % pal.length];
-      let type = st.type, cfg;
-      const radial = ['doughnut', 'pie', 'polar'].includes(type);
-      if (radial) {
-        cfg = { type: type === 'polar' ? 'polarArea' : type, data: { labels: lab, datasets: [{ data: c.labels.map(l => c.tot(l)), backgroundColor: c.labels.map((l, i) => colorDe(l, i) + (type === 'polar' ? 'CC' : '')), borderColor: '#fff', borderWidth: 2 }] },
-          options: { cutout: type === 'doughnut' ? '58%' : undefined, plugins: { legend: { display: st.legend, position: 'bottom' } } } };
+      const porClasif = serie === 'clasificacion' || (!serie && s.dim === 'clasificacion');
+      const colorDe = (k, i) => st.colors[k] || (st.palette === 'original' && porClasif && CLASIF_COLOR[k] ? CLASIF_COLOR[k] : pal[i % pal.length]);
+      const alfa = a => Math.round(Math.max(0, Math.min(100, a)) * 2.55).toString(16).padStart(2, '0');
+      let cfg, items;
+      if (fam === 'radial') {
+        items = c.labels.map((l, i) => ({ k: l, name: tt(l), color: colorDe(l, i) }));
+        cfg = { type: type === 'polar' ? 'polarArea' : type, data: { labels: lab, datasets: [{ data: c.labels.map(l => c.tot(l)), backgroundColor: items.map(x => x.color + (type === 'polar' ? 'CC' : '')), borderColor: '#fff', borderWidth: st.border }] },
+          options: { cutout: type === 'doughnut' ? st.cutout + '%' : undefined, plugins: { legend: {} } } };
       } else if (type === 'pareto') {
         const v = c.labels.map(l => c.tot(l)), t = v.reduce((a, b) => a + b, 0) || 1; let acc = 0; const cum = v.map(x => Math.round((acc += x) / t * 1000) / 10);
-        cfg = { type: 'bar', data: { labels: lab, datasets: [{ type: 'bar', label: T('Incidentes', 'Incidents'), data: v, backgroundColor: pal[0], borderRadius: 4, yAxisID: 'y', order: 2 },
-          { type: 'line', label: T('% acumulado', 'Cumulative %'), data: cum, borderColor: pal[3] || '#DC2626', backgroundColor: pal[3] || '#DC2626', yAxisID: 'y1', tension: .25, pointRadius: 3, order: 1 }] },
-          options: { scales: { y: { beginAtZero: true, grid: { color: '#EEF2F7' } }, y1: { position: 'right', min: 0, max: 100, grid: { display: false }, ticks: { callback: x => x + '%' } }, x: { grid: { display: false } } }, plugins: { legend: { display: st.legend } } } };
+        const kB = '_barras', kL = '_acum';
+        items = [{ k: kB, name: T('Incidentes', 'Incidents'), color: st.colors[kB] || pal[0] }, { k: kL, name: T('% acumulado', 'Cumulative %'), color: st.colors[kL] || pal[3] || '#DC2626' }];
+        cfg = { _pareto: true, type: 'bar', data: { labels: lab, datasets: [{ type: 'bar', label: items[0].name, data: v, backgroundColor: items[0].color, borderRadius: st.radius, categoryPercentage: st.thick / 100, barPercentage: .95, yAxisID: 'y', order: 2 },
+          { type: 'line', label: items[1].name, data: cum, borderColor: items[1].color, backgroundColor: items[1].color, yAxisID: 'y1', tension: st.smooth ? .3 : 0, borderWidth: st.line, pointRadius: st.point, order: 1 }] },
+          options: { scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, y1: { position: 'right', min: 0, max: 100, grid: { display: false }, ticks: { callback: x => x + '%' } }, x: { grid: { display: false }, ticks: { autoSkip: false, maxRotation: 60 } } }, plugins: { legend: {} } } };
       } else {
-        const ds = c.series.map((sk, i) => ({ label: sk === '_' ? T('Incidentes', 'Incidents') : tt(sk), data: c.labels.map(l => c.val(l, sk)),
-          backgroundColor: c.series.length === 1 && !serie ? c.labels.map((l, j) => type === 'line' || type === 'area' || type === 'radar' ? pal[0] : colorDe(l, j)) : colorDe(sk, i) + (type === 'area' || type === 'radar' ? '33' : ''),
-          borderColor: c.series.length === 1 && !serie ? pal[0] : colorDe(sk, i), borderWidth: type === 'line' || type === 'area' || type === 'radar' ? 2.5 : 0, borderRadius: 4, tension: .3, fill: type === 'area' || type === 'radar', pointRadius: 3 }));
-        const jsType = type === 'hbar' || type === 'stacked' ? 'bar' : type === 'area' ? 'line' : type;
-        cfg = { type: jsType, data: { labels: lab, datasets: ds }, options: { indexAxis: type === 'hbar' ? 'y' : 'x', plugins: { legend: { display: st.legend && (ds.length > 1 || type === 'radar'), position: 'bottom' } } } };
-        if (jsType !== 'radar') cfg.options.scales = { x: { stacked: type === 'stacked', grid: { display: type === 'hbar' }, ticks: { autoSkip: false, maxRotation: 60 } }, y: { stacked: type === 'stacked', beginAtZero: true, grid: { color: '#EEF2F7' }, ticks: { precision: 0 } } };
-        if (type === 'hbar') cfg.options.scales = { x: { beginAtZero: true, grid: { color: '#EEF2F7' }, ticks: { precision: 0 } }, y: { grid: { display: false }, ticks: { autoSkip: false } } };
+        const lineal = ['line', 'area', 'stepped', 'radar'].includes(type), unaSerie = c.series.length === 1 && !serie;
+        items = unaSerie && !lineal ? c.labels.map((l, j) => ({ k: l, name: tt(l), color: colorDe(l, j) })) : c.series.map((sk, i) => ({ k: sk, name: sk === '_' ? T('Incidentes', 'Incidents') : tt(sk), color: colorDe(sk, i) }));
+        const ds = c.series.map((sk, i) => { const col = unaSerie ? (lineal ? items[0].color : null) : items[i].color;
+          return { label: sk === '_' ? T('Incidentes', 'Incidents') : tt(sk), data: c.labels.map(l => c.val(l, sk)),
+            backgroundColor: col ? col + (type === 'area' || type === 'radar' ? alfa(st.fill) : '') : items.map(x => x.color),
+            borderColor: col || items.map(x => x.color), borderWidth: lineal ? st.line : 0, borderRadius: st.radius, categoryPercentage: st.thick / 100, barPercentage: .92,
+            tension: st.smooth && type !== 'stepped' ? .3 : 0, stepped: type === 'stepped', fill: type === 'area' || type === 'radar', pointRadius: st.point, pointBackgroundColor: col || undefined }; });
+        const jsType = ['hbar', 'stacked'].includes(type) ? 'bar' : ['area', 'stepped'].includes(type) ? 'line' : type;
+        cfg = { type: jsType, data: { labels: lab, datasets: ds }, options: { indexAxis: type === 'hbar' ? 'y' : 'x', plugins: { legend: {} } } };
+        if (jsType !== 'radar') cfg.options.scales = type === 'hbar' ? { x: { beginAtZero: true, ticks: { precision: 0 } }, y: { ticks: { autoSkip: false } } }
+          : { x: { stacked: type === 'stacked', ticks: { autoSkip: false, maxRotation: 60 } }, y: { stacked: type === 'stacked', beginAtZero: true, ticks: { precision: 0 } } };
+        else cfg.options.scales = { r: { beginAtZero: true, ticks: { precision: 0, backdropColor: 'transparent' } } };
       }
+      ULTIMO[s.id] = items;
       cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, layout: { padding: { top: 18, right: type === 'hbar' ? 28 : 8 } } }, cfg.options);
-      cfg.options.plugins = Object.assign({ kbdValores: { on: st.labels } }, cfg.options.plugins);
+      aplicarEstilo(cfg, st, fam, canvas);
       cfg.plugins = [valores];
       const ch = new root.Chart(canvas, cfg); host.__kbdCharts.push(ch); return ch;
     }
@@ -225,13 +323,16 @@
     }
     function tasa(canvas, s) {
       if (!root.Chart) return;
-      const lista = filtrar(EV, true), pl = data.plantilla || {}, st = estilo(s), pal = PALETAS[st.palette] || PALETAS.ktmex;
+      const lista = filtrar(EV, true), pl = data.plantilla || {}, st = estilo(s), pal = PALETAS[st.palette];
       const ys = S.f.anio ? [S.f.anio] : anios.slice(-3); const labels = MESES.map(tt);
+      const type = ['line', 'area', 'stepped', 'bar'].includes(st.type) ? st.type : 'line';
+      const items = ys.map((y, i) => ({ k: y, name: y, color: st.colors[y] || pal[i % pal.length] })); ULTIMO[s.id] = items;
       const ds = ys.map((y, i) => ({ label: y, data: MESES.map((_, m) => { const k = y + '-' + String(m + 1).padStart(2, '0'), p = pl[k] || pl[y]; const n = lista.filter(e => e.fecha.startsWith(k)).length; return p ? Math.round(n / p * 1000) / 10 : null; }),
-        borderColor: pal[i % pal.length], backgroundColor: pal[i % pal.length] + (st.type === 'area' ? '33' : ''), fill: st.type === 'area', tension: .3, borderWidth: 2.5, pointRadius: 3, borderRadius: 4 }));
-      const type = st.type === 'area' ? 'line' : (['line', 'bar'].includes(st.type) ? st.type : 'line');
-      const ch = new root.Chart(canvas, { type, data: { labels, datasets: ds }, plugins: [valores], options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 18 } }, plugins: { kbdValores: { on: st.labels }, legend: { display: st.legend, position: 'bottom' } }, scales: { y: { beginAtZero: true, grid: { color: '#EEF2F7' } }, x: { grid: { display: false } } } } });
-      host.__kbdCharts.push(ch);
+        borderColor: items[i].color, backgroundColor: items[i].color + (type === 'area' ? Math.round(st.fill * 2.55).toString(16).padStart(2, '0') : ''), fill: type === 'area', tension: st.smooth && type !== 'stepped' ? .3 : 0, stepped: type === 'stepped',
+        borderWidth: type === 'bar' ? 0 : st.line, pointRadius: st.point, borderRadius: st.radius, categoryPercentage: st.thick / 100 }));
+      const cfg = { type: type === 'bar' ? 'bar' : 'line', data: { labels, datasets: ds }, plugins: [valores], options: { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 18 } }, plugins: { legend: {} }, scales: { y: { beginAtZero: true }, x: {} } } };
+      aplicarEstilo(cfg, st, 'cart', canvas); cfg.options.plugins.legend.display = st.legend !== 'none';
+      const ch = new root.Chart(canvas, cfg); host.__kbdCharts.push(ch);
     }
 
     // ---------- pantalla ----------
@@ -247,20 +348,21 @@
           <button class="b-btn d" type="button" data-k="pres">▶ ${esc(T('Presentar', 'Present'))}</button>${opts.puedeEditar ? `<button class="b-btn" type="button" data-k="secs">☰ ${esc(T('Secciones', 'Sections'))} (${vis.length}/${todas().length})</button><button class="b-btn" type="button" data-k="nueva">＋ ${esc(T('Nueva gráfica', 'New chart'))}</button><button class="b-btn" type="button" data-k="pl">👥 ${esc(T('Plantilla', 'Headcount'))}</button>` : ''}</div>
         <nav class="b-nav">${vis.map((s, i) => `<a href="#kbd-${esc(s.id)}" data-go="${esc(s.id)}"><b>${i + 1}</b>${esc(nombre(s))}</a>`).join('')}</nav>
         <div class="b-grid">${vis.map((s, i) => seccionHTML(s, i)).join('')}</div>`;
-      dibujarSecciones(host, vis, lista);
+      dibujarSecciones(host, vis, lista); if (ST.id) setTimeout(pintarStudio, 0);
       host.querySelectorAll('[data-f]').forEach(x => x.onchange = () => { S.f[x.dataset.f] = x.value; pintar(); });
       host.querySelectorAll('[data-go]').forEach(a => a.onclick = (ev) => { ev.preventDefault(); const el = host.querySelector('#kbd-' + a.dataset.go); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
       const b = k => host.querySelector(`[data-k="${k}"]`);
       b('pres').onclick = () => presentar(0);
       if (opts.puedeEditar) { b('secs').onclick = menuSecciones; b('nueva').onclick = () => editorPropia(null); b('pl').onclick = editorPlantilla; }
       host.querySelectorAll('[data-gear]').forEach(g => g.onclick = () => studio(g.dataset.gear));
+      if (ST.id) { const el = host.querySelector(`[data-sec="${CSS_ESC(ST.id)}"]`); if (el) el.classList.add('st-target'); host.classList.add('st-open'); }
     }
     const nombre = s => (S.cfg.charts[s.id] && S.cfg.charts[s.id].titulo) || (EN && s.en ? s.en : s.t);
     function seccionHTML(s, i, pres) {
       const full = s.esp === 'resumen' || s.esp === 'cuerpo' || s.esp === 'calor' || s.id === 'linea' || s.id === 'tendencia';
-      const gear = opts.puedeEditar && s.esp !== 'resumen' && s.esp !== 'calor' && !pres ? `<button class="b-gear" type="button" data-gear="${esc(s.id)}" title="${esc(T('Editar gráfica', 'Edit chart'))}">⚙</button>` : '';
+      const gear = opts.puedeEditar && s.esp !== 'resumen' && s.esp !== 'calor' && !pres ? `<button class="b-gear" type="button" data-gear="${esc(s.id)}" title="${esc(T('Personalizar gráfica', 'Customize chart'))}">⚙<span class="gl"> ${esc(T('Personalizar', 'Customize'))}</span></button>` : '';
       const st = estilo(s);
-      const cuerpo = s.esp === 'cuerpo' ? `<div class="b-body"><div data-cuerpo></div><div class="b-cv" style="height:${st.height}px"><canvas></canvas></div></div>`
+      const cuerpo = s.esp === 'cuerpo' ? `<div class="b-body"><div data-cuerpo></div><div class="b-cv" style="height:${pres ? 'calc(100vh - 220px)' : st.height + 'px'}"><canvas></canvas></div></div>`
         : s.esp === 'resumen' || s.esp === 'calor' ? `<div data-esp="${s.esp}"></div>` : `<div class="b-cv" style="height:${pres ? 'calc(100vh - 220px)' : st.height + 'px'}"><canvas></canvas></div>`;
       return `<section class="b-sec ${full ? 'full' : ''}" id="kbd-${esc(s.id)}" data-sec="${esc(s.id)}"><div class="b-sh"><div><h3><small>${i + 1}</small>${esc(nombre(s))}</h3>${s.d || s.desc ? `<p>${esc(s.d || s.desc)}${s.soloLesion ? '' : ''}</p>` : ''}</div>${gear}</div>${cuerpo}</section>`;
     }
@@ -300,30 +402,91 @@
       m = document.createElement('div'); m.id = 'kbd-modal'; m.className = 'kbd-modal no-i18n'; m.innerHTML = `<div class="m" role="dialog">${html}</div>`;
       m.onclick = e => { if (e.target === m) m.remove(); }; document.body.appendChild(m); alPintar && alPintar(m); return m;
     }
+    // Panel lateral «Personalizar gráfica» (como en el Facilities board). Los cambios se aplican al instante
+    // y se guardan en el servidor para todo Safety.
+    const ST = { id: null };
+    function refrescarSeccion(id) {
+      const vis = visibles(), i = vis.findIndex(x => x.id === id), s = vis[i]; if (!s) return;
+      const el = host.querySelector(`[data-sec="${CSS_ESC(id)}"]`); if (!el) return;
+      host.__kbdCharts = host.__kbdCharts.filter(c => { if (el.contains(c.canvas)) { try { c.destroy(); } catch (e) {} return false; } return true; });
+      const t = document.createElement('div'); t.innerHTML = seccionHTML(s, i); const nuevo = t.firstElementChild; el.replaceWith(nuevo);
+      if (ST.id === id) nuevo.classList.add('st-target');
+      const g = nuevo.querySelector('[data-gear]'); if (g) g.onclick = () => studio(id);
+      dibujarSecciones(host, [s], filtrar(EV));
+      const a = host.querySelector(`[data-go="${CSS_ESC(id)}"]`); if (a) a.innerHTML = `<b>${i + 1}</b>${esc(nombre(s))}`;
+    }
+    function cerrarStudio() {
+      ST.id = null; const p = document.getElementById('kbd-st'); if (p) p.classList.remove('open');
+      host.classList.remove('st-open'); host.querySelectorAll('.st-target').forEach(x => x.classList.remove('st-target'));
+    }
     function studio(id) {
-      const s = todas().find(x => x.id === id); if (!s) return;
-      const st = estilo(s), especial = s.esp === 'tasa' || s.esp === 'cuerpo';
-      const tipos = s.esp === 'tasa' ? TIPOS.filter(t => ['line', 'area', 'bar'].includes(t[0])) : TIPOS;
-      modal(`<h3>⚙ ${esc(T('Editar gráfica', 'Edit chart'))}: ${esc(nombre(s))}</h3>
-        <label>${esc(T('Título', 'Title'))}<input type="text" data-c="titulo" value="${esc(st.titulo || '')}" placeholder="${esc(EN && s.en ? s.en : s.t)}"></label>
-        <div style="margin-top:10px;font-size:.78rem;font-weight:600;color:#475569">${esc(T('Tipo de gráfica', 'Chart type'))}</div>
-        <div class="tipos" style="margin-top:4px">${tipos.map(t => `<button type="button" class="tipo ${st.type === t[0] ? 'on' : ''}" data-tipo="${t[0]}">${esc(EN ? TIPO_EN[t[1]] : t[1])}</button>`).join('')}</div>
-        <div class="row">${especial ? '' : `<label>${esc(T('Dividir por (series)', 'Split by (series)'))}<select data-c="serie"><option value="">${esc(T('Sin dividir', 'No split'))}</option>${Object.keys(DIMS).filter(k => k !== s.dim).map(k => `<option value="${k}" ${st.serie === k ? 'selected' : ''}>${esc(EN ? DIMS[k].en : DIMS[k].t)}</option>`).join('')}</select></label>
-          <label>${esc(T('Mostrar los primeros (0 = todos)', 'Show top (0 = all)'))}<input type="number" min="0" max="50" data-c="top" value="${st.top || 0}"></label>`}
-          <label>${esc(T('Altura (px)', 'Height (px)'))}<input type="number" min="180" max="700" step="20" data-c="height" value="${st.height}"></label></div>
-        <div class="row"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-c="labels" ${st.labels ? 'checked' : ''}>${esc(T('Mostrar valores', 'Show values'))}</label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-c="legend" ${st.legend ? 'checked' : ''}>${esc(T('Mostrar leyenda', 'Show legend'))}</label></div>
-        <div style="font-size:.78rem;font-weight:600;color:#475569">${esc(T('Colores', 'Colors'))}</div>
-        <div class="row">${Object.keys(PALETAS).map(p => `<button type="button" class="pal ${st.palette === p ? 'on' : ''}" data-pal="${p}" title="${p}">${PALETAS[p].slice(0, 6).map(c => `<i style="background:${c}"></i>`).join('')}</button>`).join('')}</div>
-        <p style="font-size:.76rem;color:#64748B">${esc(T('Los cambios se guardan solos y los ve todo el equipo.', 'Changes save automatically and the whole team sees them.'))}</p>
-        <div class="row" style="justify-content:space-between"><button type="button" class="b-btn" data-x="reset" style="font:inherit;border:1px solid #DDE5EF;border-radius:10px;padding:8px 12px;background:#fff;cursor:pointer">${esc(T('Restablecer', 'Reset'))}</button><button type="button" data-x="ok" style="font:inherit;border:0;border-radius:10px;padding:8px 16px;background:#2463EB;color:#fff;cursor:pointer;font-weight:600">${esc(T('Listo', 'Done'))}</button></div>`,
-        m => {
-          const set = (k, v) => { S.cfg.charts[id] = Object.assign({}, S.cfg.charts[id] || {}, { [k]: v }); guardar(); pintar(); };
-          m.querySelectorAll('[data-tipo]').forEach(b => b.onclick = () => { m.querySelectorAll('[data-tipo]').forEach(x => x.classList.toggle('on', x === b)); set('type', b.dataset.tipo); });
-          m.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => { m.querySelectorAll('[data-pal]').forEach(x => x.classList.toggle('on', x === b)); set('palette', b.dataset.pal); });
-          m.querySelectorAll('[data-c]').forEach(i => i.onchange = () => set(i.dataset.c, i.type === 'checkbox' ? i.checked : i.type === 'number' ? Number(i.value) || 0 : i.value));
-          m.querySelector('[data-x="reset"]').onclick = () => { delete S.cfg.charts[id]; guardar(); pintar(); m.remove(); };
-          m.querySelector('[data-x="ok"]').onclick = () => m.remove();
-        });
+      ST.id = id;
+      let p = document.getElementById('kbd-st');
+      if (!p) { p = document.createElement('aside'); p.id = 'kbd-st'; p.className = 'kbd-st no-i18n'; p.setAttribute('role', 'dialog'); document.body.appendChild(p); }
+      host.querySelectorAll('.st-target').forEach(x => x.classList.remove('st-target'));
+      const card = host.querySelector(`[data-sec="${CSS_ESC(id)}"]`); if (card) card.classList.add('st-target');
+      host.classList.add('st-open');
+      pintarStudio(); requestAnimationFrame(() => p.classList.add('open'));
+      setTimeout(() => { if (!card) return; const r = card.getBoundingClientRect(); if (window.innerWidth <= 760 || r.top > window.innerHeight * .6 || r.bottom < 120) card.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 80);
+      if (!studio._esc) { studio._esc = true; document.addEventListener('keydown', e => { if (e.key === 'Escape' && ST.id && !document.getElementById('kbd-pres')) cerrarStudio(); }); }
+    }
+    function pintarStudio() {
+      const p = document.getElementById('kbd-st'), id = ST.id; if (!p || !id) return;
+      const s = todas().find(x => x.id === id); if (!s) return cerrarStudio();
+      const st = estilo(s), fam = TIPO(st.type)[3], especial = s.esp === 'tasa' || s.esp === 'cuerpo';
+      const isBar = ['bar', 'hbar', 'stacked', 'pareto'].includes(st.type), isLine = ['line', 'area', 'stepped', 'pareto'].includes(st.type) || fam === 'radar';
+      const tipos = s.esp === 'tasa' ? TIPOS.filter(t => ['line', 'area', 'stepped', 'bar'].includes(t[0])) : TIPOS;
+      const sec = (t, inner) => `<section class="st-sec"><h5>${esc(t)}</h5>${inner}</section>`;
+      const tog = (l, k, v) => `<label class="st-row"><span>${esc(l)}</span><span class="st-sw"><input type="checkbox" data-s="${k}" ${v ? 'checked' : ''}><i></i></span></label>`;
+      const rng = (l, k, mn, mx, v, u) => `<label class="st-row st-range"><span>${esc(l)}</span><input type="range" min="${mn}" max="${mx}" step="${k === 'line' ? .5 : 1}" value="${v}" data-r="${k}"><b>${v}${u || ''}</b></label>`;
+      const selc = (l, k, ops, v) => `<label class="st-row"><span>${esc(l)}</span><select class="st-select" data-s="${k}">${ops.map(o => `<option value="${o[0]}" ${String(o[0]) === String(v) ? 'selected' : ''}>${esc(T(o[1], o[2]))}</option>`).join('')}</select></label>`;
+      let h = sec(T('Tipo de gráfica', 'Chart type'), `<div class="st-types">${tipos.map(t => `<button type="button" class="st-type ${t[0] === st.type ? 'on' : ''}" data-tipo="${t[0]}">${t[4]}<span>${esc(EN ? t[2] : t[1])}</span></button>`).join('')}</div>`);
+      h += sec(T('Paleta de colores', 'Color palette'), `<div class="st-pals">${Object.keys(PALETAS).map(n => `<button type="button" class="st-pal ${st.palette === n ? 'on' : ''}" data-pal="${n}"><span class="sws">${PALETAS[n].slice(0, 4).map(c => `<i style="background:${c}"></i>`).join('')}</span><small>${esc(EN ? PAL_NOM[n][1] : PAL_NOM[n][0])}</small></button>`).join('')}</div>`);
+      const items = ULTIMO[id] || [];
+      h += sec(T('Colores', 'Colors'), (items.length ? `<div class="st-colors">${items.slice(0, 24).map((it, i) => `<label class="st-color" title="${esc(it.name)}"><input type="color" value="${esc(it.color)}" data-col="${i}"><span>${esc(it.name)}</span></label>`).join('')}</div>` : `<p style="font-size:11.5px;color:#94A3B8;margin:0">${esc(T('Sin elementos con los filtros actuales.', 'No items with the current filters.'))}</p>`)
+        + `<button type="button" class="st-link" data-x="rcol">↺ ${esc(T('Restablecer colores', 'Reset colors'))}</button>`);
+      let e = tog(T('Etiquetas de datos', 'Data labels'), 'labels', st.labels);
+      if (fam !== 'radial' || st.type === 'polar') e += tog(T('Líneas de cuadrícula', 'Grid lines'), 'grid', st.grid);
+      e += selc(T('Leyenda', 'Legend'), 'legend', [['auto', 'Auto', 'Auto'], ['top', 'Arriba', 'Top'], ['bottom', 'Abajo', 'Bottom'], ['right', 'Derecha', 'Right'], ['none', 'Oculta', 'Hidden']], st.legend);
+      if (isBar) e += tog(T('Relleno degradado', 'Gradient fill'), 'gradient', st.gradient) + rng(T('Esquinas redondeadas', 'Corner radius'), 'radius', 0, 20, st.radius, 'px') + rng(T('Grosor de barras', 'Bar thickness'), 'thick', 20, 100, st.thick, '%');
+      if (isLine) e += rng(T('Grosor de línea', 'Line width'), 'line', 1, 7, st.line, 'px') + rng(T('Tamaño de punto', 'Point size'), 'point', 0, 9, st.point, 'px');
+      if (['line', 'area', 'pareto'].includes(st.type)) e += tog(T('Curvas suaves', 'Smooth curves'), 'smooth', st.smooth);
+      if (st.type === 'area' || fam === 'radar') e += rng(T('Opacidad del relleno', 'Fill opacity'), 'fill', 2, 70, st.fill, '%');
+      if (fam === 'radial') e += rng(T('Grosor del borde', 'Border width'), 'border', 0, 8, st.border, 'px');
+      if (st.type === 'doughnut') e += rng(T('Hueco de la dona', 'Donut hole'), 'cutout', 20, 85, st.cutout, '%');
+      e += selc(T('Tamaño de texto', 'Text size'), 'font', [['sm', 'Pequeño', 'Small'], ['md', 'Normal', 'Normal'], ['lg', 'Grande', 'Large']], st.font);
+      e += rng(T('Alto de la gráfica', 'Chart height'), 'height', 200, 700, st.height, 'px');
+      h += sec(T('Estilo', 'Style'), e);
+      let dts = `<label class="st-row" style="display:block"><span style="display:block;margin-bottom:6px">${esc(T('Título', 'Title'))}</span><input class="st-in" type="text" data-t="titulo" value="${esc(st.titulo || '')}" placeholder="${esc(EN && s.en ? s.en : s.t)}"></label>`;
+      if (!especial) {
+        dts += fam === 'radial' || st.type === 'pareto' ? '' : selc(T('Dividir por', 'Split by'), 'serie', [['', 'Sin dividir', 'No split']].concat(Object.keys(DIMS).filter(k => k !== s.dim).map(k => [k, DIMS[k].t, DIMS[k].en])), st.serie);
+        if (!Array.isArray(DIMS[s.dim].orden)) dts += selc(T('Mostrar', 'Show'), 'top', [[0, 'Todos', 'All'], [5, 'Los primeros 5', 'Top 5'], [8, 'Los primeros 8', 'Top 8'], [10, 'Los primeros 10', 'Top 10'], [15, 'Los primeros 15', 'Top 15'], [20, 'Los primeros 20', 'Top 20']], st.top || (s.dim === 'linea' ? 15 : 0));
+      }
+      h += sec(T('Datos', 'Data'), dts);
+      const prev = p.querySelector('.st-body') ? p.querySelector('.st-body').scrollTop : 0;
+      p.innerHTML = `<div class="st-head"><div><div class="st-eye">${esc(T('Personalizar gráfica', 'Customize chart'))}</div><div class="st-name">${esc(nombre(s))}</div></div><button type="button" class="st-x" data-x="cerrar" aria-label="${esc(T('Cerrar', 'Close'))}">✕</button></div>
+        <div class="st-body">${h}</div>
+        <div class="st-foot"><div class="st-note">${esc(T('Los cambios se aplican al instante y los ve todo el equipo de Safety.', 'Changes apply instantly and the whole Safety team sees them.'))}</div><button type="button" data-x="reset">↺ ${esc(T('Restablecer', 'Reset'))}</button><button type="button" data-x="png">⬇ PNG</button><button type="button" class="st-done" data-x="cerrar2">${esc(T('Listo', 'Done'))}</button></div>`;
+      p.querySelector('.st-body').scrollTop = prev;
+      const set = (cambios, repintarPanel) => { S.cfg.charts[id] = Object.assign({}, S.cfg.charts[id] || {}, cambios); guardar(); refrescarSeccion(id); if (repintarPanel) pintarStudio(); };
+      p.querySelectorAll('[data-tipo]').forEach(b => b.onclick = () => set({ type: b.dataset.tipo }, true));
+      p.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => set({ palette: b.dataset.pal, colors: {} }, true));
+      p.querySelectorAll('[data-col]').forEach(inp => inp.oninput = () => { const it = items[+inp.dataset.col]; const c = Object.assign({}, estilo(s).colors, { [it.k]: inp.value }); set({ colors: c }); });
+      p.querySelectorAll('[data-col]').forEach(inp => inp.onchange = () => pintarStudio());
+      p.querySelectorAll('input[type=checkbox][data-s]').forEach(x => x.onchange = () => set({ [x.dataset.s]: x.checked }));
+      p.querySelectorAll('select[data-s]').forEach(x => x.onchange = () => set({ [x.dataset.s]: x.dataset.s === 'top' ? Number(x.value) : x.value }, x.dataset.s === 'serie'));
+      p.querySelectorAll('[data-r]').forEach(x => { x.oninput = () => { x.nextElementSibling.textContent = x.value + (x.dataset.r === 'thick' || x.dataset.r === 'fill' || x.dataset.r === 'cutout' ? '%' : 'px'); clearTimeout(x._t); x._t = setTimeout(() => set({ [x.dataset.r]: Number(x.value) }), 120); }; });
+      const ti = p.querySelector('[data-t="titulo"]'); ti.onchange = () => { set({ titulo: ti.value.trim() }); p.querySelector('.st-name').textContent = nombre(s); };
+      p.querySelector('[data-x="rcol"]').onclick = () => set({ palette: 'original', colors: {} }, true);
+      p.querySelector('[data-x="reset"]').onclick = () => { delete S.cfg.charts[id]; guardar(); refrescarSeccion(id); pintarStudio(); };
+      p.querySelector('[data-x="png"]').onclick = () => descargarPNG(id);
+      p.querySelectorAll('[data-x="cerrar"],[data-x="cerrar2"]').forEach(b => b.onclick = cerrarStudio);
+    }
+    function descargarPNG(id) {
+      const el = host.querySelector(`[data-sec="${CSS_ESC(id)}"] canvas`); if (!el) return;
+      const out = document.createElement('canvas'); out.width = el.width; out.height = el.height;
+      const x = out.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, out.width, out.height); x.drawImage(el, 0, 0);
+      const a = document.createElement('a'); a.href = out.toDataURL('image/png'); a.download = 'board-incidentes-' + id + '.png'; document.body.appendChild(a); a.click(); a.remove();
     }
     function menuSecciones() {
       const dibuja = m => {
@@ -348,7 +511,7 @@
         <p style="font-size:.8rem;color:#64748B;margin:0 0 8px">${esc(T('Elige qué dato quieres ver, si lo quieres dividir por otro y el tipo de gráfica. Usa los mismos filtros del board.', 'Choose what to see, whether to split it by another field and the chart type. It uses the board filters.'))}</p>
         <label>${esc(T('Título', 'Title'))}<input type="text" data-p="t" value="${esc(p.t)}" placeholder="${esc(T('Ej. Área contra STOP 6', 'E.g. Area vs STOP 6'))}"></label>
         <div class="row"><label>${esc(T('Dato (eje)', 'Field (axis)'))}<select data-p="dim">${opsDim(p.dim)}</select></label><label>${esc(T('Dividir por', 'Split by'))}<select data-p="serie"><option value="">${esc(T('Sin dividir', 'No split'))}</option>${opsDim(p.serie)}</select></label>
-          <label>${esc(T('Tipo', 'Type'))}<select data-p="type">${TIPOS.map(t => `<option value="${t[0]}" ${p.type === t[0] ? 'selected' : ''}>${esc(EN ? TIPO_EN[t[1]] : t[1])}</option>`).join('')}</select></label></div>
+          <label>${esc(T('Tipo', 'Type'))}<select data-p="type">${TIPOS.map(t => `<option value="${t[0]}" ${p.type === t[0] ? 'selected' : ''}>${esc(EN ? t[2] : t[1])}</option>`).join('')}</select></label></div>
         <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-p="soloLesion" ${p.soloLesion ? 'checked' : ''}>${esc(T('Solo lesiones con atención (primer auxilio, tratamiento médico o lesión)', 'Only injuries with treatment'))}</label>
         <div class="row" style="justify-content:flex-end"><button type="button" data-x="no" style="font:inherit;border:1px solid #DDE5EF;border-radius:10px;padding:8px 12px;background:#fff;cursor:pointer">${esc(T('Cancelar', 'Cancel'))}</button><button type="button" data-x="ok" style="font:inherit;border:0;border-radius:10px;padding:8px 16px;background:#2463EB;color:#fff;cursor:pointer;font-weight:600">${esc(T('Guardar', 'Save'))}</button></div>`,
         m => {
@@ -378,5 +541,5 @@
     pintar();
     return { refrescar: pintar };
   }
-  root.KBD = { render, VERSION: '0.11.0', SECCIONES, DIMS };
+  root.KBD = { render, VERSION: '0.11.1', SECCIONES, DIMS };
 })(typeof window !== 'undefined' ? window : this);

@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.11.0';
+window.FRONT_VERSION = '0.11.1';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -204,13 +204,13 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.11.0" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.11.0" charset="utf-8"></script>
-<script src="formatos.js?v=0.11.0" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.11.0" charset="utf-8"></script>
-<script src="tablero.js?v=0.11.0" charset="utf-8"></script>
-<script src="ejercicios.js?v=0.11.0" charset="utf-8"></script>
-<script src="board.js?v=0.11.0" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.11.1" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.11.1" charset="utf-8"></script>
+<script src="formatos.js?v=0.11.1" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.11.1" charset="utf-8"></script>
+<script src="tablero.js?v=0.11.1" charset="utf-8"></script>
+<script src="ejercicios.js?v=0.11.1" charset="utf-8"></script>
+<script src="board.js?v=0.11.1" charset="utf-8"></script>
 </head>
 <body>
 
@@ -2172,6 +2172,8 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.11.1': [ L('Board de incidentes: botón «⚙ Personalizar» en cada gráfica con el panel de Facilities (tipo de gráfica, paleta, colores de cada elemento, etiquetas, cuadrícula, leyenda, degradado, grosores, tamaño de texto, alto y descarga en PNG).','Incident board: «⚙ Customize» button on every chart with the Facilities panel (chart type, palette, per-item colors, labels, grid, legend, gradient, widths, text size, height and PNG download).'),
+    L('Los administradores también pueden personalizar el board.','Administrators can also customize the board.') ],
   '0.11.0': [ L('Nuevo módulo «Board de incidentes»: áreas, turnos, grupos, líneas y equipos, STOP 6, partes del cuerpo, antigüedad, género, día y hora, tasa por cada 100 personas y modo presentación.','New «Incident board» module: areas, shifts, groups, lines and equipment, STOP 6, body parts, seniority, gender, day and hour, rate per 100 people and presentation mode.'),
     L('Se integró la base de incidentes de Safety desde 2022 (los comunicados RE-001 se completaron con turno, línea, hora y STOP 6).','The Safety incident base since 2022 was integrated (RE-001 communications were completed with shift, line, time and STOP 6).'),
     L('Comunicado: nuevos campos de turno (1.º/2.º), línea o equipo, actividad, acto o condición y género (confidencial).','Communication: new fields for shift (1st/2nd), line or equipment, activity, act or condition and gender (confidential).') ],

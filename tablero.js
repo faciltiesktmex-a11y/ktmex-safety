@@ -617,5 +617,5 @@
     return { datos: DATA };
   }
 
-  root.KTB = { render: render, VERSION: '0.11.0' };
+  root.KTB = { render: render, VERSION: '0.11.1' };
 })(typeof window !== 'undefined' ? window : this);
