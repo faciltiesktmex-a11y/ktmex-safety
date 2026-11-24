@@ -159,5 +159,5 @@
     }
     host.innerHTML = '';
   }
-  root.KEJ = { render, hablar, callar, hayVoz, VERSION: '0.12.0' };
+  root.KEJ = { render, hablar, callar, hayVoz, VERSION: '0.14.0' };
 })(typeof window !== 'undefined' ? window : this);

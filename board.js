@@ -618,6 +618,6 @@
     pintar();
     return { refrescar: pintar };
   }
-  root.KBD = { render, VERSION: '0.12.0', SECCIONES, DIMS };
+  root.KBD = { render, VERSION: '0.14.0', SECCIONES, DIMS };
   root.KCS = { estilo: estiloDe, construir, panel, cerrarPanel, descargar, boton: BOTON, css: cssKCS, TIPOS: TIPOS.map(t => t[0]) };
 })(typeof window !== 'undefined' ? window : this);

@@ -649,5 +649,5 @@
     return { datos: DATA };
   }
 
-  root.KTB = { render: render, VERSION: '0.12.0' };
+  root.KTB = { render: render, VERSION: '0.14.0' };
 })(typeof window !== 'undefined' ? window : this);

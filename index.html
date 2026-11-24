@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.12.0';
+window.FRONT_VERSION = '0.14.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -204,13 +204,13 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.12.0" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.12.0" charset="utf-8"></script>
-<script src="formatos.js?v=0.12.0" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.12.0" charset="utf-8"></script>
-<script src="tablero.js?v=0.12.0" charset="utf-8"></script>
-<script src="ejercicios.js?v=0.12.0" charset="utf-8"></script>
-<script src="board.js?v=0.12.0" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.14.0" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.14.0" charset="utf-8"></script>
+<script src="formatos.js?v=0.14.0" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.14.0" charset="utf-8"></script>
+<script src="tablero.js?v=0.14.0" charset="utf-8"></script>
+<script src="ejercicios.js?v=0.14.0" charset="utf-8"></script>
+<script src="board.js?v=0.14.0" charset="utf-8"></script>
 </head>
 <body>
 
@@ -488,7 +488,7 @@ function toast(msg, type='ok'){
   t._t=setTimeout(()=>t.style.display='none', type==='err'?6500:3500);
 }
 function openModal(id){ $(id).style.display='flex'; }
-function closeModal(id){ $(id).style.display='none'; }
+function closeModal(id){ $(id).style.display='none'; if(id==='m-gen' && typeof pararCamara==='function') pararCamara(); }
 
 /* ═══ Sesión ═══ */
 function guardarSesion(){ try{ sessionStorage.setItem(KEY_SESSION, JSON.stringify(SESSION)); }catch(e){} }
@@ -1917,7 +1917,8 @@ function renderContratistas(){
   const tabla = (cab, filas, n) => `<section class="card"><div class="tbl-wrap"><table><thead><tr>${cab.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas||vacio(n, L('Todavía no hay registros.','No records yet.'))}</tbody></table></div></section>`;
   const edit = (t,id) => !esCap() ? '' : `<button class="btn-g btn-sm" type="button" onclick="abrirContr('${t}','${id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`;
   const activo = a => String(a).toUpperCase()==='FALSE' ? `<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>` : `<span class="badge b-done">${esc(L('Activo','Active'))}</span>`;
-  if(CT_TAB==='empresas') h += tabla([L('Empresa','Company'),'RFC',L('Contacto','Contact'),L('Teléfono','Phone'),L('Trabajadores','Workers'),L('Estatus','Status'),''], CT.empresas.map(e=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(e.nombre)}</strong></td><td class="mono">${esc(e.rfc||'')}</td><td class="no-i18n">${esc(e.contacto||'')}<br><span class="help">${esc(e.correo||'')}</span></td><td>${esc(e.telefono||'')}</td><td>${CT.trabajadores.filter(t=>t.empresaId===e.id).length}</td><td>${activo(e.activo)}</td><td>${edit('Empresas',e.id)}</td></tr>`).join(''), 7);
+  if(CT_TAB==='empresas') h += (esCap()?`<div class="box" style="margin-bottom:12px"><p class="help">${esc(L('Cada proveedor entra a la capacitación con su clave, su NSS y su nombre. La clave deja de servir al pasar su vigencia, si la renuevas o si desactivas la empresa.','Each supplier enters the training with its key, NSS and name. The key stops working after its expiry date, if you renew it or if you deactivate the company.'))}</p></div>`:'')
+    + tabla([L('Empresa','Company'),'RFC',L('Contacto','Contact'),L('Trabajadores','Workers'),L('Clave de capacitación','Training key'),L('Estatus','Status'),''], CT.empresas.map(e=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(e.nombre)}</strong></td><td class="mono">${esc(e.rfc||'')}</td><td class="no-i18n">${esc(e.contacto||'')}<br><span class="help">${esc(e.telefono||'')} ${esc(e.correo||'')}</span></td><td>${CT.trabajadores.filter(t=>t.empresaId===e.id).length}</td><td>${celdaClave(e)}</td><td>${activo(e.activo)}</td><td>${edit('Empresas',e.id)}</td></tr>`).join(''), 7);
   if(CT_TAB==='trabajadores') h += tabla([L('Nombre','Name'),L('Empresa','Company'),L('Puesto','Position'),'CURP','DC-3',L('Estatus','Status'),''], CT.trabajadores.map(t=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(t.nombre)}</strong></td><td class="no-i18n">${esc(empNombre(t.empresaId))}</td><td class="no-i18n">${esc(t.puesto||'')}</td><td class="mono" id="curp-${t.id}">${esc(t.curp||'—')}${t.curp?` <button class="btn-g btn-sm" type="button" onclick="verCurp('${t.id}')" title="${esc(L('Ver CURP completa (queda registrado)','Show full CURP (logged)'))}" aria-label="${esc(L('Ver CURP completa (queda registrado)','Show full CURP (logged)'))}"><i class="fas fa-eye"></i></button>`:''}</td><td>${CT.dc3.filter(x=>x.trabajadorId===t.id).length}</td><td>${activo(t.activo)}</td><td>${edit('Trabajadores',t.id)}</td></tr>`).join(''), 7);
   if(CT_TAB==='dc3') h += tabla([L('Trabajador','Worker'),L('Empresa','Company'),L('Tema','Topic'),L('Permiso que habilita','Permit enabled'),L('Emisión','Issued'),L('Vigencia','Valid until'),L('Verificada','Verified'),L('Archivo','File'),''], CT.dc3.map(x=>{ const v=vigenciaDC3(x), t=trabajador(x.trabajadorId); return `<tr class="tbl-row"><td class="no-i18n"><strong>${esc(t.nombre||'—')}</strong></td><td class="no-i18n">${esc(empNombre(t.empresaId))}</td><td class="no-i18n">${esc(x.tema)}</td><td>${esc(x.permiso||'—')}</td><td>${esc(x.fechaEmision||'')}</td><td>${esc(x.vigencia)}<br><span class="badge ${v[0]}">${esc(v[1])}</span></td>
       <td>${String(x.verificada).toUpperCase()==='TRUE'?`<span class="badge b-done">${esc(L('Sí','Yes'))}</span><br><span class="help no-i18n">${esc(x.verificadaPor||'')}</span>`:`<span class="badge b-pend">${esc(L('Por verificar','To verify'))}</span>`}${esCap()?`<br><button class="btn-g btn-sm" type="button" style="margin-top:4px" onclick="verificarDC3('${x.id}',${String(x.verificada).toUpperCase()!=='TRUE'})">${esc(String(x.verificada).toUpperCase()==='TRUE'?L('Quitar verificación','Unverify'):L('Verificar','Verify'))}</button>`:''}</td>
@@ -1936,7 +1937,8 @@ function abrirContr(tabla, id){
   const lista = {Empresas:CT.empresas, Trabajadores:CT.trabajadores, DC3:CT.dc3}[tabla], o = id ? Object.assign({}, lista.find(x=>x.id===id)) : {};
   CTF = {tabla, id:id||'', archivo:null};
   let cuerpo = '';
-  if(tabla==='Empresas') cuerpo = `<div class="grid-2">${fld(L('Nombre de la empresa','Company name'), inp('ct-nombre',o.nombre))}${fld('RFC', inp('ct-rfc',o.rfc))}</div><div class="grid-3">${fld(L('Contacto','Contact'), inp('ct-contacto',o.contacto))}${fld(L('Teléfono','Phone'), inp('ct-telefono',o.telefono))}${fld(L('Correo','Email'), inp('ct-correo',o.correo,'type="email"'))}</div>`;
+  if(tabla==='Empresas') cuerpo = `<div class="grid-2">${fld(L('Nombre de la empresa','Company name'), inp('ct-nombre',o.nombre))}${fld('RFC', inp('ct-rfc',o.rfc))}</div><div class="grid-3">${fld(L('Contacto','Contact'), inp('ct-contacto',o.contacto))}${fld(L('Teléfono','Phone'), inp('ct-telefono',o.telefono))}${fld(L('Correo','Email'), inp('ct-correo',o.correo,'type="email"'))}</div>
+    <div class="grid-2">${fld(L('Clave de capacitación vigente hasta','Training key valid until'), inp('ct-vigencia',o.vigencia,'type="date"'))}<div><label class="lbl">${esc(L('Clave','Key'))}</label><p class="mono" style="margin:8px 0 0">${esc(o.clave||L('Se genera desde la tabla con «Generar clave».','Generate it from the table with «Generate key».'))}</p></div></div>`;
   if(tabla==='Trabajadores') cuerpo = `<div class="grid-2">${fld(L('Nombre completo','Full name'), inp('ct-nombre',o.nombre))}${fld(L('Empresa','Company'), sel('ct-empresaId',CT.empresas.map(e=>({v:e.id,t:e.nombre})),o.empresaId,'—'))}</div><div class="grid-3">${fld(L('Puesto','Position'), inp('ct-puesto',o.puesto))}${fld('CURP', inp('ct-curp',o.curp,'maxlength="18" autocapitalize="characters"'))}${fld('NSS', inp('ct-nss',o.nss))}</div><p class="help">${esc(L('La CURP se muestra enmascarada; si no la cambias, se conserva la registrada.','The CURP is shown masked; if you do not change it, the stored one is kept.'))}</p>`;
   if(tabla==='DC3') cuerpo = `<div class="grid-2">${fld(L('Trabajador','Worker'), sel('ct-trabajadorId',CT.trabajadores.map(t=>({v:t.id,t:t.nombre+' · '+empNombre(t.empresaId)})),o.trabajadorId,'—'))}${fld(L('Tema del curso','Course topic'), inp('ct-tema',o.tema))}</div>
     <div class="grid-3">${fld(L('Permiso que habilita','Permit enabled'), sel('ct-permiso',CT.permisos,o.permiso,L('Ninguno','None')))}${fld(L('Fecha de emisión','Issue date'), inp('ct-fechaEmision',o.fechaEmision,'type="date"'))}${fld(L('Vigencia (vence el)','Valid until'), inp('ct-vigencia',o.vigencia,'type="date"'))}</div>
@@ -1946,7 +1948,7 @@ function abrirContr(tabla, id){
 }
 async function guardarContr(){
   const t = CTF.tabla, datos = {};
-  ({Empresas:['nombre','rfc','contacto','telefono','correo'], Trabajadores:['nombre','empresaId','puesto','curp','nss'], DC3:['trabajadorId','tema','permiso','fechaEmision','vigencia']})[t].forEach(k=>datos[k]=val('ct-'+k));
+  ({Empresas:['nombre','rfc','contacto','telefono','correo','vigencia'], Trabajadores:['nombre','empresaId','puesto','curp','nss'], DC3:['trabajadorId','tema','permiso','fechaEmision','vigencia']})[t].forEach(k=>datos[k]=val('ct-'+k));
   if($('ct-activo')) datos.activo = $('ct-activo').checked;
   const f = $('ct-archivo') && $('ct-archivo').files[0];
   if(f){ if(f.size>5*1024*1024){ toast(L('El archivo es demasiado grande (máximo 5 MB).','The file is too large (max. 5 MB).'),'err'); return; }
@@ -1954,6 +1956,56 @@ async function guardarContr(){
   $('btn-ct').disabled = true;
   try{ const r = await llamar({action:'contratistaGuardar', token:tok(), tabla:t, id:CTF.id, datos}, L('Guardado.','Saved.')); if(r){ closeModal('m-gen'); cargarContratistas(); } }
   finally{ const b=$('btn-ct'); if(b) b.disabled=false; }
+}
+function celdaClave(e){
+  if(!esCap()) return e.vigencia ? `<span class="help">${esc(L('Vigente hasta','Valid until'))} ${esc(e.vigencia)}</span>` : '—';
+  const hoy = new Date().toISOString().slice(0,10), venc = e.vigencia && e.vigencia < hoy;
+  const est = !e.clave ? `<span class="badge b-off">${esc(L('Sin clave','No key'))}</span>` : String(e.activo).toUpperCase()==='FALSE' ? `<span class="badge b-off">${esc(L('Empresa inactiva','Inactive company'))}</span>` : venc ? `<span class="badge b-red">${esc(L('Vencida','Expired'))} ${esc(e.vigencia)}</span>` : `<span class="badge b-done">${esc(L('Vigente hasta','Valid until'))} ${esc(e.vigencia)}</span>`;
+  return `${e.clave?`<strong class="mono" style="font-size:.95rem;letter-spacing:.05em">${esc(e.clave)}</strong><br>`:''}${est}<div class="toolbar" style="margin-top:6px;gap:4px">
+    <button class="btn-g btn-sm" type="button" onclick="generarClave('${e.id}')">${esc(e.clave?L('Renovar','Renew'):L('Generar clave','Generate key'))}</button>
+    ${e.clave?`<button class="btn-g btn-sm" type="button" onclick="compartirClave('${e.id}')" title="${esc(L('Copiar enlace y ver QR','Copy link and show QR'))}"><i class="fas fa-qrcode"></i></button>`:''}</div>`;
+}
+async function generarClave(id){
+  const e = CT.empresas.find(x=>x.id===id); if(!e) return;
+  if(!e.vigencia){ toast(L('Captura primero la vigencia de la clave (botón de editar).','First enter the key expiry date (edit button).'),'err'); abrirContr('Empresas', id); return; }
+  if(e.clave && !confirm(uiText(L('Al renovar, la clave actual deja de funcionar. ¿Continuar?','When renewed, the current key stops working. Continue?')))) return;
+  const r = await llamar({action:'empresaClave', token:tok(), id}, L('Clave lista.','Key ready.')); if(r){ await cargarContratistas(); compartirClave(id); }
+}
+const enlaceClave = c => location.origin + location.pathname + '?clave=' + encodeURIComponent(c);
+async function cargarQR(){ if(window.QRCode) return true; return new Promise(res=>{ const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; s.onload = ()=>res(!!window.QRCode); s.onerror = ()=>res(false); document.head.appendChild(s); }); }
+async function compartirClave(id){
+  const e = CT.empresas.find(x=>x.id===id); if(!e || !e.clave) return;
+  const url = enlaceClave(e.clave);
+  const texto = `${L('Capacitación de contratistas KTMEX','KTMEX contractor training')} · ${e.nombre}\n${L('Clave','Key')}: ${e.clave} (${L('vigente hasta','valid until')} ${e.vigencia})\n${url}\n${L('Cada trabajador entra con la clave, su NSS y su nombre completo.','Each worker enters with the key, their NSS and full name.')}`;
+  modal(1, L('Clave de capacitación','Training key')+' · '+e.nombre, `<div style="display:grid;place-items:center;gap:10px;text-align:center"><div class="mono" style="font-size:1.6rem;font-weight:800;letter-spacing:.08em">${esc(e.clave)}</div><span class="help">${esc(L('Vigente hasta','Valid until'))} ${esc(e.vigencia)}</span><div id="qr-clave" style="background:#fff;padding:10px;border-radius:12px"></div><p class="help" style="word-break:break-all">${esc(url)}</p></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cerrar','Close'))}</button><button class="btn-p" type="button" id="btn-copiar-clave"><i class="fas fa-copy" style="margin-right:6px"></i>${esc(L('Copiar mensaje para el supervisor','Copy message for the supervisor'))}</button>`);
+  $('btn-copiar-clave').onclick = async ()=>{ try{ await navigator.clipboard.writeText(texto); toast(L('Mensaje copiado.','Message copied.')); }catch(err){ prompt(uiText(L('Copia el mensaje:','Copy the message:')), texto); } };
+  if(await cargarQR()){ const box = $('qr-clave'); if(box){ box.innerHTML=''; new QRCode(box, {text:url, width:200, height:200, correctLevel:QRCode.CorrectLevel.M}); } }
+}
+async function otraOportunidad(cursoId, ident){
+  if(!confirm(uiText(L('Se anulan los intentos anteriores de esta persona en este curso y podrá presentar el examen de nuevo. ¿Continuar?','The previous attempts of this person in this course will be voided and they can take the exam again. Continue?')))) return;
+  const r = await llamar({action:'intentosReiniciar', token:tok(), cursoId, ident}, L('Listo: puede volver a presentar el examen.','Done: they can take the exam again.')); if(r) cargarCursos();
+}
+async function subirInteractivo(id, inp){
+  const f = inp.files && inp.files[0]; if(!f) return;
+  if(f.size > 8*1024*1024){ toast(L('El archivo pesa más de 8 MB.','The file is larger than 8 MB.'),'err'); return; }
+  const html = await f.text();
+  const r = await llamar({action:'cursoInteractivoSubir', token:tok(), cursoId:id, html, nombre:f.name}, L('Curso interactivo cargado. Los contratistas ya lo ven.','Interactive course uploaded. Contractors now see it.'));
+  inp.value = ''; if(r) cargarCursos();
+}
+async function quitarInteractivo(id){
+  if(!confirm(uiText(L('Los contratistas volverán a ver las diapositivas y ejercicios. ¿Quitar el curso interactivo?','Contractors will see the slides and exercises again. Remove the interactive course?')))) return;
+  const r = await llamar({action:'cursoInteractivoSubir', token:tok(), cursoId:id, quitar:true}, L('Curso interactivo retirado.','Interactive course removed.')); if(r) cargarCursos();
+}
+async function verInteractivoSafety(id){
+  const r = await llamar({action:'cursoInteractivo', token:tok(), cursoId:id}); if(!r) return;
+  const w = window.open('', '_blank'); if(!w){ toast(L('Permite las ventanas emergentes para ver el curso.','Allow pop-ups to view the course.'),'err'); return; }
+  w.document.open(); w.document.write(r.html); w.document.close();
+}
+async function verFotoIntento(id){
+  const r = await llamar({action:'intentoFoto', token:tok(), id}); if(!r) return;
+  const i = (CU.intentos||[]).find(x=>x.id===id) || {};
+  modal(1, L('Foto del examen','Exam photo'), `<div style="display:grid;place-items:center;gap:8px"><img src="${r.dataUrl}" alt="" style="width:min(360px,80vw);border-radius:14px"><strong class="no-i18n">${esc(i.nombre||'')}</strong><span class="help no-i18n">${esc(i.empresa||'')} · NSS ${esc(i.nss||i.identificador||'')}</span></div>`, `<button class="btn-p" type="button" onclick="closeModal('m-gen')">${esc(L('Cerrar','Close'))}</button>`);
 }
 async function verCurp(id){ const r = await llamar({action:'curpVer', token:tok(), id}); if(r) $('curp-'+id).textContent = r.curp; }
 async function verificarDC3(id, v){ const r = await llamar({action:'dc3Verificar', token:tok(), id, verificada:v}, v?L('DC-3 verificada.','DC-3 verified.'):L('Verificación retirada.','Verification removed.')); if(r) cargarContratistas(); }
@@ -1968,10 +2020,18 @@ async function cargarCursos(){
 function tabCursos(t){ CU_TAB=t; renderCursos(); }
 function renderCursos(){
   let h = cabecera(L('Capacitación de contratistas','Contractor training'), L('Safety publica el curso y el banco de preguntas. El examen se califica en el servidor; el contratista nunca ve las respuestas.','Safety publishes the course and question bank. The exam is graded on the server; the contractor never sees the answers.'), CU_TAB==='cursos'&&esCap()?`<button class="btn-p btn-sm" type="button" onclick="abrirCurso()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo curso','New course'))}</button>`:'')
-    + pestanas([['cursos',L('Cursos','Courses'),'fa-book'],['resultados',L('Resultados','Results'),'fa-square-poll-vertical']], CU_TAB, 'tabCursos');
-  if(CU_TAB==='cursos') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Temas','Topics'))}</th><th>${esc(L('Preguntas','Questions'))}</th><th>${esc(L('Mínimo','Pass mark'))}</th><th>${esc(L('Intentos','Attempts'))}</th><th>${esc(L('Segundos por pregunta','Seconds per question'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${CU.cursos.length?CU.cursos.map(c=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(c.titulo)}</strong><br><span class="help">${esc(c.descripcion||'')}</span></td><td>${(c.temas||[]).length}</td><td>${(c.preguntas||[]).length}</td><td>${esc(c.minimo)}%</td><td>${esc(c.intentos)}</td><td>${esc(c.segundos)}</td><td>${String(c.activo).toUpperCase()==='FALSE'?`<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>`:`<span class="badge b-done">${esc(L('Publicado','Published'))}</span>`}</td><td>${esCap()?'':'<!--'}<button class="btn-g btn-sm" type="button" onclick="abrirCurso('${c.id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>${esCap()?'':'-->'}</td></tr>`).join(''):vacio(8,L('Todavía no hay cursos.','No courses yet.'))}</tbody></table></div></section>
+    + pestanas([['cursos',L('Cursos','Courses'),'fa-book'],['avance',L('Avance','Progress'),'fa-list-check'],['resultados',L('Resultados','Results'),'fa-square-poll-vertical']], CU_TAB, 'tabCursos');
+  if(CU_TAB==='cursos') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Temas','Topics'))}</th><th>${esc(L('Preguntas','Questions'))}</th><th>${esc(L('Mínimo','Pass mark'))}</th><th>${esc(L('Intentos','Attempts'))}</th><th>${esc(L('Segundos por pregunta','Seconds per question'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${CU.cursos.length?CU.cursos.map(c=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(c.titulo)}</strong><br><span class="help">${esc(c.descripcion||'')}</span></td><td>${(c.temas||[]).length}</td><td>${(c.preguntas||[]).length}</td><td>${esc(c.minimo)}%</td><td>${esc(c.intentos)}</td><td>${esc(c.segundos)}</td><td>${String(c.activo).toUpperCase()==='FALSE'?`<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>`:`<span class="badge b-done">${esc(L('Publicado','Published'))}</span>`}</td><td>${esCap()?'':'<!--'}<button class="btn-g btn-sm" type="button" onclick="abrirCurso('${c.id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>${esCap()?'':'-->'}</td></tr>
+      <tr><td colspan="8" style="padding-top:0"><div class="box" style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between"><span class="help"><strong>${esc(L('Curso interactivo','Interactive course'))}:</strong> ${c.interactivo?`${esc(c.interactivoNombre||'curso.html')} · ${esc(L('cargado','uploaded'))} ${esc(fecha(c.interactivoFecha))} · ${esc(L('los contratistas ven este curso','contractors see this course'))}`:esc(L('sin cargar: los contratistas ven las diapositivas y ejercicios.','not uploaded: contractors see the slides and exercises.'))} ${c.reglaIntentos==='lider'?' · '+esc(L('reglas del Líder de Seguridad (80 aprueba, 60-79 segunda oportunidad, menos de 60 bloqueado)','Safety Leader rules (80 passes, 60-79 second chance, under 60 blocked)')):''}</span>
+      ${esCap()?`<span class="toolbar" style="gap:6px"><label class="btn-g btn-sm" style="cursor:pointer"><i class="fas fa-upload" style="margin-right:6px"></i>${esc(c.interactivo?L('Reemplazar HTML','Replace HTML'):L('Subir HTML','Upload HTML'))}<input type="file" accept=".html,text/html" style="display:none" onchange="subirInteractivo('${c.id}',this)"></label>${c.interactivo?`<button class="btn-g btn-sm" type="button" onclick="verInteractivoSafety('${c.id}')">${esc(L('Ver','View'))}</button><button class="btn-g btn-sm" type="button" onclick="quitarInteractivo('${c.id}')">${esc(L('Quitar','Remove'))}</button>`:''}</span>`:''}</div></td></tr>`).join(''):vacio(8,L('Todavía no hay cursos.','No courses yet.'))}</tbody></table></div></section>
     <p class="help" style="margin-top:10px">${esc(L('Los contratistas entran desde la página inicial, en «Capacitación para contratistas», sin cuenta.','Contractors enter from the start page, under «Contractor training», without an account.'))}</p>`;
-  if(CU_TAB==='resultados') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Fecha','Date'))}</th><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Participante','Participant'))}</th><th>${esc(L('Compañía','Company'))}</th><th>${esc(L('Identificador','ID'))}</th><th>${esc(L('Calificación','Score'))}</th><th>${esc(L('Resultado','Result'))}</th></tr></thead><tbody>${CU.intentos.length?CU.intentos.map(i=>`<tr class="tbl-row"><td style="white-space:nowrap">${i.inicio?fecha(new Date(Number(i.inicio)).toISOString()):'—'}</td><td class="no-i18n">${esc(i.cursoTitulo)}</td><td class="no-i18n">${esc(i.nombre)}</td><td class="no-i18n">${esc(i.empresa)}</td><td class="mono">${esc(i.identificador)}</td><td>${i.fin?esc(i.calificacion)+'%':'—'}</td><td>${!i.fin?`<span class="badge b-off">${esc(L('Sin terminar','Not finished'))}</span>`:String(i.aprobado).toUpperCase()==='TRUE'?`<span class="badge b-done">${esc(L('Aprobado','Passed'))}</span>`:`<span class="badge b-red">${esc(L('No aprobado','Failed'))}</span>`}</td></tr>`).join(''):vacio(7,L('Todavía no hay intentos.','No attempts yet.'))}</tbody></table></div></section>`;
+  if(CU_TAB==='avance'){ const req = c => (c && c.modulosReq && c.modulosReq.length) ? c.modulosReq : ['m1','m2','m3','m4','m5'];
+    const av = CU.avances||[];
+    h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Actualizado','Updated'))}</th><th>${esc(L('Participante','Participant'))}</th><th>${esc(L('Compañía','Company'))}</th><th>NSS</th><th>${esc(L('Módulos','Modules'))}</th><th>${esc(L('Examen','Exam'))}</th></tr></thead><tbody>${av.length?av.map(a=>{ const c = CU.cursos.find(x=>x.id===a.cursoId), r = req(c), hechos = r.filter(m=>(a.modulos||[]).includes(m)).length;
+      const ints = CU.intentos.filter(i=>i.cursoId===a.cursoId && String(i.nss||i.identificador)===String(a.nss) && i.fin && String(i.anulado).toUpperCase()!=='TRUE');
+      const apr = ints.some(i=>String(i.aprobado).toUpperCase()==='TRUE');
+      return `<tr class="tbl-row"><td style="white-space:nowrap">${esc(fecha(a.actualizado))}</td><td class="no-i18n">${esc(a.nombre)}</td><td class="no-i18n">${esc(a.empresa)}</td><td class="mono">${esc(a.nss)}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;min-width:70px;height:8px;background:#E2E8F0;border-radius:4px;overflow:hidden"><i style="display:block;height:100%;width:${Math.round(hechos/r.length*100)}%;background:${hechos===r.length?'#16A34A':'#2563EB'}"></i></div><span>${hechos}/${r.length}</span></div></td><td>${apr?`<span class="badge b-done">${esc(L('Aprobado','Passed'))}</span>`:ints.length?`<span class="badge b-red">${ints.length} ${esc(L('intento(s)','attempt(s)'))}</span>`:hechos===r.length?`<span class="badge b-pend">${esc(L('Listo para examen','Ready for exam'))}</span>`:'—'}</td></tr>`; }).join(''):vacio(6,L('Todavía nadie empieza el curso interactivo.','Nobody has started the interactive course yet.'))}</tbody></table></div></section>`; }
+  if(CU_TAB==='resultados') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Fecha','Date'))}</th><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Participante','Participant'))}</th><th>${esc(L('Compañía','Company'))}</th><th>${esc(L('NSS / identificador','NSS / ID'))}</th><th>${esc(L('Foto','Photo'))}</th><th>${esc(L('Calificación','Score'))}</th><th>${esc(L('Resultado','Result'))}</th></tr></thead><tbody>${CU.intentos.length?CU.intentos.map(i=>`<tr class="tbl-row"><td style="white-space:nowrap">${i.inicio?fecha(new Date(Number(i.inicio)).toISOString()):'—'}</td><td class="no-i18n">${esc(i.cursoTitulo)}</td><td class="no-i18n">${esc(i.nombre)}</td><td class="no-i18n">${esc(i.empresa)}</td><td class="mono">${esc(i.nss||i.identificador)}</td><td>${i.conFoto?`<button class="btn-g btn-sm" type="button" onclick="verFotoIntento('${i.id}')" aria-label="${esc(L('Ver foto','View photo'))}"><i class="fas fa-camera"></i></button>`:'—'}</td><td>${i.fin?esc(i.calificacion)+'%':'—'}</td><td>${!i.fin?`<span class="badge b-off">${esc(L('Sin terminar','Not finished'))}</span>`:String(i.aprobado).toUpperCase()==='TRUE'?`<span class="badge b-done">${esc(L('Aprobado','Passed'))}</span>`:`<span class="badge b-red">${esc(L('No aprobado','Failed'))}</span>${String(i.anulado).toUpperCase()==='TRUE'?` <span class="badge b-off">${esc(L('Anulado','Voided'))}</span>`:esCap()?`<br><button class="btn-g btn-sm" type="button" style="margin-top:4px" onclick="otraOportunidad('${i.cursoId}','${esc(i.nss||i.identificador)}')">${esc(L('Dar otra oportunidad','Give another chance'))}</button>`:''}`}</td></tr>`).join(''):vacio(8,L('Todavía no hay intentos.','No attempts yet.'))}</tbody></table></div></section>`;
   $('cursos-body').innerHTML = h;
 }
 function abrirCurso(id){
@@ -2092,14 +2152,50 @@ async function importarBaseMatriz(input){
 
 /* ═══════════════ CAPACITACIÓN (contratista, sin cuenta) ═══════════════ */
 let CP = null;
-async function abrirCapacitacion(){
-  showView('curso'); $('curso-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
-  const r = await api({action:'cursosPublicos'}); if(!r.success){ toast(r.error,'err'); return; }
-  CP = {cursos:r.cursos, curso:null, leidos:{}, examen:null};
-  $('curso-body').innerHTML = cabecera(L('Capacitación para contratistas','Contractor training'), L('Elige tu curso. Lee todos los temas y después presenta el examen cronometrado.','Choose your course. Read all topics, then take the timed exam.'), `<button class="btn-g btn-sm" type="button" onclick="showView('publico')">${esc(L('Regresar','Back'))}</button>`)
+/* v0.13: acceso con la clave de la compañía + NSS + nombre. La foto se toma al iniciar el examen. */
+const KEY_ACCESO = 'ktmex_safety_acceso';
+function accesoGuardado(){ try{ return JSON.parse(sessionStorage.getItem(KEY_ACCESO)||'null'); }catch(e){ return null; } }
+function guardarAcceso(a){ try{ if(a) sessionStorage.setItem(KEY_ACCESO, JSON.stringify(a)); else sessionStorage.removeItem(KEY_ACCESO); }catch(e){} }
+async function abrirCapacitacion(clave){
+  showView('curso');
+  const g = accesoGuardado();
+  if(g && g.acceso && !clave){
+    $('curso-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
+    const r = await api({action:'cursosPublicos', acceso:g.acceso});
+    if(r && r.success){ CP = Object.assign({cursos:r.cursos, curso:null, leidos:{}, examen:null}, g); return listaCursosCP(); }
+    guardarAcceso(null); if(r && r.error) toast(r.error,'err');
+  }
+  pantallaAccesoCP(clave || '');
+}
+function pantallaAccesoCP(clave){
+  $('curso-body').innerHTML = cabecera(L('Capacitación para contratistas','Contractor training'), L('Escribe la clave de tu compañía, tu NSS y tu nombre completo. La clave te la da tu supervisor.','Enter your company key, your social security number and your full name. Your supervisor gives you the key.'), `<button class="btn-g btn-sm" type="button" onclick="showView('publico')">${esc(L('Regresar','Back'))}</button>`)
+    + `<section class="card" style="padding:20px;max-width:560px"><div class="grid-1" style="display:grid;gap:12px">
+      ${fld(L('Clave de tu compañía','Company key'), inp('cp-clave', clave, 'autocapitalize="characters" autocomplete="off" placeholder="ABC-1234XY" style="text-transform:uppercase;letter-spacing:.06em"'))}
+      ${fld(L('Número de Seguridad Social (NSS, 11 dígitos)','Social security number (NSS, 11 digits)'), inp('cp-nss', '', 'inputmode="numeric" autocomplete="off" maxlength="14" placeholder="12345678901"'))}
+      ${fld(L('Nombre completo','Full name'), inp('cp-nombre', '', 'autocomplete="name"'))}
+      <p class="help">${esc(L('Al iniciar el examen se te pedirá una foto con la cámara para verificar tu identidad. Solo la ve el personal de Safety.','When you start the exam you will be asked for a photo with the camera to verify your identity. Only Safety staff can see it.'))}</p>
+      <div><button class="btn-p" type="button" id="btn-acceso" onclick="entrarCapacitacion()"><i class="fas fa-right-to-bracket" style="margin-right:6px"></i>${esc(L('Entrar a la capacitación','Enter training'))}</button></div></div></section>`;
+  setTimeout(()=>{ const x = $(clave ? 'cp-nss' : 'cp-clave'); if(x) x.focus(); }, 50);
+}
+async function entrarCapacitacion(){
+  const b = $('btn-acceso'); if(b) b.disabled = true;
+  try{
+    const r = await api({action:'contratistaAcceso', clave:val('cp-clave'), nss:val('cp-nss'), nombre:val('cp-nombre')});
+    if(!r || !r.success){ toast((r&&r.error)||'Error','err'); return; }
+    const a = {acceso:r.acceso, empresa:r.empresa, nss:r.nss, nombre:r.nombre};
+    guardarAcceso(a); CP = Object.assign({cursos:r.cursos, curso:null, leidos:{}, examen:null}, a);
+    try{ if(location.search) history.replaceState(null, '', location.pathname); }catch(e){}
+    listaCursosCP();
+  } finally { const x = $('btn-acceso'); if(x) x.disabled = false; }
+}
+function salirCapacitacion(){ cerrarInteractivo(); guardarAcceso(null); CP = null; showView('publico'); }
+const datosCP = () => `<section class="card" style="padding:14px 18px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;justify-content:space-between"><div style="display:flex;flex-wrap:wrap;gap:6px 22px"><span><span class="help">${esc(L('Nombre','Name'))}</span><br><strong class="no-i18n">${esc(CP.nombre)}</strong></span><span><span class="help">${esc(L('Compañía','Company'))}</span><br><strong class="no-i18n">${esc(CP.empresa)}</strong></span><span><span class="help">NSS</span><br><strong class="mono">${esc(CP.nss)}</strong></span></div><button class="btn-g btn-sm" type="button" onclick="salirCapacitacion()">${esc(L('No soy yo / salir','Not me / exit'))}</button></section>`;
+function listaCursosCP(){
+  $('curso-body').innerHTML = cabecera(L('Capacitación para contratistas','Contractor training'), L('Elige tu curso. Lee todos los temas y después presenta el examen cronometrado.','Choose your course. Read all topics, then take the timed exam.'), `<button class="btn-g btn-sm" type="button" onclick="salirCapacitacion()">${esc(L('Salir','Exit'))}</button>`)
+    + datosCP()
     + (CP.cursos.length ? `<div class="mod-grid">${CP.cursos.map((c,i)=>`<div class="card mod go" tabindex="0" onclick="elegirCurso(${i})" onkeydown="if(event.key==='Enter')elegirCurso(${i})"><div class="mod-ico" style="background:#F5F3FF"><i class="fas fa-graduation-cap" style="color:#7C3AED;font-size:18px"></i></div><h3 class="no-i18n">${esc(c.titulo)}</h3><p class="no-i18n">${esc(c.descripcion||'')}</p><span class="help">${esc(`${c.totalPreguntas} preguntas · mínimo ${c.minimo}% · ${c.intentos} intentos`)}</span></div>`).join('')}</div>` : `<div class="box"><p class="help">${esc(L('No hay cursos publicados por ahora.','No courses published for now.'))}</p></div>`);
 }
-function elegirCurso(i){ CP.curso = CP.cursos[i]; CP.leidos = {}; CP.tema = 0; CP.sl = {}; CP.pos = {}; CP.visto = {}; CP.ej = {}; CP.audio = {}; pintarCursoPublico(); }
+function elegirCurso(i){ CP.curso = CP.cursos[i]; if(CP.curso.interactivo) return abrirInteractivo(); CP.leidos = {}; CP.tema = 0; CP.sl = {}; CP.pos = {}; CP.visto = {}; CP.ej = {}; CP.audio = {}; pintarCursoPublico(); }
 const temaConDiap = (c, t) => t && t.desde > 0 && t.hasta >= t.desde && (c.totalDiapositivas||0) >= t.desde;
 function abrirTemaCP(i){ guardarDatosCP(); window.KEJ && KEJ.callar(); CP.tema = i; pintarCursoPublico(); }
 // v0.10: ejercicios del tema. El de tipo «hotspots» con diapositiva va en lugar de esa diapositiva; los demás, después de las diapositivas.
@@ -2109,15 +2205,15 @@ const ejsPendientes = t => ejsTema(t).filter(e => !(CP.ej[e.id] && CP.ej[e.id].d
 async function audioCurso(clave){
   if(!(CP.curso.audios||[]).includes(clave)) return null;
   if(CP.audio[clave]) return CP.audio[clave];
-  const r = await api({action:'cursoAudio', cursoId:CP.curso.id, clave}); return (CP.audio[clave] = r && r.success ? r.dataUrl : null);
+  const r = await api({action:'cursoAudio', cursoId:CP.curso.id, clave, acceso:CP.acceso}); return (CP.audio[clave] = r && r.success ? r.dataUrl : null);
 }
 async function escucharTema(i){ const t = CP.curso.temas[i]; const a = await audioCurso('t'+i); if(window.KEJ) KEJ.hablar(t.narracion||t.contenido||t.titulo, a); }
 function pintarCursoPublico(){
   const c = CP.curso, n = (c.temas||[]).length, leidos = Object.keys(CP.leidos).length, listo = leidos>=n;
   CP.ej = CP.ej || {}; CP.audio = CP.audio || {};
   const voz = window.KEJ && (KEJ.hayVoz() || (c.audios||[]).length);
-  $('curso-body').innerHTML = cabecera(c.titulo, c.descripcion||'', `<button class="btn-g btn-sm" type="button" onclick="abrirCapacitacion()">${esc(L('Otros cursos','Other courses'))}</button>`)
-    + `<section class="card" style="padding:18px;margin-bottom:14px"><div class="sec-title">${esc(L('Tus datos','Your information'))}</div><div class="grid-3">${fld(L('Nombre completo','Full name'), inp('cp-nombre',CP.nombre||''))}${fld(L('Compañía','Company'), inp('cp-empresa',CP.empresa||''))}${fld(L('Identificador (gafete, ID o folio)','ID (badge, ID or number)'), inp('cp-ident',CP.ident||''))}</div></section>`
+  $('curso-body').innerHTML = cabecera(c.titulo, c.descripcion||'', `<button class="btn-g btn-sm" type="button" onclick="listaCursosCP()">${esc(L('Otros cursos','Other courses'))}</button>`)
+    + datosCP()
     + (c.temas||[]).map((t,i)=>{ const abierto = i<=leidos, activo = abierto && CP.tema===i, diap = temaConDiap(c,t);
       const total = diap ? Math.min(t.hasta, c.totalDiapositivas) - t.desde + 1 : 0, pos = CP.pos[i]||0, vioTodo = !diap || (CP.visto[i]||0) >= total-1;
       const ejs = ejsTema(t), pend = ejsPendientes(t), nDiapEj = diap ? t.desde + pos : 0, ejDiap = diap ? ejEnDiap(t, nDiapEj) : null;
@@ -2148,7 +2244,7 @@ function pintarEjercicio(el, e, imagen){
 }
 async function diapositiva(n){
   if(CP.sl[n]) return CP.sl[n];
-  const r = await api({action:'cursoDiapositiva', cursoId:CP.curso.id, n}); if(!r || !r.success) throw new Error((r&&r.error)||'Error');
+  const r = await api({action:'cursoDiapositiva', cursoId:CP.curso.id, n, acceso:CP.acceso}); if(!r || !r.success) throw new Error((r&&r.error)||'Error');
   return (CP.sl[n] = r.dataUrl);
 }
 async function mostrarDiap(i){
@@ -2161,11 +2257,52 @@ async function mostrarDiap(i){
 }
 function moverDiap(i, d){ guardarDatosCP(); window.KEJ && KEJ.callar(); const t = CP.curso.temas[i], total = Math.min(t.hasta, CP.curso.totalDiapositivas) - t.desde + 1;
   CP.pos[i] = Math.max(0, Math.min(total-1, (CP.pos[i]||0) + d)); CP.visto[i] = Math.max(CP.visto[i]||0, CP.pos[i]); pintarCursoPublico(); }
-function guardarDatosCP(){ CP.nombre=val('cp-nombre'); CP.empresa=val('cp-empresa'); CP.ident=val('cp-ident'); }
-async function iniciarExamen(){
-  guardarDatosCP();
-  const r = await api({action:'cursoIniciar', cursoId:CP.curso.id, nombre:CP.nombre, empresa:CP.empresa, identificador:CP.ident});
-  if(!r.success){ toast(r.error,'err'); return; }
+function guardarDatosCP(){}   // v0.13: nombre, compañía y NSS vienen del acceso con clave
+/* Foto al iniciar el examen: cámara en vivo (getUserMedia) o, si no hay, la cámara del celular con <input capture>. */
+let CAM = null;
+function pararCamara(){ try{ if(CAM && CAM.stream) CAM.stream.getTracks().forEach(t=>t.stop()); }catch(e){} CAM = null; }
+function recortarFoto(fuente, w, h, lado, calidad){
+  const c = document.createElement('canvas'), m = Math.min(w, h); c.width = c.height = lado;
+  c.getContext('2d').drawImage(fuente, (w-m)/2, (h-m)/2, m, m, 0, 0, lado, lado);
+  return c.toDataURL('image/jpeg', calidad);
+}
+function iniciarExamen(){
+  pararCamara();
+  modal(1, L('Foto para el examen','Exam photo'), `<p class="help" style="margin-top:0">${esc(L('Mira a la cámara con buena luz, sin lentes oscuros ni gorra. La foto verifica que tú presentas el examen; solo la ve Safety y puede aparecer en tu credencial KTMEX.','Look at the camera in good light, without sunglasses or cap. The photo verifies that you take the exam; only Safety sees it and it may appear on your KTMEX credential.'))}</p>
+    <div style="display:grid;place-items:center;gap:10px"><div style="width:min(320px,80vw);aspect-ratio:1;border-radius:16px;overflow:hidden;background:#0B1730;display:grid;place-items:center"><video id="cam-v" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video><img id="cam-img" alt="" style="display:none;width:100%;height:100%;object-fit:cover"></div>
+    <p class="help" id="cam-msg"></p><input type="file" id="cam-file" accept="image/*" capture="user" style="display:none" onchange="fotoDeArchivo(this)"></div>`,
+    `<button class="btn-g" type="button" onclick="pararCamara();closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-g" type="button" id="cam-otra" style="display:none" onclick="iniciarExamen()">${esc(L('Tomar otra','Retake'))}</button><button class="btn-p" type="button" id="cam-tomar" onclick="tomarFoto()"><i class="fas fa-camera" style="margin-right:6px"></i>${esc(L('Tomar foto','Take photo'))}</button><button class="btn-p" type="button" id="cam-ok" style="display:none" onclick="confirmarFotoExamen()">${esc(L('Usar esta foto e iniciar','Use this photo and start'))}</button>`);
+  CAM = {};
+  const sinCamara = () => { $('cam-msg').textContent = uiText(L('No se pudo abrir la cámara en vivo. Toca «Tomar foto» para usar la cámara del celular.','The live camera could not be opened. Tap «Take photo» to use the phone camera.')); CAM.archivo = true; };
+  if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return sinCamara();
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:{ideal:720}, height:{ideal:720}}, audio:false})
+    .then(st=>{ if(!CAM){ st.getTracks().forEach(t=>t.stop()); return; } CAM.stream = st; const v = $('cam-v'); v.srcObject = st; })
+    .catch(sinCamara);
+}
+function tomarFoto(){
+  if(!CAM) return;
+  if(CAM.archivo || !CAM.stream){ $('cam-file').click(); return; }
+  const v = $('cam-v'); if(!v.videoWidth){ toast(L('Espera a que se vea la cámara.','Wait for the camera to show.'),'err'); return; }
+  mostrarFotoTomada(recortarFoto(v, v.videoWidth, v.videoHeight, 640, .82), recortarFoto(v, v.videoWidth, v.videoHeight, 200, .7));
+}
+function fotoDeArchivo(inp){
+  const f = inp.files && inp.files[0]; if(!f) return;
+  const im = new Image(); im.onload = () => { mostrarFotoTomada(recortarFoto(im, im.naturalWidth, im.naturalHeight, 640, .82), recortarFoto(im, im.naturalWidth, im.naturalHeight, 200, .7)); URL.revokeObjectURL(im.src); };
+  im.onerror = () => toast(L('No se pudo leer la foto.','The photo could not be read.'),'err'); im.src = URL.createObjectURL(f);
+}
+function mostrarFotoTomada(foto, mini){
+  const st = CAM && CAM.stream; if(st) st.getTracks().forEach(t=>t.stop());
+  CAM = Object.assign(CAM||{}, {foto, mini, stream:null});
+  $('cam-v').style.display='none'; const im = $('cam-img'); im.src = foto; im.style.display='block';
+  $('cam-tomar').style.display='none'; $('cam-otra').style.display=''; $('cam-ok').style.display=''; $('cam-msg').textContent='';
+}
+async function confirmarFotoExamen(){
+  if(!CAM || !CAM.foto) return; const foto = CAM.foto, mini = CAM.mini;
+  $('cam-ok').disabled = true;
+  const r = await api({action:'cursoIniciar', cursoId:CP.curso.id, acceso:CP.acceso, foto, fotoMini:mini});
+  const b = $('cam-ok'); if(b) b.disabled = false;
+  if(!r.success){ toast(r.error,'err'); if(/acceso|clave/i.test(r.error||'')){ pararCamara(); closeModal('m-gen'); guardarAcceso(null); pantallaAccesoCP(''); } return; }
+  pararCamara(); closeModal('m-gen');
   CP.examen = {token:r.token, preguntas:r.preguntas, segundos:r.segundos, i:0, resp:[], intento:r.intento, max:r.intentosMax};
   preguntaExamen();
 }
@@ -2185,9 +2322,37 @@ async function siguientePregunta(){
   const r = await api({action:'cursoEnviar', token:ex.token, respuestas:ex.resp});
   if(!r.success){ toast(r.error,'err'); return; }
   $('curso-body').innerHTML = `<section class="card" style="padding:28px;text-align:center"><div style="font-size:2.6rem;font-weight:800;color:${r.aprobado?'#15803D':'#B91C1C'}">${r.calificacion}%</div><h3 style="color:var(--navy)">${esc(r.aprobado?L('¡Aprobaste!','You passed!'):L('No aprobaste','You did not pass'))}</h3><p class="help">${esc(`${r.buenas} de ${r.total} correctas · mínimo ${r.minimo}%`)}${r.enTiempo?'':' · '+esc(L('El examen se envió fuera de tiempo.','The exam was submitted after the time limit.'))}</p>
-    <div class="toolbar" style="justify-content:center;margin-top:14px">${r.aprobado?'':`<button class="btn-p" type="button" onclick="pintarCursoPublico()">${esc(L('Volver al curso','Back to the course'))}</button>`}<button class="btn-g" type="button" onclick="showView('publico')">${esc(L('Salir','Exit'))}</button></div></section>`;
+    ${r.mensaje?`<p style="margin-top:10px;font-weight:600">${esc(r.mensaje)}</p>`:''}${r.aprobado?`<p class="help">${esc(L('Safety ya tiene tu resultado; tu credencial KTMEX la entrega Safety.','Safety already has your result; Safety hands out your KTMEX credential.'))}</p>`:''}
+    <div class="toolbar" style="justify-content:center;margin-top:14px"><button class="btn-p" type="button" onclick="${CP.curso&&CP.curso.interactivo?'abrirInteractivo()':'pintarCursoPublico()'}">${esc(L('Volver al curso','Back to the course'))}</button><button class="btn-g" type="button" onclick="salirCapacitacion()">${esc(L('Salir','Exit'))}</button></div></section>`;
   CP.examen = null;
 }
+
+/* ═══ v0.14: curso interactivo (HTML en Drive). Se muestra en pantalla completa y guarda el avance por NSS. ═══ */
+let CI = { html:{}, estado:null, t:null };
+async function abrirInteractivo(){
+  const c = CP.curso; cerrarInteractivo();
+  $('curso-body').innerHTML = `<p class="help">${esc(L('Cargando el curso…','Loading the course…'))}</p>`;
+  const [h, a] = await Promise.all([ CI.html[c.id] ? Promise.resolve({success:true, html:CI.html[c.id]}) : api({action:'cursoInteractivo', cursoId:c.id, acceso:CP.acceso}), api({action:'cursoAvance', cursoId:c.id, acceso:CP.acceso}) ]);
+  const err = (!h||!h.success) ? h : (!a||!a.success) ? a : null;
+  if(err){ toast((err&&err.error)||'Error','err'); if(/acceso|clave/i.test((err&&err.error)||'')){ guardarAcceso(null); return pantallaAccesoCP(''); } return listaCursosCP(); }
+  CI.html[c.id] = h.html; CI.estado = a;
+  const ov = document.createElement('div'); ov.id = 'ci-ov';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:90;background:#fff;display:flex;flex-direction:column';
+  ov.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#0B1730;color:#fff;font-size:.8rem;padding-top:max(6px,env(safe-area-inset-top))"><button class="btn-g btn-sm" type="button" onclick="cerrarInteractivo();listaCursosCP()">← ${esc(L('Cursos','Courses'))}</button><span class="no-i18n" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(CP.nombre)} · ${esc(CP.empresa)} · NSS ${esc(CP.nss)}</span><button class="btn-g btn-sm" type="button" onclick="cerrarInteractivo();salirCapacitacion()">${esc(L('Salir','Exit'))}</button></div>
+    <iframe id="ci-frame" title="${esc(c.titulo)}" sandbox="allow-scripts allow-popups allow-modals" style="flex:1;border:0;width:100%"></iframe>`;
+  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+  $('ci-frame').srcdoc = h.html;
+}
+function cerrarInteractivo(){ const o = $('ci-ov'); if(o) o.remove(); document.body.style.overflow = ''; }
+window.addEventListener('message', e => {
+  const f = $('ci-frame'); if(!f || e.source !== f.contentWindow) return; const d = e.data || {};
+  if(d.ktmex === 'listo' && CI.estado) f.contentWindow.postMessage(Object.assign({ktmex:'estado'}, CI.estado), '*');
+  if(d.ktmex === 'avance' && CI.estado){ CI.estado.modulos = d.modulos||[]; CI.estado.actividades = d.actividades||[];
+    clearTimeout(CI.t); CI.t = setTimeout(async ()=>{ const r = await api({action:'cursoAvanceGuardar', cursoId:CP.curso.id, acceso:CP.acceso, modulos:CI.estado.modulos, actividades:CI.estado.actividades});
+      if(r && !r.success){ toast(r.error,'err'); if(/acceso|clave/i.test(r.error||'')){ cerrarInteractivo(); guardarAcceso(null); pantallaAccesoCP(''); } } }, 700); }
+  if(d.ktmex === 'examen'){ cerrarInteractivo(); CP.leidos = {}; CP.examen = null;
+    $('curso-body').innerHTML = cabecera(CP.curso.titulo, L('Examen final','Final exam'), '') + datosCP() + `<section class="card" style="padding:18px"><p>${esc(L('Antes de empezar te pediremos una foto con la cámara.','Before starting we will ask for a camera photo.'))}</p><div class="toolbar" style="margin-top:12px"><button class="btn-p" type="button" onclick="iniciarExamen()">${esc(L('Tomar foto e iniciar','Take photo and start'))}</button><button class="btn-g" type="button" onclick="abrirInteractivo()">${esc(L('Volver al curso','Back to the course'))}</button></div></section>`; }
+});
 
 /* ═══════════════ PÁGINA PÚBLICA (sin cuenta) ═══════════════ */
 function renderPublico(){
@@ -2205,6 +2370,13 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.14.0': [ L('Capacitación de contratistas: nuevo curso interactivo «Seguridad Primero» (5 módulos con actividades). El avance se guarda por NSS y el examen se abre al terminar los módulos.','Contractor training: new interactive course «Safety First» (5 modules with activities). Progress is saved by NSS and the exam opens after the modules.'),
+    L('Examen con las reglas del Líder de Seguridad: 80 aprueba, 60 a 79 segunda y última oportunidad, menos de 60 bloqueado. Safety puede dar otra oportunidad.','Exam with Safety Leader rules: 80 passes, 60-79 second and last chance, under 60 blocked. Safety can give another chance.'),
+    L('Actividad «Caza de riesgos»: 30 riesgos ocultos en la planta.','«Risk hunt» activity: 30 hidden risks in the plant.'),
+    L('El usuario mmejia ahora es moises.mejia.','User mmejia is now moises.mejia.') ],
+  '0.13.0': [ L('Capacitación de contratistas con clave por proveedor: cada trabajador entra con la clave de su compañía, su NSS y su nombre. Ya no hay acceso abierto.','Contractor training with a key per supplier: each worker enters with the company key, NSS and name. Open access was removed.'),
+    L('Foto con la cámara al iniciar el examen; Safety la ve en Resultados y sale en la credencial de la matriz.','Camera photo when starting the exam; Safety sees it in Results and it appears on the matrix credential.'),
+    L('Contratistas → Empresas: generar, renovar y compartir la clave (mensaje y QR) con su fecha de vigencia.','Contractors → Companies: generate, renew and share the key (message and QR) with its expiry date.') ],
   '0.12.0': [ L('Indicadores: botón «⚙ Personalizar» en las gráficas de las pestañas Indicadores y Tablero de incidentes, con el mismo panel del board (tipo, paleta, colores, estilo, alto y PNG).','Indicators: «⚙ Customize» button on the charts of the Indicators and Incident dashboard tabs, with the same panel as the board (type, palette, colors, style, height and PNG).'),
     L('Solo quien tiene el permiso «board» personaliza; lo que guarda lo ven todos.','Only users with the «board» permission customize; everyone sees what they save.') ],
   '0.11.1': [ L('Board de incidentes: botón «⚙ Personalizar» en cada gráfica con el panel de Facilities (tipo de gráfica, paleta, colores de cada elemento, etiquetas, cuadrícula, leyenda, degradado, grosores, tamaño de texto, alto y descarga en PNG).','Incident board: «⚙ Customize» button on every chart with the Facilities panel (chart type, palette, per-item colors, labels, grid, legend, gradient, widths, text size, height and PNG download).'),
@@ -2294,6 +2466,8 @@ setTimeout(mostrarNovedades, 1500);
     SESSION = guardada;
     try{ await arrancar(); return; }catch(e){ toast(e.message,'err'); cerrarSesionLocal(); }
   }
+  let claveURL = ''; try{ claveURL = new URLSearchParams(location.search).get('clave') || ''; }catch(e){}
+  if(claveURL){ abrirCapacitacion(claveURL); return; }
   showView('publico');
 })();
 
