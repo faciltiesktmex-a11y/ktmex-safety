@@ -413,6 +413,8 @@
       cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: { duration: 300 }, layout: { padding: { top: 18, right: type === 'hbar' ? 28 : 8 } } }, cfg.options);
       aplicarEstilo(cfg, st, fam, canvas);
       cfg.plugins = [valores];
+      if (opts.puedeEditar && opts.editarEventos) { cfg.options.onClick = (ev, els) => { if (els && els.length) editorDatos(s, c.labels[els[0].index]); };
+        cfg.options.onHover = (ev, els) => { if (ev.native && ev.native.target) ev.native.target.style.cursor = els && els.length ? 'pointer' : 'default'; }; }
       const ch = new root.Chart(canvas, cfg); host.__kbdCharts.push(ch); return ch;
     }
 
@@ -471,16 +473,18 @@
       b('pres').onclick = () => presentar(0);
       if (opts.puedeEditar) { b('secs').onclick = menuSecciones; b('nueva').onclick = () => editorPropia(null); b('pl').onclick = editorPlantilla; }
       host.querySelectorAll('[data-gear]').forEach(g => g.onclick = () => studio(g.dataset.gear));
+      host.querySelectorAll('[data-datos]').forEach(g => g.onclick = () => { const sx = todas().find(x => x.id === g.dataset.datos); if (sx) editorDatos(sx, null); });
       if (ST.id) { const el = host.querySelector(`[data-sec="${CSS_ESC(ST.id)}"]`); if (el) el.classList.add('st-target'); host.classList.add('st-open'); }
     }
     const nombre = s => (S.cfg.charts[s.id] && S.cfg.charts[s.id].titulo) || (EN && s.en ? s.en : s.t);
     function seccionHTML(s, i, pres) {
       const full = s.esp === 'resumen' || s.esp === 'cuerpo' || s.esp === 'calor' || s.id === 'linea' || s.id === 'tendencia';
       const gear = opts.puedeEditar && s.esp !== 'resumen' && s.esp !== 'calor' && !pres ? `<button class="b-gear" type="button" data-gear="${esc(s.id)}" title="${esc(T('Personalizar gráfica', 'Customize chart'))}">⚙<span class="gl"> ${esc(T('Personalizar', 'Customize'))}</span></button>` : '';
+      const datosBtn = opts.puedeEditar && opts.editarEventos && !pres && s.esp !== 'tasa' ? `<button class="b-gear" type="button" data-datos="${esc(s.id)}" title="${esc(T('Ver y corregir los incidentes de esta gráfica', 'View and correct the incidents of this chart'))}">✎<span class="gl"> ${esc(T('Editar datos', 'Edit data'))}</span></button>` : '';
       const st = estilo(s);
       const cuerpo = s.esp === 'cuerpo' ? `<div class="b-body"><div data-cuerpo></div><div class="b-cv" style="height:${pres ? 'calc(100vh - 220px)' : st.height + 'px'}"><canvas></canvas></div></div>`
         : s.esp === 'resumen' || s.esp === 'calor' ? `<div data-esp="${s.esp}"></div>` : `<div class="b-cv" style="height:${pres ? 'calc(100vh - 220px)' : st.height + 'px'}"><canvas></canvas></div>`;
-      return `<section class="b-sec ${full ? 'full' : ''}" id="kbd-${esc(s.id)}" data-sec="${esc(s.id)}"><div class="b-sh"><div><h3><small>${i + 1}</small>${esc(nombre(s))}</h3>${s.d || s.desc ? `<p>${esc(s.d || s.desc)}${s.soloLesion ? '' : ''}</p>` : ''}</div>${gear}</div>${cuerpo}</section>`;
+      return `<section class="b-sec ${full ? 'full' : ''}" id="kbd-${esc(s.id)}" data-sec="${esc(s.id)}"><div class="b-sh"><div><h3><small>${i + 1}</small>${esc(nombre(s))}</h3>${s.d || s.desc ? `<p>${esc(s.d || s.desc)}${s.soloLesion ? '' : ''}</p>` : ''}</div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${datosBtn}${gear}</div></div>${cuerpo}</section>`;
     }
     function dibujarSecciones(box, secs, lista) {
       secs.forEach(s => {
@@ -528,6 +532,7 @@
       const t = document.createElement('div'); t.innerHTML = seccionHTML(s, i); const nuevo = t.firstElementChild; el.replaceWith(nuevo);
       if (ST.id === id) nuevo.classList.add('st-target');
       const g = nuevo.querySelector('[data-gear]'); if (g) g.onclick = () => studio(id);
+      const gd = nuevo.querySelector('[data-datos]'); if (gd) gd.onclick = () => editorDatos(s, null);
       dibujarSecciones(host, [s], filtrar(EV));
       const a = host.querySelector(`[data-go="${CSS_ESC(id)}"]`); if (a) a.innerHTML = `<b>${i + 1}</b>${esc(nombre(s))}`;
     }
@@ -564,6 +569,56 @@
     function descargarPNG(id) {
       const el = host.querySelector(`[data-sec="${CSS_ESC(id)}"] canvas`); if (!el) return;
       descargar(el, 'board-incidentes-' + id);
+    }
+    /* ---------- «Editar datos»: ver y corregir los incidentes que forman una gráfica (permiso «board») ---------- */
+    const GRUPOS = ['Cabeza y cara', 'Cuello', 'Hombro', 'Tórax y espalda', 'Abdomen y cadera', 'Brazo y codo', 'Mano y dedos', 'Pierna y rodilla', 'Pie y tobillo'];
+    const STOPS = ['NA', 'A', 'B', 'C', 'D', 'E', 'F', 'α1', 'α2', 'α'];
+    function editorDatos(s, categoria) {
+      const base = (s.todosAnios ? filtrar(EV, true) : filtrar(EV)).filter(e => !(s.soloLesion || s.esp === 'cuerpo') || LESION[e.clasificacion]);
+      const D = DIMS[s.dim];
+      const enCat = e => categoria == null || /^(Resto|Rest) \(\d+\)$/.test(categoria) || (D ? (D.multi ? D.multi(e) : [D.v(e)]).includes(categoria) : true);
+      const lista = base.filter(enCat).sort((a, b) => b.fecha.localeCompare(a.fecha));
+      const areas = [...new Set(EV.map(e => e.area).filter(Boolean))].sort(), lineas = [...new Set(EV.map(e => e.linea).filter(Boolean))].sort(), lesiones = [...new Set(EV.map(e => e.tipoLesion).filter(Boolean))].sort();
+      const cambios = {};
+      const sel = (id, k, v, ops, vacio) => `<select data-e="${esc(id)}" data-k="${k}"><option value="">${esc(vacio || '—')}</option>${ops.map(o => { const [val, tx] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(val)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(tx)}</option>`; }).join('')}</select>`;
+      const txt = (id, k, v, dl) => `<input type="text" data-e="${esc(id)}" data-k="${k}" value="${esc(v || '')}" list="${dl}" style="min-width:110px">`;
+      const fila = e => `<tr data-fila="${esc(e.id)}"><td style="white-space:nowrap">${esc(e.fecha)}<br><small class="mono">${esc(e.folio || '')}</small></td><td style="min-width:200px;max-width:280px;font-size:.74rem;color:#475569;text-align:left">${esc(e.desc || '')}</td>
+        <td>${sel(e.id, 'clasificacion', e.clasificacion, ORDEN_CLASIF)}</td><td>${txt(e.id, 'area', e.area, 'kbd-dl-area')}</td><td>${sel(e.id, 'turnoNum', e.turnoNum, [['1', '1.º'], ['2', '2.º']])}</td><td>${sel(e.id, 'turno', e.turno, ['Verde', 'Azul', 'Mixto'])}</td>
+        <td>${txt(e.id, 'linea', e.linea, 'kbd-dl-linea')}</td><td>${sel(e.id, 'acto', e.acto, ['Acto', 'Condición'])}</td><td>${sel(e.id, 'stop', ['NA', 'A', 'B', 'C', 'D', 'E', 'F', 'α1', 'α2', 'α'].includes(e.stop) ? e.stop : '', STOPS.map(k => [k, STOP_TXT[k] || k]))}</td>
+        <td>${(e.partesCuerpo || []).length ? `<small title="${esc(T('Marcadas en la figura del comunicado', 'Marked on the communication figure'))}">${esc(e._grupos.join(', '))} 🔒</small>` : sel(e.id, 'parte', e.parteRE, GRUPOS)}</td><td>${txt(e.id, 'tipoLesion', e.tipoLesion, 'kbd-dl-les')}</td></tr>`;
+      const m = modal(`<h3>✎ ${esc(T('Editar datos', 'Edit data'))}: ${esc(nombre(s))}${categoria != null ? ' · ' + esc(tt(categoria)) : ''}</h3>
+        <p style="font-size:.8rem;color:#64748B;margin:0 0 8px">${esc(T(`${lista.length} incidentes con los filtros del board. Corrige lo que esté mal y guarda: la gráfica se recalcula y el cambio queda en la bitácora.`, `${lista.length} incidents with the board filters. Fix what is wrong and save: the chart is recalculated and the change is logged.`))}</p>
+        <div class="row"><input type="text" data-buscar placeholder="${esc(T('Buscar por folio, área, línea o descripción', 'Search by ID, area, line or description'))}" style="flex:1;min-width:200px"></div>
+        <datalist id="kbd-dl-area">${areas.map(a => `<option value="${esc(a)}">`).join('')}</datalist><datalist id="kbd-dl-linea">${lineas.map(a => `<option value="${esc(a)}">`).join('')}</datalist><datalist id="kbd-dl-les">${lesiones.map(a => `<option value="${esc(a)}">`).join('')}</datalist>
+        <div style="overflow:auto;max-height:58vh;border:1px solid #E2E8F0;border-radius:12px"><table class="kbd-ed" style="width:100%;font-size:.78rem;border-collapse:collapse"><thead style="position:sticky;top:0;background:#F8FAFC;z-index:1"><tr>${[T('Fecha', 'Date'), T('Qué ocurrió', 'What happened'), T('Clasificación', 'Classification'), T('Área', 'Area'), T('Turno', 'Shift'), T('Grupo', 'Group'), T('Línea / equipo', 'Line / equipment'), T('Acto o condición', 'Act or condition'), 'STOP 6', T('Parte del cuerpo', 'Body part'), T('Tipo de lesión', 'Injury type')].map(h => `<th style="text-align:left;padding:8px 6px">${esc(h)}</th>`).join('')}</tr></thead>
+        <tbody>${lista.slice(0, 400).map(fila).join('') || `<tr><td colspan="11" style="padding:20px;text-align:center;color:#64748B">${esc(T('Sin incidentes.', 'No incidents.'))}</td></tr>`}</tbody></table></div>
+        ${lista.length > 400 ? `<p style="font-size:.76rem;color:#64748B">${esc(T('Se muestran los 400 más recientes; usa los filtros del board para acotar.', 'The 400 most recent are shown; use the board filters to narrow down.'))}</p>` : ''}
+        <div class="row" style="justify-content:space-between"><span data-n style="font-size:.8rem;color:#64748B"></span><span style="display:flex;gap:8px"><button type="button" data-x="no" style="font:inherit;border:1px solid #DDE5EF;border-radius:10px;padding:8px 12px;background:#fff;cursor:pointer">${esc(T('Cerrar', 'Close'))}</button><button type="button" data-x="ok" disabled style="font:inherit;border:0;border-radius:10px;padding:8px 16px;background:#2463EB;color:#fff;cursor:pointer;font-weight:600">${esc(T('Guardar cambios', 'Save changes'))}</button></span></div>`,
+        mm => {
+          mm.querySelector('.m').style.maxWidth = '1240px';
+          mm.onclick = e => { if (e.target === mm) mm.querySelector('[data-x="no"]').click(); };
+          const cuenta = () => { const n = Object.keys(cambios).length; mm.querySelector('[data-n]').textContent = n ? T(`${n} incidentes con cambios sin guardar`, `${n} incidents with unsaved changes`) : ''; mm.querySelector('[data-x="ok"]').disabled = !n; };
+          mm.querySelectorAll('[data-e]').forEach(x => x.onchange = () => { const id = x.dataset.e, k = x.dataset.k, ev = EV.find(e => e.id === id);
+            const orig = { clasificacion: ev.clasificacion, area: ev.area, turnoNum: ev.turnoNum, turno: ev.turno, linea: ev.linea, acto: ev.acto, stop: ev.stop, parte: ev.parteRE, tipoLesion: ev.tipoLesion }[k];
+            cambios[id] = cambios[id] || {}; if (String(x.value.trim()) === String(orig || '')) delete cambios[id][k]; else cambios[id][k] = x.value.trim();
+            if (!Object.keys(cambios[id]).length) delete cambios[id];
+            x.closest('tr').style.background = cambios[id] ? '#FEF9C3' : ''; cuenta(); });
+          mm.querySelector('[data-buscar]').oninput = ev => { const q = ev.target.value.toLowerCase(); mm.querySelectorAll('tr[data-fila]').forEach(tr => { tr.style.display = !q || tr.textContent.toLowerCase().includes(q) || [...tr.querySelectorAll('input')].some(i => i.value.toLowerCase().includes(q)) ? '' : 'none'; }); };
+          mm.querySelector('[data-x="no"]').onclick = () => { if (Object.keys(cambios).length && !confirm(T('Hay cambios sin guardar. ¿Cerrar de todos modos?', 'There are unsaved changes. Close anyway?'))) return; mm.remove(); };
+          mm.querySelector('[data-x="ok"]').onclick = async () => {
+            const b = mm.querySelector('[data-x="ok"]'); b.disabled = true; b.textContent = T('Guardando…', 'Saving…');
+            const lote = Object.keys(cambios).map(id => ({ id, campos: cambios[id] }));
+            const r = await opts.editarEventos(lote);
+            if (!r || !r.success) { b.disabled = false; b.textContent = T('Guardar cambios', 'Save changes'); return; }
+            lote.forEach(({ id, campos }) => { const e = EV.find(x => x.id === id), o = (data.eventos || []).find(x => x.id === id);
+              [e, o].forEach(t => { if (!t) return; Object.keys(campos).forEach(k => { if (k === 'parte') t.parteRE = campos[k]; else t[k] = campos[k]; }); });
+              if (e && 'parte' in campos) e._grupos = KF && KF.gruposDeEvento ? KF.gruposDeEvento(e) : (e.parteRE ? [e.parteRE] : []);
+              if (e && 'parte' in campos) e._zonas = KF && KF.zonasDeEvento ? KF.zonasDeEvento(e) : []; });
+            mm.remove(); pintar();
+          };
+          cuenta();
+        });
+      return m;
     }
     function menuSecciones() {
       const dibuja = m => {
@@ -618,6 +673,6 @@
     pintar();
     return { refrescar: pintar };
   }
-  root.KBD = { render, VERSION: '0.14.0', SECCIONES, DIMS };
+  root.KBD = { render, VERSION: '0.15.0', SECCIONES, DIMS };
   root.KCS = { estilo: estiloDe, construir, panel, cerrarPanel, descargar, boton: BOTON, css: cssKCS, TIPOS: TIPOS.map(t => t[0]) };
 })(typeof window !== 'undefined' ? window : this);

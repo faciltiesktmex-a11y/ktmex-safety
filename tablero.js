@@ -255,7 +255,11 @@
     // v0.12: «⚙ Personalizar» en las gráficas por año (mismo panel del Board de incidentes, window.KCS)
     var G = opts.graficas && root.KCS && root.Chart ? opts.graficas : null, GCH = {}, GITEMS = {}, GABIERTA = null;
     var PERSONALIZABLES = { month: 1, area: 1, cat: 1, shift: 1, type: 1 };
+    // v0.15: en Indicadores → «Contramedidas» solo se muestran abiertos/cerrados, cumplimiento, distribución,
+    // seguimiento y la tabla; las gráficas por mes, área, categoría, turno, tipo y cuerpo ya están en el Board de incidentes.
+    var SOLO_CM = !!opts.soloContramedidas, OCULTAS_CM = { month: 1, area: 1, cat: 1, shift: 1, type: 1, body: 1 };
     var sec = function (id, full, titulo, desc, extra) {
+      if (SOLO_CM && OCULTAS_CM[id]) return '<section class="k-card" data-kgsec="' + id + '" hidden style="display:none"><div class="k-head"><div><h2 data-i="' + titulo + '"></h2><p class="k-desc" data-i="' + desc + '"></p></div>' + (extra || '') + '</div>';
       var gear = G && G.puedeEditar && PERSONALIZABLES[id] ? root.KCS.boton(S.lang === 'en', 'data-kg="' + id + '"') : '';
       return '<section class="k-card' + (full ? ' full' : '') + '" data-kgsec="' + id + '"><div class="k-head"><div><h2 data-i="' + titulo + '"></h2><p class="k-desc" data-i="' + desc + '"></p></div>' + (extra || '') + gear + '</div>';
     };
@@ -505,7 +509,7 @@
       var ult = function (f) { return DATA.filter(f).map(function (r) { return parse(r.f); }).filter(function (x) { return x != null && x <= T; }).sort(function (a, b) { return b - a; })[0]; };
       var lastLT = ult(function (r) { return r.c === 'LT' || r.dp > 0; }), lastInj = ult(function (r) { return r.inj; });
       var cm = d.filter(function (r) { return r.hasCM; }), av = cm.length ? cm.reduce(function (a, r) { return a + r.av; }, 0) / cm.length : null;
-      $('h1').textContent = t('title');
+      $('h1').textContent = SOLO_CM ? (S.lang === 'en' ? 'Countermeasure follow-up' : S.lang === 'ja' ? '対策のフォローアップ' : 'Seguimiento de contramedidas') : t('title');
       $('lead').innerHTML = L[S.lang].lead(d.length, inj, open, S.year);
       var dias = function (x) { return x == null ? '—' : Math.round((T - x) / DAY); };
       var k = [[t('k1'), dias(lastLT), lastLT == null ? t('none') : t('k1s') + iso(lastLT)], [t('k2'), dias(lastInj), lastInj == null ? t('none') : t('k2s') + iso(lastInj)], [t('k3'), d.length, t('k3s')],
@@ -649,5 +653,5 @@
     return { datos: DATA };
   }
 
-  root.KTB = { render: render, VERSION: '0.14.0' };
+  root.KTB = { render: render, VERSION: '0.15.0' };
 })(typeof window !== 'undefined' ? window : this);

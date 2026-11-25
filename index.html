@@ -16,7 +16,7 @@
    Pega aquí la URL de la implementación de Apps Script de SAFETY
    (termina en /exec). No uses la de Facilities. */
 window.SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzXDZIrRVExCbLJsJBpHI-5w6YfoRkC9of3sLmPTubmOL9nzpKcZdYjyFyza0GXSS-N/exec';
-window.FRONT_VERSION = '0.14.0';
+window.FRONT_VERSION = '0.15.0';
 </script>
 <style>
 /* ═══ Tokens y componentes (mismo sistema visual que Facilities KTMEX) ═══ */
@@ -204,13 +204,13 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 .pf .nvp{font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="xlsx-fill.js?v=0.14.0" charset="utf-8"></script>
-<script src="fo015-map.js?v=0.14.0" charset="utf-8"></script>
-<script src="formatos.js?v=0.14.0" charset="utf-8"></script>
-<script src="layout-zonas.js?v=0.14.0" charset="utf-8"></script>
-<script src="tablero.js?v=0.14.0" charset="utf-8"></script>
-<script src="ejercicios.js?v=0.14.0" charset="utf-8"></script>
-<script src="board.js?v=0.14.0" charset="utf-8"></script>
+<script src="xlsx-fill.js?v=0.15.0" charset="utf-8"></script>
+<script src="fo015-map.js?v=0.15.0" charset="utf-8"></script>
+<script src="formatos.js?v=0.15.0" charset="utf-8"></script>
+<script src="layout-zonas.js?v=0.15.0" charset="utf-8"></script>
+<script src="tablero.js?v=0.15.0" charset="utf-8"></script>
+<script src="ejercicios.js?v=0.15.0" charset="utf-8"></script>
+<script src="board.js?v=0.15.0" charset="utf-8"></script>
 </head>
 <body>
 
@@ -227,11 +227,9 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
   <button class="sb-btn" id="nav-eventos" type="button" onclick="showView('eventos')"><i class="fas fa-bullhorn"></i>Comunicados y alertas</button>
   <div class="sb-section">Control</div>
   <button class="sb-btn" id="nav-kpi" type="button" onclick="showView('kpi')"><i class="fas fa-chart-column"></i>Indicadores</button>
-  <button class="sb-btn" id="nav-board" type="button" onclick="showView('board')"><i class="fas fa-chart-pie"></i>Board de incidentes</button>
   <div class="sb-section" id="sec-contr">Contratistas</div>
   <button class="sb-btn" id="nav-mcontr" type="button" onclick="showView('mcontr')"><i class="fas fa-address-book"></i>Matriz de contratistas</button>
-  <button class="sb-btn" id="nav-contratistas" type="button" onclick="showView('contratistas')"><i class="fas fa-id-card"></i>Contratistas y DC-3</button>
-  <button class="sb-btn" id="nav-cursos" type="button" onclick="showView('cursos')"><i class="fas fa-graduation-cap"></i>Capacitación</button>
+  <button class="sb-btn" id="nav-contratistas" type="button" onclick="showView('contratistas')"><i class="fas fa-id-card"></i>Contratistas</button>
   <div class="sb-section" id="sec-gestion">Gestión</div>
   <button class="sb-btn" id="nav-admin" type="button" onclick="showView('admin')"><i class="fas fa-users-gear"></i>Administración</button>
   <div id="sb-user">
@@ -325,11 +323,9 @@ body.sb-mini #sb-collapse i{transform:rotate(180deg)}
 <div id="view-analisis" class="view"><div class="page fade" id="analisis-body"></div></div>
 <div id="view-editor" class="view"><div class="page fade" id="editor-body"></div></div>
 <div id="view-eventos" class="view"><div class="page fade" id="eventos-body"></div></div>
-<div id="view-kpi" class="view"><div class="page fade" id="kpi-body"></div></div>
-<div id="view-board" class="view"><div class="page fade" id="board-body" style="max-width:1500px"></div></div>
+<div id="view-kpi" class="view"><div class="page fade" id="kpi-body" style="max-width:1500px"></div></div>
 <div id="view-mcontr" class="view"><div class="page fade" id="mcontr-body" style="max-width:1400px"></div></div>
 <div id="view-contratistas" class="view"><div class="page fade" id="contratistas-body"></div></div>
-<div id="view-cursos" class="view"><div class="page fade" id="cursos-body"></div></div>
 <div id="view-curso" class="view"><div class="page fade" id="curso-body" style="max-width:820px"></div></div>
 <!-- Ventana genérica para formularios de los módulos -->
 <div class="modal-bg" id="m-gen" role="dialog" aria-modal="true" aria-labelledby="m-gen-t">
@@ -574,9 +570,8 @@ function configureRoleUI(){
   const adm = puedeAdministrar();
   $('nav-admin').style.display = adm ? '' : 'none';
   $('sec-gestion').style.display = adm ? '' : 'none';
-  ['nav-contratistas','nav-cursos'].forEach(id=>$(id).style.display = (esCap()||perm('verTodo')) ? '' : 'none');
+  $('nav-contratistas').style.display = (esCap()||perm('verTodo')) ? '' : 'none';
   $('nav-mcontr').style.display = veMatrizContr() ? '' : 'none';
-  $('nav-board').style.display = veMatrizContr() ? '' : 'none';
   $('sec-contr').style.display = (esCap()||perm('verTodo')||veMatrizContr()) ? '' : 'none';
   if(soloIngles()){ LANG='en'; $('lang-switch').style.display='none'; }
   else $('lang-switch').style.display='flex';
@@ -596,11 +591,9 @@ const MODULOS = [
   {v:'matriz', ico:'fa-table-cells', color:'#2463EB', bg:'#EEF4FF', titulo:'Matriz de riesgos', texto:'Peligros, evaluación y contramedidas acordadas por el equipo de Safety, con un solo criterio.'},
   {v:'analisis', ico:'fa-clipboard-check', color:'#12805C', bg:'#ECFDF5', titulo:'JSA y JRA', texto:'Análisis de riesgo que se llena desde la matriz y genera el formato oficial para firma.'},
   {v:'eventos', ico:'fa-bullhorn', color:'#D97706', bg:'#FFFBEB', titulo:'Comunicados y alertas', texto:'Comunicados de incidentes y alertas de actos inseguros, listos para imprimir.'},
-  {v:'kpi', ico:'fa-chart-column', color:'#7C3AED', bg:'#F5F3FF', titulo:'Indicadores', texto:'Gráficas de eventos por mes, área y tipo, y el plano de la planta.'},
-  {v:'board', ico:'fa-chart-pie', color:'#B91C1C', bg:'#FEF2F2', titulo:'Board de incidentes', texto:'Incidentes por área, turno, grupo, línea o equipo y parte del cuerpo, con modo presentación.'},
+  {v:'kpi', ico:'fa-chart-column', color:'#7C3AED', bg:'#F5F3FF', titulo:'Indicadores', texto:'Resumen, Board de incidentes y seguimiento de contramedidas, con el plano de la planta.'},
   {v:'mcontr', ico:'fa-address-book', color:'#0369A1', bg:'#F0F9FF', titulo:'Matriz de contratistas', texto:'Perfil de cada empresa y trabajador: cursos, exámenes, DC-3, credencial azul y JSA.'},
-  {v:'contratistas', ico:'fa-id-card', color:'#0E7490', bg:'#ECFEFF', titulo:'Contratistas y DC-3', texto:'Empresas, trabajadores, constancias DC-3 con vigencia y aptitud por permiso de trabajo.'},
-  {v:'cursos', ico:'fa-graduation-cap', color:'#9333EA', bg:'#FAF5FF', titulo:'Capacitación', texto:'Cursos y exámenes para contratistas, con calificación en el servidor y resultados.'},
+  {v:'contratistas', ico:'fa-id-card', color:'#0E7490', bg:'#ECFEFF', titulo:'Contratistas', texto:'Empresas y claves de acceso, trabajadores, DC-3, aptitud por permiso y Safety training (curso, avance y examen).'},
   {v:'admin', ico:'fa-users-gear', color:'#0F2A4A', bg:'#F1F5F9', titulo:'Administración', texto:'Alta de usuarios, roles, contraseñas temporales y bitácora de movimientos.'}
 ];
 function pintarInicio(){
@@ -612,6 +605,8 @@ function pintarInicio(){
   if(u) cargarMisContramedidas(); else if($('home-cm')) $('home-cm').innerHTML = '';
 }
 function showView(v){
+  if(v==='board'){ KP_TAB = 'board'; v = 'kpi'; }            // v0.15: el board vive en Indicadores
+  if(v==='cursos'){ CT_TAB = 'training'; v = 'contratistas'; }   // v0.15: Capacitación es «Safety training» en Contratistas
   if(!roleCanView(v)){
     if(SESSION) toast('Tu usuario no tiene permiso para esta sección.','err');
     v = SESSION ? 'home' : 'publico';
@@ -628,8 +623,6 @@ function showView(v){
   if(v==='kpi') cargarKPI();
   if(v==='contratistas') cargarContratistas();
   if(v==='mcontr') cargarMatrizContr();
-  if(v==='board') cargarBoard();
-  if(v==='cursos') cargarCursos();
   if(v!=='curso' && CP && CP.examen){ clearInterval(CP.examen.timer); }
   if(v==='login') $('log-user').focus();
   window.scrollTo(0,0);
@@ -1762,7 +1755,7 @@ function graficasTablero(){
 }
 async function cargarKPI(){
   $('kpi-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
-  const r = await llamar({action:'kpiDatos', token:tok()}); if(!r) return; KP = r;
+  const r = await llamar({action:'kpiDatos', token:tok()}); if(!r) return; KP = r; KB_DATOS = null;
   if(BOOT) BOOT.plano = r.plano;
   renderKPI();
 }
@@ -1770,11 +1763,14 @@ async function renderKPI(){
   CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); CHARTS = []; KG_CH = {};
   if(KG_ABIERTA && window.KCS) cerrarKG();
   KPG = KP.graficas = (KP.graficas && typeof KP.graficas==='object') ? KP.graficas : {}; KPG.kpi = KPG.kpi||{}; KPG.tablero = KPG.tablero||{};   // mismo objeto: no se pierden cambios al cambiar de pestaña o año
-  const tabsKP = pestanas([['ind',L('Indicadores','Indicators'),'fa-chart-column'],['tablero',L('Tablero de incidentes','Incident dashboard'),'fa-table-cells-large']], KP_TAB, 'tabKPI');
-  if(KP_TAB==='tablero'){
-    $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Tablero de incidentes: comunicados del sistema y el histórico KQMS-SA-RE-001.','Incident dashboard: system communications and the KQMS-SA-RE-001 history.')) + tabsKP + `<div id="kp-tablero"></div>`;
+  if(KP_TAB==='tablero') KP_TAB = 'cm';
+  if(KP_TAB==='board' && !KP.veBoard) KP_TAB = 'ind';
+  const tabsKP = pestanas([['ind',L('Resumen','Summary'),'fa-chart-column']].concat(KP.veBoard?[['board',L('Board de incidentes','Incident board'),'fa-chart-pie']]:[]).concat([['cm',L('Contramedidas','Countermeasures'),'fa-list-check']]), KP_TAB, 'tabKPI');
+  if(KP_TAB==='board') return renderBoardKPI(tabsKP);
+  if(KP_TAB==='cm'){
+    $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Seguimiento de contramedidas: abiertos y cerrados, cumplimiento y avance de cada acción.','Countermeasure follow-up: open and closed, compliance and progress of each action.')) + tabsKP + `<div id="kp-tablero"></div>`;
     if(!window.KTB){ $('kp-tablero').innerHTML = `<div class="err-box">${esc(L('No se cargó tablero.js. Súbelo a GitHub junto con index.html.','tablero.js was not loaded. Upload it to GitHub together with index.html.'))}</div>`; return; }
-    try{ KTB.render($('kp-tablero'), KP.eventos, {lang: LANG==='en'?'en':'es', KF:window.KF, graficas: graficasTablero()}); }catch(e){ console.error(e); $('kp-tablero').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
+    try{ KTB.render($('kp-tablero'), KP.eventos, {lang: LANG==='en'?'en':'es', KF:window.KF, graficas: graficasTablero(), soloContramedidas:true}); }catch(e){ console.error(e); $('kp-tablero').innerHTML = `<div class="err-box">${esc(e.message)}</div>`; }
     return;
   }
   const anios = [...new Set(KP.eventos.map(e=>String(e.fecha).slice(0,4)).concat([String(new Date().getFullYear())]))].filter(a=>/^\d{4}$/.test(a)).sort().reverse();
@@ -1788,17 +1784,18 @@ async function renderKPI(){
   const k = (v,l,c) => `<div class="card kpi"><div class="v" style="${c?'color:'+c:''}">${esc(v)}</div><div class="l">${esc(l)}</div></div>`;
   KG_DEF = {
     mes:{t:L('Eventos por mes','Events by month'), type:'stacked'}, pir:{t:L('Pareto de eventos por tipo','Pareto of events by type'), type:'pareto'},
-    area:{t:L('Pareto de eventos por área','Pareto of events by area'), type:'pareto'}, stop:{t:L('Clasificación STOP 6','STOP 6 classification'), type:'bar'},
-    mz:{t:L('Matriz: riesgos por nivel vigente','Matrix: risks by current level'), type:'bar'}, an:{t:L('JSA y JRA por estatus','JSA and JRA by status'), type:'bar'},
-    turno:{t:L('Eventos por turno o cuadrilla','Events by shift or crew'), type:'bar'} };
+    area:{t:L('Pareto de eventos por área','Pareto of events by area'), type:'pareto'},
+    mz:{t:L('Matriz: riesgos por nivel vigente','Matrix: risks by current level'), type:'bar'}, an:{t:L('JSA y JRA por estatus','JSA and JRA by status'), type:'bar'} };
   $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Se calculan solos a partir de los comunicados, alertas, análisis y la matriz.','Calculated automatically from communications, alerts, analyses and the matrix.'), sel('kp-anio',anios,KP_ANIO,undefined,'onchange="KP_ANIO=this.value;renderKPI()" style="width:auto"')) + tabsKP
     + `<div class="grid-4" style="margin-bottom:12px">${k(diasSin===null?'—':diasSin, L('Días sin accidentes','Days without accidents'),'#15803D')}${k(cuenta('Accidente'),L('Accidentes','Accidents'),'#B91C1C')}${k(cuenta('Incidente'),L('Incidentes','Incidents'))}${k(cuenta('Casi accidente'),L('Casi accidentes','Near misses'))}${k(cuenta('Daño a la propiedad'),L('Daños a la propiedad','Property damage'))}${k(ale.length,L('Alertas de actos inseguros','Unsafe-act alerts'),'#B45309')}${k(dias,L('Días perdidos','Lost days'))}${k(TF+' / '+TG, L('Tasa de frecuencia / gravedad','Frequency / severity rate'))}</div>
     <p class="help" style="margin:-4px 0 14px">${esc(`Tasa de frecuencia = accidentes × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Tasa de gravedad = días perdidos × ${base.toLocaleString('es-MX')} ÷ horas-hombre. Horas-hombre del año: ${horas.toLocaleString('es-MX')}.`)}</p>
     <div class="grid-2">${tarjetaKG('mes')}${tarjetaKG('pir', `<p class="help">${esc(L('Barras de mayor a menor y porcentaje acumulado: los primeros tipos hasta la línea de 80 % son tu problema mayor.','Bars from highest to lowest and cumulative percentage: the first types up to the 80% line are your main problem.'))}</p>`)}
-    ${tarjetaKG('area')}${tarjetaKG('stop')}
-    ${tarjetaKG('mz')}${tarjetaKG('an', '<p class="help" id="kp-an"></p>')}</div>
-    <div class="grid-2" style="margin-top:14px"><section class="card chart-card"><h3>${esc(L('Lesiones por parte del cuerpo','Injuries by body part'))}</h3><div id="kp-cuerpo"></div><div id="kp-cuerpo-lista" class="help"></div></section>${tarjetaKG('turno')}</div>
-    <section class="card" style="padding:16px;margin-top:14px"><h3 style="margin:0 0 10px;font-size:.9rem;color:var(--navy)">${esc(L('Layout: dónde ocurren los eventos','Layout: where events happen'))}</h3><div id="kp-plano"></div><p class="help" id="kp-plano-txt"></p></section>
+    ${tarjetaKG('area')}${tarjetaKG('mz')}
+    ${tarjetaKG('an', '<p class="help" id="kp-an"></p>')}</div>
+    ${KP.veBoard?`<p class="help" style="margin:10px 0 0">${esc(L('STOP 6, turnos, grupos, líneas y partes del cuerpo están en la pestaña «Board de incidentes».','STOP 6, shifts, groups, lines and body parts are in the «Incident board» tab.'))}</p>`:''}
+    <section class="card" style="padding:16px;margin-top:14px"><div class="toolbar" style="justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px"><div><h3 style="margin:0;font-size:.9rem;color:var(--navy)">${esc(L('Plano: dónde ocurren los incidentes','Layout: where incidents happen'))}</h3><p class="help" style="margin:4px 0 0">${esc(L('Usa la zona marcada en el comunicado o, en el histórico, la zona de su línea o equipo. Toca una zona para ver sus incidentes.','Uses the zone marked in the communication or, for history, the zone of its line or equipment. Tap a zone to see its incidents.'))}</p></div>
+      <span class="toolbar" style="gap:6px">${sel('kp-plano-clase',[{v:'COMUNICADO',t:L('Incidentes (comunicados)','Incidents (communications)')},{v:'ALERTA',t:L('Alertas','Alerts')},{v:'',t:L('Ambos','Both')}],KP_PLANO,undefined,'onchange="KP_PLANO=this.value;pintarPlanoKPI()" style="width:auto"')}${KP.puedeEditarGraficas?`<button class="btn-g btn-sm" type="button" onclick="editarZonasLinea()">${esc(L('Zonas por línea','Zones by line'))}</button>`:''}</span></div>
+      <div id="kp-plano"></div><p class="help" id="kp-plano-txt"></p><div id="kp-plano-lista"></div></section>
     ${esGestor()?`<section class="card" style="padding:16px;margin-top:14px"><div class="sec-title">${esc(L('Horas-hombre trabajadas por mes','Man-hours worked per month'))} · ${esc(KP_ANIO)}</div>
       <p class="help" style="margin:6px 0 10px">${esc(L('Cada casilla es el total de horas que trabajó todo el personal en ese mes (sin contar descansos). Con estas horas se calculan las tasas de frecuencia y gravedad. Escribe el total que te dé Recursos Humanos o usa «Calcular» con el horario de la planta.','Each box is the total hours worked by all staff that month (breaks excluded). They are used to compute the frequency and severity rates. Type the total from HR or use «Calculate» with the plant schedule.'))}</p>
       <div class="grid-4" style="margin-top:8px">${Array.from({length:12},(_,i)=>{const m=KP_ANIO+'-'+String(i+1).padStart(2,'0'), h=KP.horas.find(x=>String(x.mes)===m); return `<div><label class="lbl">${esc(MESES_N[i])}</label><div style="display:flex;gap:6px">${inp('hh-'+m,h?h.horas:'','type="number" min="0" placeholder="'+esc(L('Horas','Hours'))+'"')}<button class="btn-g btn-sm" type="button" onclick="calcularHoras('${m}')" title="${esc(L('Calcular con el horario','Calculate with the schedule'))}" aria-label="${esc(L('Calcular con el horario','Calculate with the schedule'))}"><i class="fas fa-calculator"></i></button></div></div>`;}).join('')}</div>
@@ -1814,39 +1811,61 @@ async function renderKPI(){
   kgSpec('pir', tiposP, [{k:'eventos', name:L('Eventos','Events'), data:[cuenta('Accidente'),cuenta('Daño a la propiedad'),cuenta('Incidente'),cuenta('Casi accidente'),ale.length]}], {porCategoria:true, coloresCat:['#DC2626','#8B5CF6','#F59E0B','#3B82F6','#10B981'], linea80:true, numerar:true});
   const areasEv = [...new Set(ev.map(e=>e.area).filter(Boolean))];
   kgSpec('area', areasEv, [{k:'com', name:L('Comunicados','Communications'), data:areasEv.map(a=>com.filter(e=>e.area===a).length), color:'#2563EB'},{k:'ale', name:L('Alertas','Alerts'), data:areasEv.map(a=>ale.filter(e=>e.area===a).length), color:'#10B981'}], {linea80:true, numerar:true});
-  kgSpec('stop', STOP_R.filter(x=>x[0]!=='NA').map(x=>x[0].replace(/\d/,'')+' '+x[1].replace('α · ','').slice(0,22)), [{k:'anio', name:KP_ANIO, data:STOP_R.filter(x=>x[0]!=='NA').map(x=>com.filter(e=>e.stopRiesgo===x[0]).length), color:'#0F2A4A'}]);
   const nvs = ['INTOLERABLE','IMPORTANTE','MODERADO','TOLERABLE','SIN EVALUAR'];
   kgSpec('mz', nvs, [{k:'riesgos', name:L('Riesgos','Risks'), data:nvs.map(n=>KP.riesgos.filter(r=>r.vigente===n).length)}], {porCategoria:true, coloresCat:['#DC2626','#F97316','#EAB308','#16A34A','#94A3B8']});
   const anA = KP.analisis.filter(a=>String(a.creado).startsWith(KP_ANIO)), est = Object.keys(ESTATUS_AN);
   kgSpec('an', est.map(s=>ESTATUS_AN[s][1]), ['JSA','JRA'].map((t,i)=>({k:t, name:t, data:est.map(s=>anA.filter(a=>a.tipo===t&&a.estatus===s).length), color:i?'#16A34A':'#2563EB'})));
   const tiempos = anA.filter(a=>a.estatus==='APROBADO'&&a.fechaRevision).map(a=>(new Date(a.fechaRevision)-new Date(a.creado))/3600000);
   $('kp-an').textContent = tiempos.length ? `Tiempo promedio de aprobación: ${(tiempos.reduce((s,x)=>s+x,0)/tiempos.length).toFixed(1)} horas (${tiempos.length} aprobados).` : '';
-  const turnos = (CATS.turno && CATS.turno.length ? CATS.turno : ['Verde','Azul','Mixto']);
-  kgSpec('turno', turnos, [{k:'com', name:L('Comunicados','Communications'), data:turnos.map(t=>com.filter(e=>e.turno===t).length), color:'#2563EB'},{k:'ale', name:L('Alertas','Alerts'), data:turnos.map(t=>ale.filter(e=>e.turno===t).length), color:'#10B981'}]);
-  const zonasEv = e => (window.KF && KF.zonasDeEvento) ? KF.zonasDeEvento(e) : (e.partesCuerpo||[]);
-  const conteo = {}; com.forEach(e=>zonasEv(e).forEach(z=>conteo[z]=(conteo[z]||0)+1));
-  $('kp-cuerpo').innerHTML = KF.cuerpoSVG([], conteo, false);
-  // recuadro al pasar el cursor (o tocar): mes actual, trimestre, año seleccionado e histórico
-  const hoyD = new Date(), mesAct = hoyD.toISOString().slice(0,7), trim = Math.floor(hoyD.getMonth()/3), anioAct = String(hoyD.getFullYear());
-  const lesiones = KP.eventos.filter(e=>e.clase==='COMUNICADO');
-  const porZona = (z, f) => lesiones.filter(e=>zonasEv(e).includes(z) && f(String(e.fecha||''))).length;
-  const tip = $('kp-tip') || Object.assign(document.body.appendChild(document.createElement('div')), {id:'kp-tip'});
-  tip.style.cssText = 'position:fixed;z-index:120;display:none;background:#0B1730;color:#fff;border-radius:10px;padding:10px 12px;font-size:.78rem;line-height:1.5;box-shadow:0 10px 26px rgba(0,0,0,.25);pointer-events:none;min-width:180px';
-  const mostrarTip = (ev, z) => { tip.innerHTML = `<strong style="font-size:.86rem">${esc(KF.nombreZona(z))}</strong><br>${esc(L('Mes actual','Current month'))}: <b>${porZona(z,f=>f.startsWith(mesAct))}</b><br>${esc(L('Trimestre','Quarter'))}: <b>${porZona(z,f=>f.startsWith(anioAct) && Math.floor((Number(f.slice(5,7))-1)/3)===trim)}</b><br>${esc(L('Año','Year'))} ${esc(KP_ANIO)}: <b>${porZona(z,f=>f.startsWith(KP_ANIO))}</b><br>${esc(L('Histórico','All time'))}: <b>${porZona(z,()=>true)}</b>`;
-    tip.style.display = 'block'; tip.style.left = Math.min(window.innerWidth-200, ev.clientX+14)+'px'; tip.style.top = (ev.clientY+14)+'px'; };
-  $('kp-cuerpo').querySelectorAll('[data-zona]').forEach(el=>{ const z = el.dataset.zona; el.querySelectorAll('title').forEach(t=>t.remove()); el.style.cursor = 'pointer';
-    el.addEventListener('mousemove', ev=>mostrarTip(ev, z)); el.addEventListener('mouseleave', ()=>tip.style.display='none'); el.addEventListener('click', ev=>mostrarTip(ev, z)); });
-  const top = Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  $('kp-cuerpo-lista').textContent = top.length ? top.map(([z,n])=>KF.nombreZona(z)+': '+n).join(' · ') : L('Sin lesiones registradas en el año.','No injuries recorded this year.');
-  pintarPlanoKPI(ev, colores);
+  pintarPlanoKPI();
 }
-function pintarPlanoKPI(ev){
-  const el = $('kp-plano'); if(!el) return;
-  const conteo = {}; ev.forEach(e=>(e.zonas||[]).forEach(z=>conteo[z]=(conteo[z]||0)+1));
+/* v0.15: plano de incidentes. Zona marcada en el comunicado o, si no tiene, la zona de su línea/equipo (tabla editable). */
+let KP_PLANO = 'COMUNICADO', KP_PLANO_SEL = null;
+function zonasDeIncidente(e){ if((e.zonas||[]).length) return e.zonas.map(String); const z = (KP.zonasLinea||{})[e.linea]; return z ? [String(z)] : []; }
+function pintarPlanoKPI(){
+  const el = $('kp-plano'); if(!el || !KP) return;
+  const ev = KP.eventos.filter(e=>String(e.fecha).startsWith(KP_ANIO) && (!KP_PLANO || e.clase===KP_PLANO));
+  const conteo = {}; let sinZona = 0; ev.forEach(e=>{ const zs = zonasDeIncidente(e); if(!zs.length) sinZona++; zs.forEach(z=>conteo[z]=(conteo[z]||0)+1); });
   el.innerHTML = KF.layoutSVG([], conteo, false);
-  const top = Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  $('kp-plano-txt').textContent = top.length ? top.map(([z,n])=>KF.nombreZonaPlanta(z)+': '+n).join(' · ') : L('Sin eventos con zona registrada en el año.','No events with a zone this year.');
+  el.querySelectorAll('[data-zl]').forEach(p=>{ p.style.cursor='pointer'; p.addEventListener('click', ()=>{ KP_PLANO_SEL = p.dataset.zl; listaZonaKPI(ev); }); });
+  const top = Object.entries(conteo).sort((a,b)=>b[1]-a[1]).slice(0,8), total = ev.length;
+  $('kp-plano-txt').textContent = (top.length ? top.map(([z,n])=>KF.nombreZonaPlanta(z)+': '+n).join(' · ') : L('Sin eventos ubicados en el año.','No located events this year.'))
+    + (total ? ' — ' + uiText(L(`${total-sinZona} de ${total} ubicados en el plano; ${sinZona} sin zona (sin línea o con una línea sin zona asignada).`, `${total-sinZona} of ${total} located on the layout; ${sinZona} without a zone.`)) : '');
+  if(KP_PLANO_SEL) listaZonaKPI(ev); else $('kp-plano-lista').innerHTML = '';
 }
+function listaZonaKPI(ev){
+  const z = KP_PLANO_SEL, l = ev.filter(e=>zonasDeIncidente(e).includes(String(z))).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  $('kp-plano-lista').innerHTML = `<div class="box" style="margin-top:10px"><div class="toolbar" style="justify-content:space-between"><strong class="no-i18n">${esc(KF.nombreZonaPlanta(z))} · ${l.length} ${esc(L('eventos en','events in'))} ${esc(KP_ANIO)}</strong><button class="btn-g btn-sm" type="button" onclick="KP_PLANO_SEL=null;$('kp-plano-lista').innerHTML=''">${esc(L('Cerrar','Close'))}</button></div>
+    ${l.length?`<div class="tbl-wrap" style="margin-top:8px"><table><thead><tr><th>${esc(L('Fecha','Date'))}</th><th>${esc(L('Folio','ID'))}</th><th>${esc(L('Tipo','Type'))}</th><th>${esc(L('Área','Area'))}</th><th>${esc(L('Línea / equipo','Line / equipment'))}</th><th>${esc(L('Qué ocurrió','What happened'))}</th></tr></thead><tbody>${l.slice(0,100).map(e=>`<tr class="tbl-row"><td style="white-space:nowrap">${esc(String(e.fecha).slice(0,10))}</td><td class="mono" style="white-space:nowrap">${esc(e.folio||'')}</td><td>${esc(e.clasificacion||e.tipo||'')}</td><td class="no-i18n">${esc(e.area||'')}</td><td class="no-i18n">${esc(e.linea||'')}</td><td class="no-i18n" style="font-size:.78rem">${esc(((e.desc||{}).es)||'')}</td></tr>`).join('')}</tbody></table></div>`:`<p class="help">${esc(L('Sin eventos en esta zona.','No events in this zone.'))}</p>`}</div>`;
+}
+function editarZonasLinea(){
+  const lineas = {}; KP.eventos.forEach(e=>{ if(e.linea) lineas[e.linea]=(lineas[e.linea]||0)+1; });
+  Object.keys(KP.zonasLinea||{}).forEach(k=>{ if(!(k in lineas)) lineas[k]=0; });
+  const zonas = (window.KTLAYOUT ? KTLAYOUT.zonas : []).slice().sort((a,b)=>String(a.n).localeCompare(String(b.n)));
+  const filas = Object.keys(lineas).sort((a,b)=>lineas[b]-lineas[a]||a.localeCompare(b));
+  modal(1, L('Zona del plano por línea o equipo','Layout zone by line or equipment'), `<p class="help" style="margin-top:0">${esc(L('Los comunicados con zona marcada usan esa zona. Los demás (como el histórico) se ubican con esta tabla. Deja «Sin zona» si la línea no corresponde a un lugar del plano.','Communications with a marked zone use that zone. The rest (like history) are placed with this table. Leave «No zone» if the line is not a place on the layout.'))}</p>
+    <div class="tbl-wrap" style="max-height:60vh"><table><thead><tr><th>${esc(L('Línea / equipo','Line / equipment'))}</th><th>${esc(L('Incidentes','Incidents'))}</th><th>${esc(L('Zona del plano','Layout zone'))}</th></tr></thead><tbody>${filas.map((k,i)=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(k)}</strong></td><td>${lineas[k]}</td><td><select class="inp no-i18n" data-zsel="${i}"><option value="">${esc(L('Sin zona','No zone'))}</option>${zonas.map(z=>`<option value="${z.id}" ${String((KP.zonasLinea||{})[k])===String(z.id)?'selected':''}>${esc(z.n)}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div>`,
+    `<button class="btn-g" type="button" onclick="closeModal('m-gen')">${esc(L('Cancelar','Cancel'))}</button><button class="btn-p" type="button" id="btn-zl">${esc(L('Guardar','Save'))}</button>`);
+  $('btn-zl').onclick = async ()=>{ const o = {}; document.querySelectorAll('[data-zsel]').forEach(x=>{ if(x.value) o[filas[+x.dataset.zsel]] = Number(x.value); });
+    const r = await llamar({action:'zonasLineaGuardar', token:tok(), zonas:o}, L('Zonas guardadas.','Zones saved.')); if(r){ KP.zonasLinea = r.zonasLinea; closeModal('m-gen'); pintarPlanoKPI(); } };
+}
+// Board de incidentes como pestaña de Indicadores
+let KB_DATOS = null;
+async function renderBoardKPI(tabsKP){
+  $('kpi-body').innerHTML = cabecera(L('Indicadores','Indicators'), L('Board de incidentes: comunicados del sistema y la base de incidentes de Safety.','Incident board: system communications and the Safety incident base.'),
+    `<button class="btn-g btn-sm" type="button" onclick="KB_DATOS=null;renderKPI()"><i class="fas fa-rotate" style="margin-right:6px"></i>${esc(L('Actualizar','Refresh'))}</button>`) + tabsKP + `<div id="board-host"><p class="help">${esc(L('Cargando…','Loading…'))}</p></div>`;
+  if(!KB_DATOS){ const r = await llamar({action:'boardDatos', token:tok()}); if(!r) return; KB_DATOS = r; }
+  if(KP_TAB!=='board' || !$('board-host')) return;
+  if(!window.KBD){ $('board-host').innerHTML = `<div class="err-box">${esc(L('No se cargó board.js. Súbelo a GitHub junto con index.html.','board.js was not loaded. Upload it to GitHub together with index.html.'))}</div>`; revisarArchivos(); return; }
+  const host = $('board-host'), r = KB_DATOS; host.innerHTML = '';
+  window.KBD.render(host, r, { lang: LANG==='en'?'en':'es', KF: window.KF, puedeEditar: !!r.puedeEditar,
+    guardarConfig: async cfg => { r.config = cfg; const x = await api({action:'boardConfigGuardar', token:tok(), config:cfg}); if(!x || !x.success) toast((x&&x.error)||L('No se pudo guardar el board.','Could not save the board.'),'err'); },
+    guardarPlantilla: async p => { const x = await llamar({action:'boardPlantillaGuardar', token:tok(), plantilla:p}, L('Plantilla guardada.','Headcount saved.')); return x; },
+    editarEventos: async cambios => { const x = await llamar({action:'boardEventosEditar', token:tok(), cambios}, L('Datos corregidos.','Data corrected.'));
+      if(x && x.success && KP){ cambios.forEach(({id, campos})=>{ const e = KP.eventos.find(z=>z.id===id); if(!e) return; Object.keys(campos).forEach(k=>{ if(k==='acto') e.actoCondicion = campos[k]; else if(k==='stop') e.stopRiesgo = campos[k]; else if(k==='parte') e.parteRE = campos[k]; else e[k] = campos[k]; }); }); }
+      return x; } });
+}
+
 const MESES_N = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const HH_DETALLE = {};
 const diasDe = (m, dias) => { const [y,mm] = m.split('-').map(Number), n = new Date(y,mm,0).getDate(); let c = 0; for(let d=1; d<=n; d++){ if(dias.includes(new Date(y,mm-1,d).getDay())) c++; } return c; };
@@ -1909,10 +1928,14 @@ function vigenciaDC3(x){
   if(dias<0) return ['b-red',L('Vencida','Expired'),-1]; if(dias<=30) return ['b-pend',`Vence en ${dias} días`,1]; return ['b-done',L('Vigente','Valid'),2];
 }
 function renderContratistas(){
-  const tabs = [['empresas',L('Empresas','Companies'),'fa-building'],['trabajadores',L('Trabajadores','Workers'),'fa-users'],['dc3','DC-3','fa-file-certificate'],['aptitud',L('Aptitud por permiso','Fitness by permit'),'fa-check-double']];
+  const tabs = [['empresas',L('Empresas','Companies'),'fa-building'],['trabajadores',L('Trabajadores','Workers'),'fa-users'],['dc3','DC-3','fa-file-certificate'],['aptitud',L('Aptitud por permiso','Fitness by permit'),'fa-check-double'],['training','Safety training','fa-graduation-cap']];
   const btn = {empresas:['Empresas',L('Nueva empresa','New company')], trabajadores:['Trabajadores',L('Nuevo trabajador','New worker')], dc3:['DC3',L('Nueva DC-3','New DC-3')]}[CT_TAB];
   const porVencer = CT.dc3.filter(x=>vigenciaDC3(x)[2]<=1).length;
-  let h = cabecera(L('Contratistas y DC-3','Contractors and DC-3'), L('Empresas, trabajadores y constancias DC-3 con vigencia, verificación de Safety y aptitud para cada permiso de trabajo.','Companies, workers and DC-3 certificates with expiry, Safety verification and fitness for each work permit.'), btn && esCap()?`<button class="btn-p btn-sm" type="button" onclick="abrirContr('${btn[0]}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(btn[1])}</button>`:'')
+  if(CT_TAB==='training'){
+    $('contratistas-body').innerHTML = cabecera(L('Contratistas','Contractors'), L('Safety training: curso de inducción, avance de cada trabajador y resultados del examen.','Safety training: induction course, progress of each worker and exam results.')) + pestanas(tabs, CT_TAB, 'tabContr') + `<div id="cursos-body"><p class="help">${esc(L('Cargando…','Loading…'))}</p></div>`;
+    if(CU) renderCursos(); else cargarCursos(); return;
+  }
+  let h = cabecera(L('Contratistas','Contractors'), L('Empresas, trabajadores y constancias DC-3 con vigencia, verificación de Safety y aptitud para cada permiso de trabajo.','Companies, workers and DC-3 certificates with expiry, Safety verification and fitness for each work permit.'), btn && esCap()?`<button class="btn-p btn-sm" type="button" onclick="abrirContr('${btn[0]}')"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(btn[1])}</button>`:'')
     + (porVencer?`<div class="box" style="border-color:#FCD34D;background:#FFFBEB;margin-bottom:12px"><strong style="font-size:.86rem">${esc(`${porVencer} constancias DC-3 vencidas o por vencer en 30 días.`)}</strong></div>`:'') + pestanas(tabs, CT_TAB, 'tabContr');
   const tabla = (cab, filas, n) => `<section class="card"><div class="tbl-wrap"><table><thead><tr>${cab.map(c=>`<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${filas||vacio(n, L('Todavía no hay registros.','No records yet.'))}</tbody></table></div></section>`;
   const edit = (t,id) => !esCap() ? '' : `<button class="btn-g btn-sm" type="button" onclick="abrirContr('${t}','${id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>`;
@@ -2014,17 +2037,19 @@ async function verArchivo(id){ const u = await archivo(id); if(u) abrirDataUrl(u
 /* ═══════════════ CAPACITACIÓN (administración) ═══════════════ */
 let CU = null, CU_TAB = 'cursos', CUF = null;
 async function cargarCursos(){
+  if(!$('cursos-body')) return;
   $('cursos-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
   const r = await llamar({action:'cursosListar', token:tok()}); if(!r) return; CU = r; renderCursos();
 }
 function tabCursos(t){ CU_TAB=t; renderCursos(); }
 function renderCursos(){
-  let h = cabecera(L('Capacitación de contratistas','Contractor training'), L('Safety publica el curso y el banco de preguntas. El examen se califica en el servidor; el contratista nunca ve las respuestas.','Safety publishes the course and question bank. The exam is graded on the server; the contractor never sees the answers.'), CU_TAB==='cursos'&&esCap()?`<button class="btn-p btn-sm" type="button" onclick="abrirCurso()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo curso','New course'))}</button>`:'')
+  if(!$('cursos-body')) return;
+  let h = `<div class="toolbar" style="justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:10px"><p class="help" style="margin:0;max-width:760px">${esc(L('Safety publica el curso y el banco de preguntas. El examen se califica en el servidor; el contratista nunca ve las respuestas.','Safety publishes the course and question bank. The exam is graded on the server; the contractor never sees the answers.'))}</p>${CU_TAB==='cursos'&&esCap()?`<button class="btn-p btn-sm" type="button" onclick="abrirCurso()"><i class="fas fa-plus" style="margin-right:6px"></i>${esc(L('Nuevo curso','New course'))}</button>`:''}</div>`
     + pestanas([['cursos',L('Cursos','Courses'),'fa-book'],['avance',L('Avance','Progress'),'fa-list-check'],['resultados',L('Resultados','Results'),'fa-square-poll-vertical']], CU_TAB, 'tabCursos');
   if(CU_TAB==='cursos') h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Curso','Course'))}</th><th>${esc(L('Temas','Topics'))}</th><th>${esc(L('Preguntas','Questions'))}</th><th>${esc(L('Mínimo','Pass mark'))}</th><th>${esc(L('Intentos','Attempts'))}</th><th>${esc(L('Segundos por pregunta','Seconds per question'))}</th><th>${esc(L('Estatus','Status'))}</th><th></th></tr></thead><tbody>${CU.cursos.length?CU.cursos.map(c=>`<tr class="tbl-row"><td class="no-i18n"><strong>${esc(c.titulo)}</strong><br><span class="help">${esc(c.descripcion||'')}</span></td><td>${(c.temas||[]).length}</td><td>${(c.preguntas||[]).length}</td><td>${esc(c.minimo)}%</td><td>${esc(c.intentos)}</td><td>${esc(c.segundos)}</td><td>${String(c.activo).toUpperCase()==='FALSE'?`<span class="badge b-off">${esc(L('Inactivo','Inactive'))}</span>`:`<span class="badge b-done">${esc(L('Publicado','Published'))}</span>`}</td><td>${esCap()?'':'<!--'}<button class="btn-g btn-sm" type="button" onclick="abrirCurso('${c.id}')" aria-label="${esc(L('Editar','Edit'))}"><i class="fas fa-pen"></i></button>${esCap()?'':'-->'}</td></tr>
       <tr><td colspan="8" style="padding-top:0"><div class="box" style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between"><span class="help"><strong>${esc(L('Curso interactivo','Interactive course'))}:</strong> ${c.interactivo?`${esc(c.interactivoNombre||'curso.html')} · ${esc(L('cargado','uploaded'))} ${esc(fecha(c.interactivoFecha))} · ${esc(L('los contratistas ven este curso','contractors see this course'))}`:esc(L('sin cargar: los contratistas ven las diapositivas y ejercicios.','not uploaded: contractors see the slides and exercises.'))} ${c.reglaIntentos==='lider'?' · '+esc(L('reglas del Líder de Seguridad (80 aprueba, 60-79 segunda oportunidad, menos de 60 bloqueado)','Safety Leader rules (80 passes, 60-79 second chance, under 60 blocked)')):''}</span>
       ${esCap()?`<span class="toolbar" style="gap:6px"><label class="btn-g btn-sm" style="cursor:pointer"><i class="fas fa-upload" style="margin-right:6px"></i>${esc(c.interactivo?L('Reemplazar HTML','Replace HTML'):L('Subir HTML','Upload HTML'))}<input type="file" accept=".html,text/html" style="display:none" onchange="subirInteractivo('${c.id}',this)"></label>${c.interactivo?`<button class="btn-g btn-sm" type="button" onclick="verInteractivoSafety('${c.id}')">${esc(L('Ver','View'))}</button><button class="btn-g btn-sm" type="button" onclick="quitarInteractivo('${c.id}')">${esc(L('Quitar','Remove'))}</button>`:''}</span>`:''}</div></td></tr>`).join(''):vacio(8,L('Todavía no hay cursos.','No courses yet.'))}</tbody></table></div></section>
-    <p class="help" style="margin-top:10px">${esc(L('Los contratistas entran desde la página inicial, en «Capacitación para contratistas», sin cuenta.','Contractors enter from the start page, under «Contractor training», without an account.'))}</p>`;
+    <p class="help" style="margin-top:10px">${esc(L('Los contratistas entran desde la página inicial, en «Capacitación para contratistas», con la clave de su compañía (pestaña Empresas), su NSS y su nombre. El curso se les abre directo.','Contractors enter from the start page, under «Contractor training», with their company key (Companies tab), NSS and name. The course opens directly.'))}</p>`;
   if(CU_TAB==='avance'){ const req = c => (c && c.modulosReq && c.modulosReq.length) ? c.modulosReq : ['m1','m2','m3','m4','m5'];
     const av = CU.avances||[];
     h += `<section class="card"><div class="tbl-wrap"><table><thead><tr><th>${esc(L('Actualizado','Updated'))}</th><th>${esc(L('Participante','Participant'))}</th><th>${esc(L('Compañía','Company'))}</th><th>NSS</th><th>${esc(L('Módulos','Modules'))}</th><th>${esc(L('Examen','Exam'))}</th></tr></thead><tbody>${av.length?av.map(a=>{ const c = CU.cursos.find(x=>x.id===a.cursoId), r = req(c), hechos = r.filter(m=>(a.modulos||[]).includes(m)).length;
@@ -2100,17 +2125,7 @@ async function guardarCurso(){ try{ leerCursoForm(); }catch(e){ toast(e.message,
 /* ═══════════════ BOARD DE INCIDENTES (v0.11) ═══════════════
    Lo ve el equipo de Safety. Solo quien tiene el permiso «board» (Fernando Limas y Moisés Mejía) cambia
    tipos de gráfica, colores, secciones y plantilla; lo que guardan lo ven todos. Nombres nunca llegan aquí. */
-async function cargarBoard(){
-  const b = $('board-body');
-  b.innerHTML = cabecera(L('Board de incidentes','Incident board'), L('Comunicados del sistema y la base de incidentes de Safety.','System communications and the Safety incident base.'),
-    `<button class="btn-g btn-sm" type="button" onclick="cargarBoard()"><i class="fas fa-rotate" style="margin-right:6px"></i>${esc(L('Actualizar','Refresh'))}</button>`) + `<div id="board-host"><p class="help">${esc(L('Cargando…','Loading…'))}</p></div>`;
-  const r = await llamar({action:'boardDatos', token:tok()}); if(!r) return;
-  if(!window.KBD){ $('board-host').innerHTML = `<div class="err-box">${esc(L('No se cargó board.js. Súbelo a GitHub junto con index.html.','board.js was not loaded. Upload it to GitHub together with index.html.'))}</div>`; revisarArchivos(); return; }
-  const host = $('board-host'); host.innerHTML = ''; delete host.__kbdS;
-  window.KBD.render(host, r, { lang: LANG==='en'?'en':'es', KF: window.KF, puedeEditar: !!r.puedeEditar,
-    guardarConfig: async cfg => { const x = await api({action:'boardConfigGuardar', token:tok(), config:cfg}); if(!x || !x.success) toast((x&&x.error)||L('No se pudo guardar el board.','Could not save the board.'),'err'); },
-    guardarPlantilla: async p => { const x = await llamar({action:'boardPlantillaGuardar', token:tok(), plantilla:p}, L('Plantilla guardada.','Headcount saved.')); return x; } });
-}
+function cargarBoard(){ KP_TAB = 'board'; showView('kpi'); }
 
 /* ═══════════════ MATRIZ DE CONTRATISTAS (v0.9) ═══════════════
    matriz.html se abre dentro de un marco. Los datos llegan del servidor (window.__MATRIZ_DATOS) y lo que se
@@ -2162,7 +2177,7 @@ async function abrirCapacitacion(clave){
   if(g && g.acceso && !clave){
     $('curso-body').innerHTML = `<p class="help">${esc(L('Cargando…','Loading…'))}</p>`;
     const r = await api({action:'cursosPublicos', acceso:g.acceso});
-    if(r && r.success){ CP = Object.assign({cursos:r.cursos, curso:null, leidos:{}, examen:null}, g); return listaCursosCP(); }
+    if(r && r.success){ CP = Object.assign({cursos:r.cursos, curso:null, leidos:{}, examen:null}, g); return abrirCursoDirecto(); }
     guardarAcceso(null); if(r && r.error) toast(r.error,'err');
   }
   pantallaAccesoCP(clave || '');
@@ -2185,8 +2200,13 @@ async function entrarCapacitacion(){
     const a = {acceso:r.acceso, empresa:r.empresa, nss:r.nss, nombre:r.nombre};
     guardarAcceso(a); CP = Object.assign({cursos:r.cursos, curso:null, leidos:{}, examen:null}, a);
     try{ if(location.search) history.replaceState(null, '', location.pathname); }catch(e){}
-    listaCursosCP();
+    abrirCursoDirecto();
   } finally { const x = $('btn-acceso'); if(x) x.disabled = false; }
+}
+// v0.15: al entrar con la clave, el curso se abre directo (el interactivo primero); la lista solo aparece si hay varios.
+function abrirCursoDirecto(){
+  if(!CP.cursos.length) return listaCursosCP();
+  const i = Math.max(0, CP.cursos.findIndex(c=>c.interactivo)); CP.verLista = CP.cursos.length > 1; elegirCurso(i);
 }
 function salirCapacitacion(){ cerrarInteractivo(); guardarAcceso(null); CP = null; showView('publico'); }
 const datosCP = () => `<section class="card" style="padding:14px 18px;margin-bottom:14px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;justify-content:space-between"><div style="display:flex;flex-wrap:wrap;gap:6px 22px"><span><span class="help">${esc(L('Nombre','Name'))}</span><br><strong class="no-i18n">${esc(CP.nombre)}</strong></span><span><span class="help">${esc(L('Compañía','Company'))}</span><br><strong class="no-i18n">${esc(CP.empresa)}</strong></span><span><span class="help">NSS</span><br><strong class="mono">${esc(CP.nss)}</strong></span></div><button class="btn-g btn-sm" type="button" onclick="salirCapacitacion()">${esc(L('No soy yo / salir','Not me / exit'))}</button></section>`;
@@ -2212,7 +2232,7 @@ function pintarCursoPublico(){
   const c = CP.curso, n = (c.temas||[]).length, leidos = Object.keys(CP.leidos).length, listo = leidos>=n;
   CP.ej = CP.ej || {}; CP.audio = CP.audio || {};
   const voz = window.KEJ && (KEJ.hayVoz() || (c.audios||[]).length);
-  $('curso-body').innerHTML = cabecera(c.titulo, c.descripcion||'', `<button class="btn-g btn-sm" type="button" onclick="listaCursosCP()">${esc(L('Otros cursos','Other courses'))}</button>`)
+  $('curso-body').innerHTML = cabecera(c.titulo, c.descripcion||'', (CP.verLista?`<button class="btn-g btn-sm" type="button" onclick="listaCursosCP()">${esc(L('Otros cursos','Other courses'))}</button>`:`<button class="btn-g btn-sm" type="button" onclick="salirCapacitacion()">${esc(L('Salir','Exit'))}</button>`))
     + datosCP()
     + (c.temas||[]).map((t,i)=>{ const abierto = i<=leidos, activo = abierto && CP.tema===i, diap = temaConDiap(c,t);
       const total = diap ? Math.min(t.hasta, c.totalDiapositivas) - t.desde + 1 : 0, pos = CP.pos[i]||0, vioTodo = !diap || (CP.visto[i]||0) >= total-1;
@@ -2334,11 +2354,11 @@ async function abrirInteractivo(){
   $('curso-body').innerHTML = `<p class="help">${esc(L('Cargando el curso…','Loading the course…'))}</p>`;
   const [h, a] = await Promise.all([ CI.html[c.id] ? Promise.resolve({success:true, html:CI.html[c.id]}) : api({action:'cursoInteractivo', cursoId:c.id, acceso:CP.acceso}), api({action:'cursoAvance', cursoId:c.id, acceso:CP.acceso}) ]);
   const err = (!h||!h.success) ? h : (!a||!a.success) ? a : null;
-  if(err){ toast((err&&err.error)||'Error','err'); if(/acceso|clave/i.test((err&&err.error)||'')){ guardarAcceso(null); return pantallaAccesoCP(''); } return listaCursosCP(); }
+  if(err){ toast((err&&err.error)||'Error','err'); if(/acceso|clave/i.test((err&&err.error)||'')){ guardarAcceso(null); return pantallaAccesoCP(''); } $('curso-body').innerHTML = datosCP() + `<div class="box"><p class="help">${esc(L('No se pudo abrir el curso. Revisa tu conexión e intenta de nuevo.','The course could not be opened. Check your connection and try again.'))}</p><button class="btn-p" type="button" onclick="abrirInteractivo()">${esc(L('Intentar de nuevo','Try again'))}</button></div>`; return; }
   CI.html[c.id] = h.html; CI.estado = a;
   const ov = document.createElement('div'); ov.id = 'ci-ov';
   ov.style.cssText = 'position:fixed;inset:0;z-index:90;background:#fff;display:flex;flex-direction:column';
-  ov.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#0B1730;color:#fff;font-size:.8rem;padding-top:max(6px,env(safe-area-inset-top))"><button class="btn-g btn-sm" type="button" onclick="cerrarInteractivo();listaCursosCP()">← ${esc(L('Cursos','Courses'))}</button><span class="no-i18n" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(CP.nombre)} · ${esc(CP.empresa)} · NSS ${esc(CP.nss)}</span><button class="btn-g btn-sm" type="button" onclick="cerrarInteractivo();salirCapacitacion()">${esc(L('Salir','Exit'))}</button></div>
+  ov.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#0B1730;color:#fff;font-size:.8rem;padding-top:max(6px,env(safe-area-inset-top))">${CP.verLista?`<button class="btn-g btn-sm" type="button" onclick="cerrarInteractivo();listaCursosCP()">← ${esc(L('Cursos','Courses'))}</button>`:''}<span class="no-i18n" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(CP.nombre)} · ${esc(CP.empresa)} · NSS ${esc(CP.nss)}</span><button class="btn-g btn-sm" type="button" onclick="cerrarInteractivo();salirCapacitacion()">${esc(L('Salir','Exit'))}</button></div>
     <iframe id="ci-frame" title="${esc(c.titulo)}" sandbox="allow-scripts allow-popups allow-modals" style="flex:1;border:0;width:100%"></iframe>`;
   document.body.appendChild(ov); document.body.style.overflow = 'hidden';
   $('ci-frame').srcdoc = h.html;
@@ -2370,6 +2390,10 @@ document.addEventListener('click', e=>{ const el = e.target; if(el && el.tagName
    Revisa cada 15 minutos (y al volver a la pestaña) si index.html publicado trae otra FRONT_VERSION.
    Para cada versión nueva, agrega sus novedades en NOVEDADES: se muestran una vez después de actualizar. */
 const NOVEDADES = {
+  '0.15.0': [ L('Indicadores une todo: «Resumen», «Board de incidentes» y «Contramedidas», sin gráficas repetidas. El menú «Board de incidentes» desaparece.','Indicators brings everything together: «Summary», «Incident board» and «Countermeasures», without repeated charts. The «Incident board» menu item is gone.'),
+    L('Board: botón «✎ Editar datos» (y clic en una barra) para corregir área, turno, grupo, línea, clasificación, acto o condición, STOP 6, parte del cuerpo y tipo de lesión de los incidentes.','Board: «✎ Edit data» button (and click on a bar) to correct the incidents.'),
+    L('Plano de la planta con los incidentes del histórico, ubicados por su línea o equipo; tabla «Zonas por línea» editable.','Layout with historical incidents placed by line or equipment; editable «Zones by line» table.'),
+    L('«Contratistas y DC-3» ahora es «Contratistas», con la pestaña «Safety training» (antes Capacitación). Con la clave, el curso se abre directo.','«Contractors and DC-3» is now «Contractors», with the «Safety training» tab (formerly Training). With the key, the course opens directly.') ],
   '0.14.0': [ L('Capacitación de contratistas: nuevo curso interactivo «Seguridad Primero» (5 módulos con actividades). El avance se guarda por NSS y el examen se abre al terminar los módulos.','Contractor training: new interactive course «Safety First» (5 modules with activities). Progress is saved by NSS and the exam opens after the modules.'),
     L('Examen con las reglas del Líder de Seguridad: 80 aprueba, 60 a 79 segunda y última oportunidad, menos de 60 bloqueado. Safety puede dar otra oportunidad.','Exam with Safety Leader rules: 80 passes, 60-79 second and last chance, under 60 blocked. Safety can give another chance.'),
     L('Actividad «Caza de riesgos»: 30 riesgos ocultos en la planta.','«Risk hunt» activity: 30 hidden risks in the plant.'),
